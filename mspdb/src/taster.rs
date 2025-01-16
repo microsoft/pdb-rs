@@ -17,7 +17,7 @@ pub enum Flavor {
 pub fn what_flavor<F: ReadAt>(f: &F) -> Result<Option<Flavor>, std::io::Error> {
     let mut header = [0u8; 0x100];
     let _n = f.read_at(&mut header, 0)?;
-    if msf::is_header_msf(&header) {
+    if msf::is_file_header_msf(&header) {
         Ok(Some(Flavor::Pdb))
     } else if msfz::is_header_msfz(&header) {
         Ok(Some(Flavor::Pdz))

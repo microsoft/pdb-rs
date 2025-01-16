@@ -31,31 +31,50 @@ impl Default for CreateOptions {
 }
 
 impl Msf<RandomAccessFile> {
-    /// Opens an MSF file.
-    pub fn open(filename: &Path) -> anyhow::Result<Msf<RandomAccessFile>> {
-        Self::open_with_access_mode(filename, AccessMode::Read)
+    /// Opens an MSF file for read access, given a file name.
+    pub fn open(file_name: &Path) -> anyhow::Result<Self> {
+        let file = File::open(file_name)?;
+        let random_file = RandomAccessFile::from(file);
+        Self::new_with_access_mode(random_file, AccessMode::Read)
     }
 
-    /// Opens an MSF file.
-    pub fn open_with_access_mode(
-        filename: &Path,
-        access_mode: AccessMode,
-    ) -> anyhow::Result<Msf<RandomAccessFile>> {
-        let f: File = match access_mode {
-            AccessMode::Read => File::open(filename)?,
-            AccessMode::ReadWrite => File::options().read(true).write(true).open(filename)?,
-        };
-        let rf = RandomAccessFile::from(f);
-
-        Msf::new_with_access_mode(rf, access_mode)
-    }
-
-    /// Creates a new MSF file on disk (truncating any existing file) and creates a new MSF object
+    /// Creates a new MSF file on disk (**truncating any existing file!**) and creates a new MSF object
     /// in-memory object with read/write access.
-    pub fn create<P: AsRef<Path>>(path: P, options: CreateOptions) -> anyhow::Result<Self> {
-        let f = File::create(path)?;
-        let rf = RandomAccessFile::from(f);
-        Self::create_for(rf, options)
+    pub fn create(file_name: &Path, options: CreateOptions) -> anyhow::Result<Self> {
+        let file = File::create(file_name)?;
+        let random_file = RandomAccessFile::from(file);
+        Self::create_with_file(random_file, options)
+    }
+
+    /// Opens an existing MSF file for read/write access, given a file name.
+    pub fn modify(file_name: &Path) -> anyhow::Result<Self> {
+        let file = File::options().read(true).write(true).open(file_name)?;
+        let random_file = RandomAccessFile::from(file);
+        Self::modify_with_file(random_file)
+    }
+}
+
+impl<F: ReadAt> Msf<F> {
+    /// Opens an MSF file for read access, given a [`File`] that has already been opened.
+    pub fn open_with_file(file: F) -> anyhow::Result<Self> {
+        Self::new_with_access_mode(file, AccessMode::Read)
+    }
+
+    /// Given a [`File`] that has already been opened.
+    ///
+    /// **This function destroys the contents of the existing file.**
+    pub fn create_with_file(file: F, options: CreateOptions) -> anyhow::Result<Self> {
+        Self::create_for(file, options)
+    }
+
+    /// Opens an existing MSF file for read/write access, given an [`File`] that has already
+    /// been opened.
+    ///
+    /// The `file` handle will be used for absolute reads and writes. The caller should never use
+    /// this same file handle for reads (and especially not for writes) while also using [`Msf`]
+    /// because the operating system's read/write file position may be updated by [`Msf`].
+    pub fn modify_with_file(file: F) -> anyhow::Result<Self> {
+        Self::new_with_access_mode(file, AccessMode::ReadWrite)
     }
 }
 
@@ -90,7 +109,7 @@ impl<F: ReadAt> Msf<F> {
     /// This function reads the MSF File Header, which is the header for the entire file.
     /// It also reads the stream directory, so it knows how to find each of the streams
     /// and the pages of the streams.
-    pub fn new_with_access_mode(file: F, access_mode: AccessMode) -> anyhow::Result<Self> {
+    fn new_with_access_mode(file: F, access_mode: AccessMode) -> anyhow::Result<Self> {
         // Read the MSF File Header.
 
         const MIN_PAGE_SIZE_USIZE: usize = 1usize << MIN_PAGE_SIZE.exponent();

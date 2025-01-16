@@ -2,13 +2,12 @@
 //!
 //! # References
 //! * <https://llvm.org/docs/PDB/index.html>
+//! * <https://github.com/microsoft/microsoft-pdb>
 
 #![forbid(unused_must_use)]
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
-#![allow(clippy::too_many_arguments)]
 #![allow(clippy::collapsible_if)]
-#![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::single_match)]
 #![allow(clippy::manual_flatten)]
 #![allow(clippy::needless_lifetimes)]
@@ -102,36 +101,34 @@ pub struct Pdb<F = sync_file::RandomAccessFile> {
     psi: OnceCell<Box<PublicSymbolIndex>>,
 }
 
-impl<F: ReadAt> Pdb<F> {
-    /// Reads the header of a PDB file and provides access to the streams contained within the
-    /// PDB file.
-    ///
-    /// This function reads the MSF File Header, which is the header for the entire file.
-    /// It also reads the stream directory, so it knows how to find each of the streams
-    /// and the pages of the streams.
-    pub fn from_file(file: F) -> anyhow::Result<Box<Self>> {
-        Self::from_file_access(file, msf::AccessMode::Read)
-    }
+#[derive(Copy, Clone, Eq, PartialEq)]
+enum AccessMode {
+    Read,
+    ReadWrite,
+}
 
+impl<F: ReadAt> Pdb<F> {
     /// Reads the header of a PDB file and provides access to the streams contained within the
     /// PDB file. Allows read/write access, if using an MSF container format.
     ///
     /// This function reads the MSF File Header, which is the header for the entire file.
     /// It also reads the stream directory, so it knows how to find each of the streams
     /// and the pages of the streams.
-    pub fn from_file_access(file: F, access_mode: msf::AccessMode) -> anyhow::Result<Box<Self>> {
+    fn from_file_access(file: F, access_mode: AccessMode) -> anyhow::Result<Box<Self>> {
         use crate::taster::{what_flavor, Flavor};
 
-        let container = match (what_flavor(&file)?, access_mode) {
-            (None, _) => bail!("The file is not a recognized PDB or PDZ format."),
-            (Some(Flavor::PortablePdb), _) => bail!("Portable PDBs are not supported."),
-            (Some(Flavor::Pdb), _) => {
-                Container::Msf(msf::Msf::new_with_access_mode(file, access_mode)?)
+        let Some(flavor) = what_flavor(&file)? else {
+            bail!("The file is not a recognized PDB or PDZ format.");
+        };
+
+        let container = match (flavor, access_mode) {
+            (Flavor::PortablePdb, _) => bail!("Portable PDBs are not supported."),
+            (Flavor::Pdb, AccessMode::Read) => Container::Msf(msf::Msf::open_with_file(file)?),
+            (Flavor::Pdb, AccessMode::ReadWrite) => {
+                Container::Msf(msf::Msf::modify_with_file(file)?)
             }
-            (Some(Flavor::Pdz), msf::AccessMode::Read) => {
-                Container::Msfz(msfz::Msfz::from_file(file)?)
-            }
-            (Some(Flavor::Pdz), msf::AccessMode::ReadWrite) => {
+            (Flavor::Pdz, AccessMode::Read) => Container::Msfz(msfz::Msfz::from_file(file)?),
+            (Flavor::Pdz, AccessMode::ReadWrite) => {
                 bail!("The MSFZ file format is read-only.")
             }
         };
@@ -421,23 +418,57 @@ fn get_or_init_err<T, E, F: FnOnce() -> Result<T, E>>(cell: &OnceCell<T>, f: F) 
     }
 }
 
-impl Pdb<File> {
+impl Pdb<RandomAccessFile> {
     /// Opens a PDB file.
-    pub fn open<P: AsRef<Path>>(
-        filename: P,
-    ) -> anyhow::Result<Box<Pdb<sync_file::RandomAccessFile>>> {
-        let f = File::open(filename)?;
-        let rf = sync_file::RandomAccessFile::from(f);
-        Pdb::from_file(rf)
+    pub fn open(file_name: &Path) -> anyhow::Result<Box<Pdb<RandomAccessFile>>> {
+        let f = File::open(file_name)?;
+        let random_file = RandomAccessFile::from(f);
+        Self::from_file_access(random_file, AccessMode::Read)
+    }
+
+    /// Reads the header of a PDB file and provides access to the streams contained within the
+    /// PDB file.
+    ///
+    /// This function reads the MSF File Header, which is the header for the entire file.
+    /// It also reads the stream directory, so it knows how to find each of the streams
+    /// and the pages of the streams.
+    pub fn open_from_file(file: File) -> anyhow::Result<Box<Self>> {
+        let random_file = RandomAccessFile::from(file);
+        Self::from_file_access(random_file, AccessMode::Read)
     }
 
     /// Opens a PDB file for editing. The file must use the MSF container format.
-    pub fn edit<P: AsRef<Path>>(
-        filename: P,
-    ) -> anyhow::Result<Box<Pdb<sync_file::RandomAccessFile>>> {
-        let f = File::options().read(true).write(true).open(filename)?;
-        let rf = sync_file::RandomAccessFile::from(f);
-        Pdb::from_file_access(rf, msf::AccessMode::ReadWrite)
+    pub fn modify(filename: &Path) -> anyhow::Result<Box<Pdb<sync_file::RandomAccessFile>>> {
+        let file = File::options().read(true).write(true).open(filename)?;
+        let random_file = sync_file::RandomAccessFile::from(file);
+        Self::from_file_access(random_file, AccessMode::ReadWrite)
+    }
+
+    /// Opens an existing PDB file for read/write access, given a file name.
+    ///
+    /// The file _must_ use the MSF container format. MSFZ is not supported for read/write access.
+    pub fn modify_from_file(file: File) -> anyhow::Result<Box<Self>> {
+        let random_file = RandomAccessFile::from(file);
+        Self::from_file_access(random_file, AccessMode::ReadWrite)
+    }
+}
+
+impl<F: ReadAt> Pdb<F> {
+    /// Reads the header of a PDB file and provides access to the streams contained within the
+    /// PDB file.
+    ///
+    /// This function reads the MSF File Header, which is the header for the entire file.
+    /// It also reads the stream directory, so it knows how to find each of the streams
+    /// and the pages of the streams.
+    pub fn open_from_random_file(random_file: F) -> anyhow::Result<Box<Self>> {
+        Self::from_file_access(random_file, AccessMode::Read)
+    }
+
+    /// Opens an existing PDB file for read/write access, given a file name.
+    ///
+    /// The file _must_ using the MSF container format. MSFZ is not supported for read/write access.
+    pub fn modify_from_random_file(random_file: F) -> anyhow::Result<Box<Self>> {
+        Self::from_file_access(random_file, AccessMode::ReadWrite)
     }
 }
 

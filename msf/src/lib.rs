@@ -29,13 +29,9 @@ mod tests;
 mod write;
 
 pub use open::CreateOptions;
+pub use stream_reader::StreamReader;
 pub use stream_writer::StreamWriter;
 
-#[doc(inline)]
-pub use stream_reader::StreamReader;
-
-use self::pages::{PageAllocator, StreamPageMapper};
-// use crate::utils::swizzle::Swizzle;
 use anyhow::bail;
 use bitvec::prelude::{BitVec, Lsb0};
 use pow2::{IntOnlyPow2, Pow2};
@@ -47,22 +43,23 @@ use std::path::Path;
 use sync_file::{RandomAccessFile, ReadAt, WriteAt};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
 
+use self::pages::{num_pages_for_stream_size, PageAllocator, StreamPageMapper};
+
 /// Identifies a page number in the MSF file. Not to be confused with `StreamPage`.
-pub type Page = u32;
+type Page = u32;
 
 /// Identifies a page within a stream. `StreamPage` can be translated to `Page` by using the
 /// stream page mapper.
-pub type StreamPage = u32;
+type StreamPage = u32;
 
 const FPM_NUMBER_1: u32 = 1;
 const FPM_NUMBER_2: u32 = 2;
 
 /// The value of `magic` for "big" MSF files.
-pub const MSF_BIG_MAGIC: [u8; 32] = *b"Microsoft C/C++ MSF 7.00\r\n\x1a\x44\x53\x00\x00\x00";
+const MSF_BIG_MAGIC: [u8; 32] = *b"Microsoft C/C++ MSF 7.00\r\n\x1a\x44\x53\x00\x00\x00";
 
 /// This identifies MSF files before the transition to "big" MSF files.
-pub const MSF_SMALL_MAGIC: [u8; 0x2c] =
-    *b"Microsoft C/C++ program database 2.00\r\n\x1a\x4a\x47\0\0";
+const MSF_SMALL_MAGIC: [u8; 0x2c] = *b"Microsoft C/C++ program database 2.00\r\n\x1a\x4a\x47\0\0";
 
 #[test]
 fn show_magics() {
@@ -90,38 +87,38 @@ fn show_magics() {
 #[allow(missing_docs)]
 #[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
 #[repr(C)]
-pub struct SmallMsfHeader {
+struct SmallMsfHeader {
     /// Identifies this file as a PDB. Value must be [`MSF_SMALL_MAGIC`].
-    pub magic: [u8; 0x2c],
-    pub page_size: U32<LE>,
-    pub active_fpm: U16<LE>,
-    pub num_pages: U16<LE>,
-    pub stream_dir_size: U32<LE>,
+    magic: [u8; 0x2c],
+    page_size: U32<LE>,
+    active_fpm: U16<LE>,
+    num_pages: U16<LE>,
+    stream_dir_size: U32<LE>,
     /// This field contains a pointer to an in-memory data structure, and hence is meaningless.
     /// Decoders should ignore this field. Encoders should set this field to 0.
-    pub stream_dir_ptr: U32<LE>,
+    stream_dir_ptr: U32<LE>,
     // mpspnpm: [U32<LE>]
 }
 
 /// The header of the PDB/MSF file. This is at file offset 0.
 #[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
 #[repr(C)]
-pub struct MsfHeader {
+struct MsfHeader {
     /// Identifies this file as a PDB.
-    pub magic: [u8; 32],
+    magic: [u8; 32],
 
     /// The size of each page, in bytes.
-    pub page_size: U32<LE>,
+    page_size: U32<LE>,
 
     /// Page number of the active FPM. This can only be 1 or 2. In the C++ implementation, this is
     /// `pnFpm`.
-    pub active_fpm: U32<LE>,
+    active_fpm: U32<LE>,
 
     /// The number of pages in this MSF file. In the C++ implementation, this is `pnMac`.
-    pub num_pages: U32<LE>,
+    num_pages: U32<LE>,
 
     /// Size of the Stream Directory, in bytes. In the C++ implementation, this is `siSt.cb`.
-    pub stream_dir_size: U32<LE>,
+    stream_dir_size: U32<LE>,
 
     /// The page which contains the Stream Directory Map. This page contains a list of pages
     /// which contain the Stream Directory.
@@ -130,7 +127,7 @@ pub struct MsfHeader {
     /// this field is expected to be zero.
     ///
     /// In the C++ implementation, this is `mpspnpn` (map of stream page number to page number).
-    pub stream_dir_small_page_map: U32<LE>,
+    stream_dir_small_page_map: U32<LE>,
     // When using "Big MSF", there is an array of u32 values that immediately follow
     // the MSfHeader. The size of the array is a function of stream_dir_size and num_pages:
     //
@@ -148,43 +145,44 @@ const STREAM_DIR_PAGE_MAP_FILE_OFFSET: u64 = MSF_HEADER_LEN as u64;
 static_assertions::const_assert_eq!(MSF_HEADER_LEN, 52);
 
 /// The minimum page size.
-pub const MIN_PAGE_SIZE: PageSize = PageSize::from_exponent(9);
+const MIN_PAGE_SIZE: PageSize = PageSize::from_exponent(9);
 /// The default page size.
-pub const DEFAULT_PAGE_SIZE: PageSize = PageSize::from_exponent(12);
+const DEFAULT_PAGE_SIZE: PageSize = PageSize::from_exponent(12);
 /// A large page size. This is less than the largest supported page size.
-pub const LARGE_PAGE_SIZE: PageSize = PageSize::from_exponent(13);
+#[allow(dead_code)]
+const LARGE_PAGE_SIZE: PageSize = PageSize::from_exponent(13);
 /// The largest supported page size.
-pub const MAX_PAGE_SIZE: PageSize = PageSize::from_exponent(16);
+const MAX_PAGE_SIZE: PageSize = PageSize::from_exponent(16);
 
 /// This size is used to mark a stream as "invalid". An invalid stream is different from a
 /// stream with a length of zero bytes.
 pub const NIL_STREAM_SIZE: u32 = 0xffff_ffff;
 
 /// Specifies a page size used in an MSF file. This value is always a power of 2.
-pub type PageSize = Pow2;
+type PageSize = Pow2;
 
 /// Converts a page number to a file offset.
-pub fn page_to_offset(page: u32, page_size: PageSize) -> u64 {
+fn page_to_offset(page: u32, page_size: PageSize) -> u64 {
     (page as u64) << page_size.exponent()
 }
 
 /// Given an interval number, returns the page number of the first page of the interval.
-pub fn interval_to_page(interval: u32, page_size: PageSize) -> u32 {
+fn interval_to_page(interval: u32, page_size: PageSize) -> u32 {
     interval << page_size.exponent()
 }
 
-pub use pages::num_pages_for_stream_size;
-
 /// Gets the byte offset within a page, for a given offset within a stream.
-pub fn offset_within_page(offset: u32, page_size: PageSize) -> u32 {
+fn offset_within_page(offset: u32, page_size: PageSize) -> u32 {
     let page_low_mask = (1u32 << page_size.exponent()) - 1u32;
     offset & page_low_mask
 }
 
-/// Allows reading the contents of a PDB file.
+/// Allows reading and writing the contents of a PDB/MSF file.
 ///
-/// This type provides read-only access. It does not provide any means to modify a PDB file or
-/// to create a new one.
+/// This type allows reading and writing PDB/MSF files.
+///
+/// The [`Msf::open`] function opens an MSF file for read access, given a file. This is the most
+/// commonly-used way to open a file.
 pub struct Msf<F = RandomAccessFile> {
     /// The data source.
     file: F,
@@ -233,16 +231,16 @@ pub enum MsfKind {
     Big,
 }
 
-/// Specifies access mode for opening a PDB/MSF file.
+/// Specifies the access mode for opening a PDB/MSF file.
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum AccessMode {
+enum AccessMode {
     /// Read-only access
     Read,
     /// Read-write access
     ReadWrite,
 }
 
-impl<F: ReadAt> Msf<F> {
+impl<F> Msf<F> {
     /// Returns the page size used for this file.
     pub fn page_size(&self) -> PageSize {
         self.pages.page_size
@@ -319,13 +317,47 @@ impl<F: ReadAt> Msf<F> {
         }
     }
 
+    /// Return the nominal length of this file, in bytes.
+    ///
+    /// This is the number of pages multiplied by the page size. It is not guaranteed to be equal to
+    /// the on-disk size of the file, but in practice it usually is.
+    pub fn nominal_size(&self) -> u64 {
+        page_to_offset(self.pages.num_pages, self.pages.page_size)
+    }
+
+    /// Returns the number of free pages.
+    ///
+    /// This number counts the pages that are _less than_ `num_pages`. There may be pages assigned
+    /// to the MSF file beyond `num_pages`, but if there are then this does not count that space.
+    ///
+    /// This value does not count Page 0, pages assigned to the FPM, streams, or the current
+    /// Stream Directory. It does count pages assigned to the old stream directory.
+    pub fn num_free_pages(&self) -> u32 {
+        self.pages.fpm.count_ones() as u32
+    }
+
+    /// Extracts the underlying file for this MSF. **All pending modifications are dropped**.
+    pub fn into_inner(self) -> F {
+        self.file
+    }
+
+    /// Indicates whether this [`Msf`] was opened for read/write access.
+    pub fn is_writable(&self) -> bool {
+        self.access_mode == AccessMode::ReadWrite
+    }
+}
+
+impl<F: ReadAt> Msf<F> {
     /// Reads a portion of a stream to a vector.
     pub fn read_stream_section_to_vec(
         &self,
         stream: u32,
         start: u32,
         size: u32,
-    ) -> anyhow::Result<Vec<u8>> {
+    ) -> anyhow::Result<Vec<u8>>
+    where
+        F: ReadAt,
+    {
         let mut reader = self.get_stream_reader(stream)?;
         let mut buffer: Vec<u8> = vec![0; size as usize];
         reader.seek(SeekFrom::Start(start as u64))?;
@@ -374,39 +406,26 @@ impl<F: ReadAt> Msf<F> {
 
     /// Returns an object which can read from a given stream.  The returned object implements
     /// the [`Read`], [`Seek`], and [`ReadAt`] traits.
-    pub fn get_stream_reader(&self, stream: u32) -> anyhow::Result<StreamReader<'_, F>> {
+    pub fn get_stream_reader(&self, stream: u32) -> anyhow::Result<StreamReader<'_, F>>
+    where
+        F: ReadAt,
+    {
         let (stream_size, stream_pages) = self.stream_size_and_pages(stream)?;
         Ok(StreamReader::new(self, stream_size, stream_pages, 0))
-    }
-
-    /// Return the nominal length of this file, in bytes.
-    ///
-    /// This is the number of pages multiplied by the page size. It is not guaranteed to be equal to
-    /// the on-disk size of the file, but in practice it usually is.
-    pub fn nominal_size(&self) -> u64 {
-        page_to_offset(self.pages.num_pages, self.pages.page_size)
-    }
-
-    /// Returns the number of free pages.
-    ///
-    /// This number counts the pages that are _less than_ `num_pages`. There may be pages assigned
-    /// to the MSF file beyond `num_pages`, but if there are then this does not count that space.
-    ///
-    /// This value does not count Page 0, pages assigned to the FPM, streams, or the current
-    /// Stream Directory. It does count pages assigned to the old stream directory.
-    pub fn num_free_pages(&self) -> u32 {
-        self.pages.fpm.count_ones() as u32
-    }
-
-    /// Extracts the underlying file for this MSF. **All pending modifications are dropped**.
-    pub fn into_inner(self) -> F {
-        self.file
     }
 }
 
 /// Checks whether the header of a file appears to be a valid MSF file.
 ///
-/// This only looks at the signature; it does not read anything else in the file.
-pub fn is_header_msf(header: &[u8]) -> bool {
+/// This only looks at the signature; it does not read anything else in the file. This is useful
+/// for quickly determining whether a file could be an MSF file, but without any validation.
+pub fn is_file_header_msf(header: &[u8]) -> bool {
     header.starts_with(&MSF_BIG_MAGIC) || header.starts_with(&MSF_SMALL_MAGIC)
 }
+
+/// The absolute minimum size of a slice that could contain a valid MSF file header, as tested by
+/// [`is_file_header_msf`].
+///
+/// This does not specify the minimum valid size of an MSF file. It is only a recommended minimum
+/// for callers of [`is_file_header_msf`].
+pub const MIN_FILE_HEADER_SIZE: usize = 0x100;

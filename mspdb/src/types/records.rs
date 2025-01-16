@@ -311,10 +311,7 @@ impl<'a> MethodList<'a> {
 /// `attr` is the `attr` field of a `LF_ONEMETHOD`, etc. record.
 pub fn introduces_virtual(attr: u16) -> bool {
     // This field is only present if this method introduces a new vtable slot.
-    match (attr >> 2) & 0xf {
-        4 | 6 => true,
-        _ => false,
-    }
+    matches!((attr >> 2) & 0xf, 4 | 6)
 }
 
 pub struct MethodListItem {

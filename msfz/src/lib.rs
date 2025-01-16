@@ -11,11 +11,13 @@
 #![warn(missing_docs)]
 #![allow(clippy::needless_lifetimes)]
 
+/*
 #[cfg(doc)]
 pub mod docs {
     #![doc = include_str!("docs.md")]
     use super::*;
 }
+    */
 
 use anyhow::Result;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32, U64};

@@ -233,37 +233,37 @@ impl SymKind {
     /// In all well-formed symbol streams, every symbol that starts a scope has a matching symbol
     /// that ends that scope.
     pub fn ends_scope(self) -> bool {
-        match self {
-            SymKind::S_END | SymKind::S_PROC_ID_END | SymKind::S_INLINESITE_END => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            SymKind::S_END | SymKind::S_PROC_ID_END | SymKind::S_INLINESITE_END
+        )
     }
 
     /// Returns `true` if this symbol can be the _target_ of a "reference to symbol" in the
     /// Global Symbol Stream.
     pub fn is_refsym_target(self) -> bool {
-        match self {
+        matches!(
+            self,
             SymKind::S_GPROC32
-            | SymKind::S_LPROC32
-            | SymKind::S_GMANPROC
-            | SymKind::S_LMANPROC
-            | SymKind::S_GDATA32
-            | SymKind::S_LDATA32
-            | SymKind::S_ANNOTATION => true,
-            _ => false,
-        }
+                | SymKind::S_LPROC32
+                | SymKind::S_GMANPROC
+                | SymKind::S_LMANPROC
+                | SymKind::S_GDATA32
+                | SymKind::S_LDATA32
+                | SymKind::S_ANNOTATION
+        )
     }
 
     /// Returns `true` if this symbol can be the _source_ of a "reference to symbol"
     /// in the Global Symbol Stream.
     pub fn is_refsym_source(self) -> bool {
-        match self {
+        matches!(
+            self,
             SymKind::S_LPROCREF
-            | SymKind::S_PROCREF
-            | SymKind::S_ANNOTATIONREF
-            | SymKind::S_TOKENREF
-            | SymKind::S_DATAREF => true,
-            _ => false,
-        }
+                | SymKind::S_PROCREF
+                | SymKind::S_ANNOTATIONREF
+                | SymKind::S_TOKENREF
+                | SymKind::S_DATAREF
+        )
     }
 }

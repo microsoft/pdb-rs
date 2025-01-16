@@ -169,69 +169,66 @@ impl Leaf {
     }
 
     /// Checks whether this `Leaf` can be used as a type record.
-    #[rustfmt::skip]
     pub fn can_start_record(self) -> bool {
-        match self {
-            | Leaf::LF_MODIFIER
-            | Leaf::LF_POINTER
-            | Leaf::LF_ARRAY
-            | Leaf::LF_CLASS
-            | Leaf::LF_STRUCTURE
-            | Leaf::LF_UNION
-            | Leaf::LF_ENUM
-            | Leaf::LF_PROCEDURE
-            | Leaf::LF_MFUNCTION
-            | Leaf::LF_VTSHAPE
-            | Leaf::LF_COBOL0
-            | Leaf::LF_COBOL1
-            | Leaf::LF_BARRAY
-            | Leaf::LF_LABEL
-            | Leaf::LF_NULL
-            | Leaf::LF_DIMARRAY
-            | Leaf::LF_VFTPATH
-            | Leaf::LF_PRECOMP
-            | Leaf::LF_ENDPRECOMP
-            | Leaf::LF_OEM
-            | Leaf::LF_OEM2
-            | Leaf::LF_ALIAS
-            | Leaf::LF_MANAGED
-            | Leaf::LF_TYPESERVER2 => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Leaf::LF_MODIFIER
+                | Leaf::LF_POINTER
+                | Leaf::LF_ARRAY
+                | Leaf::LF_CLASS
+                | Leaf::LF_STRUCTURE
+                | Leaf::LF_UNION
+                | Leaf::LF_ENUM
+                | Leaf::LF_PROCEDURE
+                | Leaf::LF_MFUNCTION
+                | Leaf::LF_VTSHAPE
+                | Leaf::LF_COBOL0
+                | Leaf::LF_COBOL1
+                | Leaf::LF_BARRAY
+                | Leaf::LF_LABEL
+                | Leaf::LF_NULL
+                | Leaf::LF_DIMARRAY
+                | Leaf::LF_VFTPATH
+                | Leaf::LF_PRECOMP
+                | Leaf::LF_ENDPRECOMP
+                | Leaf::LF_OEM
+                | Leaf::LF_OEM2
+                | Leaf::LF_ALIAS
+                | Leaf::LF_MANAGED
+                | Leaf::LF_TYPESERVER2
+        )
     }
 
     /// Checks whether this `Leaf` can be used within a field list record.
-    #[rustfmt::skip]
     pub fn is_nested_leaf(self) -> bool {
-        match self {
-            | Leaf::LF_SKIP
-            | Leaf::LF_ARGLIST
-            | Leaf::LF_DEFARG
-            | Leaf::LF_FIELDLIST
-            | Leaf::LF_DERIVED
-            | Leaf::LF_BITFIELD
-            | Leaf::LF_METHODLIST
-            | Leaf::LF_DIMCONU
-            | Leaf::LF_DIMCONLU
-            | Leaf::LF_DIMVARU
-            | Leaf::LF_DIMVARLU
-            | Leaf::LF_REFSYM => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            Leaf::LF_SKIP
+                | Leaf::LF_ARGLIST
+                | Leaf::LF_DEFARG
+                | Leaf::LF_FIELDLIST
+                | Leaf::LF_DERIVED
+                | Leaf::LF_BITFIELD
+                | Leaf::LF_METHODLIST
+                | Leaf::LF_DIMCONU
+                | Leaf::LF_DIMCONLU
+                | Leaf::LF_DIMVARU
+                | Leaf::LF_DIMVARLU
+                | Leaf::LF_REFSYM
+        )
     }
 
     /// Indicates whether a given type record can contain references to other type records.
-    // TODO: obviously, this is kind of dumb
     pub fn can_reference_types(self) -> bool {
-        match self {
+        matches!(
+            self,
             Leaf::LF_MODIFIER
-            | Leaf::LF_POINTER
-            | Leaf::LF_ARRAY
-            | Leaf::LF_CLASS
-            | Leaf::LF_UNION
-            | Leaf::LF_ENUM
-            | Leaf::LF_PROCEDURE => true,
-            _ => true,
-        }
+                | Leaf::LF_POINTER
+                | Leaf::LF_ARRAY
+                | Leaf::LF_CLASS
+                | Leaf::LF_UNION
+                | Leaf::LF_ENUM
+                | Leaf::LF_PROCEDURE
+        )
     }
 }
