@@ -9,7 +9,6 @@ bitfield.workspace = true
 bitflags.workspace = true
 bitvec.workspace = true
 dump_utils = { path = "../dump_utils" }
-log.workspace = true
 msf = { path = "../msf" }
 msfz = { path = "../msfz" }
 pow2.workspace = true
@@ -17,11 +16,11 @@ bstr.workspace = true
 static_assertions.workspace = true
 structopt.workspace = true
 sync_file.workspace = true
+tracing.workspace = true
 uuid.workspace = true
 zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
 
 [dev-dependencies]
-env_logger.workspace = true
+tracing-subscriber.workspace = true
 static_init.workspace = true
-# dia = { path = "../dia" }

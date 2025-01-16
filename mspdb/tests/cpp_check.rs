@@ -5,7 +5,6 @@
 #![allow(clippy::useless_vec)]
 
 use bstr::BStr;
-use log::{error, info, trace};
 use mspdb::syms::{Data, SymData, SymKind, Udt};
 use mspdb::types::fields::Field;
 use mspdb::types::{TypeData, TypeIndex};
@@ -13,30 +12,22 @@ use mspdb::Pdb;
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
+use tracing::{error, info, trace};
 
 const CARGO_MANIFEST_DIR: &str = env!("CARGO_MANIFEST_DIR");
 const CARGO_TARGET_TMPDIR: &str = env!("CARGO_TARGET_TMPDIR");
 
 #[static_init::dynamic]
 static INIT_LOGGER: () = {
-    env_logger::builder()
-        .format_timestamp(None)
-        .filter_level(log::LevelFilter::Debug)
-        .target(env_logger::Target::Stdout)
-        .format(|buf, record| {
-            use std::io::Write;
-            // ...
-            writeln!(
-                buf,
-                "{:6} - {}:{:<5}] {}",
-                record.level(),
-                record.file().unwrap_or("??"),
-                record.line().unwrap_or(1),
-                record.args()
-            )
-        })
-        .is_test(true)
-        .init();
+    tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_test_writer()
+        .with_file(true)
+        .with_line_number(true)
+        .with_max_level(tracing::Level::DEBUG)
+        .compact()
+        .without_time()
+        .finish();
 };
 
 // id should be the base name of a C++ source file in the "cpp_check" directory.

@@ -1,6 +1,7 @@
 use super::*;
 use crate::utils::iter::HasRestLen;
 use std::mem::take;
+use tracing::error;
 
 /// Parses [`Sym`] records from a symbol stream.
 #[derive(Clone)]
@@ -75,8 +76,9 @@ impl<'a> Iterator for SymIter<'a> {
         let record_len = p.u16().ok()?;
         if record_len < 2 {
             error!(
-                "type record has invalid len {record_len}, at iter len {}",
-                self.data.len()
+                invalid_record_len = record_len,
+                iterator_pos = self.data.len(),
+                "type record has invalid len"
             );
             return None;
         }

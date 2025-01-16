@@ -32,10 +32,10 @@ use crate::Container;
 use crate::{get_or_init_err, Stream};
 use crate::{StreamIndexIsNilError, StreamIndexU16};
 use anyhow::{bail, Result};
-use log::{error, warn};
 use std::mem::size_of;
 use std::ops::Range;
 use sync_file::ReadAt;
+use tracing::{error, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U16, U32};
 
 #[cfg(doc)]
@@ -263,10 +263,9 @@ macro_rules! dbi_substreams {
                 )*
 
                 if pos < stream_len {
-                    warn!("Something is wrong with the code that finds the ranges of substreams. Pos is {}, but expected it to be {}.",
-                        pos, stream_len);
+                    warn!(pos, stream_len, "Something is wrong with the code that finds the ranges of substreams. Expected pos to be equal to stream_len.");
                 } else if pos > stream_len {
-                    error!("Something is very wrong with the DBI header. The sum of the subtream lengths (pos = {pos}) exceeds the remaining bytes (stream_len = {stream_len}).");
+                    error!(pos, stream_len, "Something is very wrong with the DBI header. The sum of the subtream lengths (pos) exceeds the stream len.");
                 } else {
                     // Substream sizes look good.
                 }

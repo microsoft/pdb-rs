@@ -10,8 +10,8 @@ use anyhow::bail;
 use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::BStr;
 use dump_utils::{HexDump, HexStr};
-use log::{debug, error, info, trace, warn};
 use std::mem::size_of;
+use tracing::{debug, error, info, trace, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U32};
 
 /// This is the size used for calculating hash indices. It was the size of the in-memory form
@@ -146,14 +146,11 @@ impl NameTable {
                 let hash_records_slice: &[HashRecord] =
                     Parser::new(hash_records_bytes).slice(num_hash_records)?;
 
-                info!("Number of records in name table: {}", num_hash_records);
+                info!(num_hash_records, "Number of records in name table");
 
                 hash_records = hash_records_slice.to_vec();
 
-                info!(
-                    "Number of hash buckets in name table: 0x{0:x} {0}",
-                    num_buckets
-                );
+                info!(num_buckets, "Number of hash buckets in name table");
 
                 debug!("[........] Stream offsets:");
                 debug!("[{:08x}] : NameTableHeader", stream_offset_table_header);
@@ -356,7 +353,7 @@ pub fn get_v1_default_bucket(minimal_dbg_info: bool) -> usize {
 /// This function returns a vector that contains hash indices. The hash records for a given hash
 /// bucket can be found as:
 ///
-/// ```rust,ignore
+/// ```text
 /// let buckets = expand_buckets(...)?;
 /// let bucket_index = 10;
 /// let hash_records: &[HashRecord] = &hash_records[buckets[bucket_index]..buckets[bucket_index + 1]];
@@ -466,7 +463,7 @@ fn expand_buckets(
         );
     }
 
-    if log::log_enabled!(log::Level::Trace) {
+    if tracing::event_enabled!(tracing::Level::TRACE) {
         trace!("Non-empty buckets: (within expand_buckets)");
         for i in 0..hash_buckets.len() - 1 {
             let start = hash_buckets[i];

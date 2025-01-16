@@ -1,7 +1,7 @@
 //! Decodes items in a `LF_FIELDLIST` complex list.
 
 use super::*;
-use log::error;
+use tracing::error;
 
 /// Represents the data stored within an `LF_FIELDLIST` type string. This can be decoded using
 /// the `iter()` method.
@@ -381,10 +381,7 @@ impl<'a> Field<'a> {
             Leaf::LF_NESTEDTYPEEX => Self::NestedTypeEx(p.parse()?),
 
             unknown_item_kind => {
-                error!(
-                    "unrecognized item within LF_FIELDLIST: {:?}",
-                    unknown_item_kind
-                );
+                error!(?unknown_item_kind, "unrecognized item within LF_FIELDLIST",);
                 return Err(ParserError::new());
             }
         })

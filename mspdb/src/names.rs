@@ -45,9 +45,9 @@ use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use crate::ReadAt;
 use anyhow::bail;
 use bstr::BStr;
-use log::{debug, error, trace, warn};
 use std::mem::size_of;
 use std::ops::Range;
+use tracing::{debug, error, trace, trace_span, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
 
 /// The name of the `/names` stream. This identifies the stream in the Named Streams Table,
@@ -201,6 +201,8 @@ where
     /// The `stream` and `stream_offset` values are for reporting diagnostic locations. The
     /// `stream_offset` value is the byte offset within `stream` where this `NamesStream` is located.
     pub fn check(&self, stream: u32, stream_offset: u32, diags: &mut Diags) {
+        let _span = trace_span!("NamesStream::check").entered();
+
         // Verify that all entries in the hash table are in the right place.
         // There is a degree of freedom here, because hash collisions can be
         // resolved in any order.
@@ -319,7 +321,7 @@ where
             }
         }
 
-        debug!("Number of correct hashes: {num_hashes_good}");
+        trace!(num_hashes_good);
         if num_hashes_bad != 0 {
             error!("Number of incorrect hashes: {num_hashes_bad}");
         }
@@ -717,8 +719,8 @@ impl<'a> Iterator for IterNames<'a> {
         let mut p = Parser::new(self.rest);
         let Ok(s) = p.strz() else {
             warn!(
-                "Found malformed string in /names stream, rest_len = 0x{:08x}",
-                self.rest.len()
+                rest_len = self.rest.len(),
+                "Found malformed string in /names stream"
             );
             return None;
         };

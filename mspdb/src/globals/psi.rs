@@ -14,8 +14,8 @@ use crate::syms::{OffsetSegment, Pub};
 use crate::utils::is_aligned_4;
 use anyhow::{bail, Context};
 use bstr::BStr;
-use log::{debug, error, info};
 use std::mem::size_of;
+use tracing::{debug, error, info};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
 
 /// The header of the GSI stream.

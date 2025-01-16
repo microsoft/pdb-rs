@@ -7,8 +7,8 @@ use crate::parser::{Parser, ParserError, ParserMut};
 use crate::types::{introduces_virtual, PointerFlags};
 use crate::types::{Leaf, TypeIndex, TypeIndexLe};
 use anyhow::Context;
-use log::error;
 use std::mem::replace;
+use tracing::error;
 
 /// Defines the functions needed for generically visiting type indexes within a type record or a
 /// symbol record.
@@ -459,8 +459,9 @@ pub fn visit_type_indexes_in_record<V: RecordVisitor>(
 
                     unknown_item_kind => {
                         error!(
-                            "unrecognized item within LF_FIELDLIST: {:?}, after {after:?}",
-                            unknown_item_kind
+                            ?unknown_item_kind,
+                            ?after,
+                            "unrecognized item within LF_FIELDLIST"
                         );
                         break;
                     }

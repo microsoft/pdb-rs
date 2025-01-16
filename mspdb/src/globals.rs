@@ -21,8 +21,8 @@ use crate::utils::iter::IteratorWithRangesExt;
 use crate::ReadAt;
 use anyhow::Context;
 use bstr::BStr;
-use log::{debug, warn};
 use std::collections::HashMap;
+use tracing::{debug, warn};
 
 #[cfg(doc)]
 use crate::dbi::DbiStreamHeader;

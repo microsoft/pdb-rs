@@ -459,7 +459,7 @@ impl ParserError {
     pub fn new() -> Self {
         #[cfg(debug_assertions)]
         {
-            log::debug!("ParserError");
+            tracing::debug!("ParserError");
         }
         Self
     }

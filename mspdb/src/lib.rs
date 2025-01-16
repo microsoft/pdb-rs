@@ -21,7 +21,6 @@ pub mod encoder;
 pub mod globals;
 pub mod guid;
 pub mod hash;
-pub mod ipi;
 pub mod lines;
 pub mod modi;
 pub mod taster;
@@ -62,23 +61,17 @@ use zerocopy::{AsBytes, FromZeroes};
 
 #[cfg(test)]
 #[static_init::dynamic]
-static INIT_LOGGER: () = env_logger::builder()
-    .format_timestamp(None)
-    .filter_level(log::LevelFilter::Debug)
-    .format(|buf, record| {
-        use std::io::Write;
-        // ...
-        writeln!(
-            buf,
-            "{:6} - {}:{:<5}] {}",
-            record.level(),
-            record.file().unwrap_or("??"),
-            record.line().unwrap_or(1),
-            record.args()
-        )
-    })
-    .is_test(true)
-    .init();
+static INIT_LOGGER: () = {
+    tracing_subscriber::fmt()
+        .with_ansi(false)
+        .with_test_writer()
+        .with_file(true)
+        .with_line_number(true)
+        .with_max_level(tracing::Level::DEBUG)
+        .compact()
+        .without_time()
+        .finish();
+};
 
 /// Allows reading the contents of a PDB file.
 ///

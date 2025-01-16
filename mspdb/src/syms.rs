@@ -5,8 +5,6 @@ pub mod check;
 mod iter;
 mod kind;
 mod offset_segment;
-pub mod remap;
-pub mod sort;
 
 #[doc(inline)]
 pub use self::{iter::*, kind::SymKind, offset_segment::*};
@@ -15,7 +13,6 @@ use crate::parser::{Number, Parse, Parser, ParserError, ParserMut};
 use crate::types::{ItemId, ItemIdLe, TypeIndex, TypeIndexLe};
 use bstr::BStr;
 use dump_utils::HexStr;
-use log::error;
 use std::fmt::Debug;
 use std::mem::size_of;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U16, U32};

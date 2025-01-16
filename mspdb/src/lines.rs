@@ -14,8 +14,8 @@ use crate::names::NameIndex;
 use crate::parser::{Parser, ParserError, ParserMut};
 use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use anyhow::{bail, Context};
-use log::{trace, warn};
 use std::mem::{size_of, take};
+use tracing::{trace, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
 
 /// Enumerates the kind of subsections found in C13 Line Data.
@@ -300,18 +300,18 @@ impl<'a> Iterator for IterBlocks<'a> {
         };
 
         trace!(
-            "block header: file_index = {}, num_lines = {}, block_size = {}, data_len = {}",
-            header.file_index.get(),
-            header.num_lines.get(),
-            header.block_size.get(),
-            data_len
+            file_index = header.file_index.get(),
+            num_lines = header.num_lines.get(),
+            block_size = header.block_size.get(),
+            data_len,
+            "block header"
         );
 
         let Ok(data) = p.bytes(data_len) else {
             warn!(
-                "invalid block: need {} bytes for block contents, only have {}",
-                data_len,
-                p.len()
+                needed_bytes = data_len,
+                have_bytes = p.len(),
+                "invalid block: need more bytes for block contents"
             );
             return None;
         };

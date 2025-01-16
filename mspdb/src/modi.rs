@@ -11,9 +11,9 @@ use crate::utils::vec::replace_range_copy;
 use crate::ReadAt;
 use crate::{dbi::ModuleInfo, syms::SymIter};
 use anyhow::anyhow;
-use log::{debug, warn};
 use std::mem::size_of;
 use std::ops::Range;
+use tracing::{debug, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
 
 /// The Module Symbols substream begins with this header. It is located at stream offset 0 in the
@@ -110,7 +110,7 @@ impl ModiStreamData {
             }
 
             if !p.is_empty() {
-                debug!("Module stream has extra bytes at end, len = {}", p.len());
+                debug!(stream_len = p.len(), "Module stream has extra bytes at end");
             }
         } else {
             global_refs_size = 0;

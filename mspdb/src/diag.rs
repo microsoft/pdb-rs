@@ -3,7 +3,7 @@
 
 use bstr::BStr;
 use dump_utils::HexDump;
-use log::trace;
+use tracing::{error, trace};
 
 pub struct Diags {
     pub num_errors: u32,
@@ -59,7 +59,7 @@ impl Diags {
 
         self.num_errors += 1;
         let msg: String = msg.into();
-        trace!("error : {}", msg);
+        error!(error = msg);
         self.diags.push(Diag {
             message: msg.to_string(),
             is_error: true,

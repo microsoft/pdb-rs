@@ -4,7 +4,7 @@ use super::*;
 use crate::syms::BlockHeader;
 use crate::{diag::Diags, utils::iter::IteratorWithRangesExt};
 use anyhow::{bail, Result};
-use log::debug;
+use tracing::{error, trace};
 
 struct Scope {
     /// byte offset within syms_data of the record which started this scope
@@ -26,7 +26,7 @@ pub fn check_symbol_stream(
     stream: u32,
     syms_data: &[u8],
 ) -> Result<()> {
-    debug!("Checking symbol stream ({stream_kind:?})");
+    trace!(?stream_kind, "Checking symbol stream");
 
     let stream_offset = stream_kind.stream_offset() as u32;
 
@@ -107,10 +107,9 @@ pub fn check_symbol_stream(
             if let Some(expected_end) = ending_scope.end_offset {
                 if expected_end != sym_pos as u32 + stream_offset {
                     error!(
-                        "Found S_END record, but it was not at the offset that was expected.\n\
-                         Expected value: 0x{:x}, actual value: 0x{:x}",
                         expected_end,
-                        sym_pos as u32 + stream_offset
+                        actual_end = sym_pos as u32 + stream_offset,
+                        "Found S_END record, but it was not at the offset that was expected."
                     );
                 }
             } else {

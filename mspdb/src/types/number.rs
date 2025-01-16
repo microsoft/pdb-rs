@@ -6,6 +6,7 @@ use bstr::BStr;
 use dump_utils::HexStr;
 use std::fmt::{Debug, Display};
 use std::num::TryFromIntError;
+use tracing::warn;
 
 /// A numeric constant defined within a CodeView type or symbol record.
 ///
@@ -64,7 +65,7 @@ impl<'a> Parse<'a> for Number<'a> {
             }
             Leaf::LF_REAL16 => 2,
             lf => {
-                log::warn!("unrecognized numeric leaf {lf:?}");
+                warn!(leaf = ?lf, "unrecognized numeric leaf");
                 // We don't know how many bytes to consume, so we can't keep parsing.
                 return Err(ParserError::new());
             }

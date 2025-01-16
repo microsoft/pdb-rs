@@ -15,6 +15,7 @@ use crate::parser::Parser;
 use anyhow::bail;
 use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::ByteSlice;
+use tracing::{trace, trace_span, warn};
 use uuid::Uuid;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
 
@@ -93,7 +94,7 @@ impl PdbiStream {
                 bail!("The PDBI version requires a unique ID, but none has been provided.");
             }
         } else if self.unique_id.is_some() {
-            log::warn!("PDBI version is too old to have a unique ID, but this PdbiStream has a unique ID. It will be ignored.");
+            warn!("PDBI version is too old to have a unique ID, but this PdbiStream has a unique ID. It will be ignored.");
         }
 
         self.named_streams.to_bytes(&mut e);
@@ -273,7 +274,7 @@ impl NamedStreams {
             let name = kp.strz()?.to_str_lossy();
 
             if let Some(existing_stream) = names.get(&*name) {
-                log::warn!("The PDBI contains more than one stream with the same name {:?}: stream {} vs stream {}",
+                warn!("The PDBI contains more than one stream with the same name {:?}: stream {} vs stream {}",
                 name, existing_stream, stream);
                 continue;
             }
@@ -284,7 +285,7 @@ impl NamedStreams {
         // Parse the "number of NameIndex" values at the end (niMac).
         let num_name_index = p.u32()?;
         if num_name_index != 0 {
-            log::warn!("The Named Streams table contains a non-zero value for the 'niMac' field. This is not supported");
+            warn!("The Named Streams table contains a non-zero value for the 'niMac' field. This is not supported");
         }
 
         Ok(Self {
@@ -317,6 +318,8 @@ impl NamedStreams {
 
     /// Encode this table to a byte stream
     pub fn to_bytes(&self, e: &mut Encoder) {
+        let _span = trace_span!("NamedStreams::to_bytes").entered();
+
         // Sort the names in the table, so that we have a deterministic order.
         let mut sorted_names: Vec<(&String, u32)> = Vec::with_capacity(self.map.len());
         for (name, stream) in self.map.iter() {
@@ -364,8 +367,7 @@ impl NamedStreams {
         let mut hash_slots: Vec<Option<(u32, u32)>> = Vec::new();
         hash_slots.resize_with(hash_size, Default::default);
 
-        log::debug!("num_names = {}", num_names);
-        log::debug!("hash_size = {}", hash_size);
+        trace!(num_names, hash_size);
 
         // Assign all strings to hash slots.
         for (i, &(name, stream)) in sorted_names.iter().enumerate() {
@@ -376,9 +378,12 @@ impl NamedStreams {
                 if hash_slots[slot].is_none() {
                     hash_slots[slot] = Some((name_offset, stream));
                     present_bitmap.set(slot, true);
-                    log::debug!(
-                        "assigned name {name:20} --> hash 0x{h:08x}, slot {slot:4}, \
-                         name_offset 0x{name_offset:04x}, stream {stream:5}",
+                    trace!(
+                        assigned_name = name,
+                        hash = h,
+                        slot = slot,
+                        name_offset,
+                        stream
                     );
                     break;
                 }

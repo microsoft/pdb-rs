@@ -12,10 +12,10 @@ use crate::utils::iter::IteratorWithRangesExt;
 use crate::{Pdb, ReadAt, Stream};
 use anyhow::bail;
 use dump_utils::{HexDump, HexStr};
-use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::fmt::Write;
 use std::mem::size_of;
+use tracing::{debug, error, info, warn};
 use zerocopy::{AsBytes, LE, U32};
 
 /// Verifies that all TypeIndex values within a Type Stream are well-ordered.

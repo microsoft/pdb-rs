@@ -30,8 +30,8 @@ use super::name_table::*;
 use crate::syms::Sym;
 use crate::utils::is_aligned_4;
 use bstr::BStr;
-use log::debug;
 use std::mem::size_of;
+use tracing::{debug, trace_span};
 
 /// Contains the Global Symbol Index
 pub struct GlobalSymbolIndex {
@@ -77,6 +77,8 @@ impl GlobalSymbolIndex {
 ///
 /// The GSI contains only a name table. It does not contain an address table.
 pub fn build_gsi(sorted_hash_records: &mut NameTableBuilder) -> Vec<u8> {
+    let _span = trace_span!("build_gsi").entered();
+
     let name_table_info = sorted_hash_records.prepare();
     let mut stream_data: Vec<u8> = vec![0; name_table_info.table_size_bytes];
     sorted_hash_records.encode(&name_table_info, &mut stream_data);

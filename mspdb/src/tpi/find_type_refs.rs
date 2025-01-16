@@ -9,9 +9,9 @@ use crate::types::{ItemId, TypeIndex, TypesIter};
 use crate::utils::iter::IteratorWithRangesExt;
 use anyhow::bail;
 use dump_utils::HexDump;
-use log::{debug, error, warn};
 use std::mem::size_of_val;
 use std::ops::Range;
+use tracing::{debug, error, warn};
 
 /// State used to walk the type reference graph.
 pub struct FindTypeRefsState {

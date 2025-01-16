@@ -3,7 +3,7 @@
 use super::ModiStreamData;
 use crate::dbi::ModuleInfo;
 use crate::diag::Diags;
-use log::error;
+use tracing::{error, trace_span};
 
 /// Checks invariants of a Module Stream.
 pub fn check_module_stream(
@@ -14,6 +14,8 @@ pub fn check_module_stream(
     names: &crate::names::NamesStream<Vec<u8>>,
     sources: &crate::dbi::sources::DbiSourcesSubstream<'_>,
 ) -> anyhow::Result<()> {
+    let _span = trace_span!("check_module_stream").entered();
+
     let expected_stream_size: u32 = module.header().c11_byte_size.get()
         + module.header().c13_byte_size.get()
         + module.header().sym_byte_size.get();
@@ -22,9 +24,11 @@ pub fn check_module_stream(
 
     if module_stream.stream_data.len() < expected_stream_size as usize {
         error!(
-            "module #{module_index} has substream sizes that exceed the actual size of the module stream. stream: {module_stream_index}, sum of substreams = {}, actual size of stream = {}",
-            expected_stream_size,
-            module_stream.stream_data.len()
+            module_index,
+            module_stream_index,
+            expected_stream_size = expected_stream_size,
+            actual_stream_size = module_stream.stream_data.len(),
+            "module has substream sizes that exceed the actual size of the module stream."
         );
         return Ok(());
     }
