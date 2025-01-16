@@ -1,0 +1,21 @@
+[package]
+name = "msf"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+doctest = false
+
+[dependencies]
+anyhow.workspace = true
+bitvec.workspace = true
+pow2.workspace = true
+static_assertions.workspace = true
+sync_file.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+zerocopy = { workspace = true, features = ["alloc", "derive"] }
+zerocopy-derive.workspace = true
+dump_utils = { path = "../dump_utils" }
+
+[dev-dependencies]
