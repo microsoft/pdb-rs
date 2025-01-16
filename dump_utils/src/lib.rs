@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 #![allow(clippy::collapsible_else_if)]
+#![allow(clippy::needless_lifetimes)]
 
 use std::fmt::{Debug, Formatter, Write};
 

@@ -250,7 +250,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             let new_fpm_page = interval_page + new_fpm_number;
 
             self.file
-                .write_all_at(&slice_to_write, page_to_offset(new_fpm_page, page_size))?;
+                .write_all_at(slice_to_write, page_to_offset(new_fpm_page, page_size))?;
         }
 
         Ok(())

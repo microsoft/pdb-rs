@@ -100,7 +100,7 @@ fn run_test(id: &str) -> Box<Pdb> {
 }
 
 // TODO: Re-enable this in OneBranch pipelines. It needs VS build tools for this to work.
-#[ignore]
+// #[ignore]
 #[test]
 fn types() -> anyhow::Result<()> {
     let pdb = run_test("types");

@@ -9,6 +9,7 @@
 #![forbid(unsafe_code)]
 #![forbid(unused_must_use)]
 #![warn(missing_docs)]
+#![allow(clippy::needless_lifetimes)]
 
 #[cfg(doc)]
 pub mod docs {

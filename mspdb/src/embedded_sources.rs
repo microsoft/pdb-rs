@@ -38,7 +38,7 @@ impl<F: ReadAt> Pdb<F> {
             let existing_len = self.stream_len(existing_stream);
             if existing_len == stream_contents.len() as u64 {
                 let existing_contents = self.read_stream_to_vec(existing_stream)?;
-                if &existing_contents == stream_contents {
+                if existing_contents == stream_contents {
                     return Ok(false);
                 }
             }

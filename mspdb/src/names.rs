@@ -382,6 +382,8 @@ where
     /// `(old_offset, new_offset)` and is sorted by `old_offset`. The caller can use a binary
     /// search to remap entries.
     pub fn rebuild(&self) -> (NameIndexMapping, Vec<u8>) {
+        let _span = trace_span!("NamesStream::rebuild").entered();
+
         let old_stream_data: &[u8] = self.stream_data.as_ref();
         // We verified the length of the stream in NamesStream::parse().
         let old_string_data = self.strings_bytes();

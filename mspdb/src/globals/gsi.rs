@@ -58,13 +58,12 @@ impl GlobalSymbolIndex {
     }
 
     /// Find a symbol within the GSI by name.
-    pub fn find_symbol<'a, 'n>(
+    pub fn find_symbol<'a>(
         &self,
         gss: &'a crate::globals::gss::GlobalSymbolStream,
         name: &BStr,
     ) -> anyhow::Result<Option<Sym<'a>>> {
-        let name_raw: &BStr = name.into();
-        self.name_table.find_symbol(gss, name_raw)
+        self.name_table.find_symbol(gss, name)
     }
 
     /// Gets direct access to the name-to-symbol table.

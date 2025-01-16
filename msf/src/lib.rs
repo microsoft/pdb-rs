@@ -10,6 +10,7 @@
 #![warn(missing_docs)]
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::needless_late_init)]
+#![allow(clippy::needless_lifetimes)]
 
 #[macro_use]
 mod macros;

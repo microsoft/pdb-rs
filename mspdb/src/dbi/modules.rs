@@ -442,7 +442,7 @@ pub fn check_module_info<F: ReadAt>(
             // Cast to u64 to avoid overflow
             let sum_of_sizes =
                 module.c11_size() as u64 + module.c13_size() as u64 + module.sym_size() as u64;
-            if sum_of_sizes > module_stream_len as u64 {
+            if sum_of_sizes > module_stream_len {
                 diags.error(format!("Module #{module_index} specifies substream sizes that exceed the size of the module stream."));
             }
         } else {
