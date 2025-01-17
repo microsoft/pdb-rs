@@ -6,6 +6,7 @@ static KERNELBASE_PDBI: &[u8] = include_bytes!("tests/kernelbase_pdbi.bin");
 static DWRITECORE_PDBI: &[u8] = include_bytes!("tests/dwritecore_pdbi.bin");
 
 #[test]
+#[ignore] // TODO: Remove this test and replace with something that does not depend on internal IP
 fn parse_kernelbase() {
     let pdbi = PdbiStream::parse(KERNELBASE_PDBI).unwrap();
     for (name, stream) in pdbi.named_streams().iter() {
@@ -18,6 +19,7 @@ fn parse_kernelbase() {
 }
 
 #[test]
+#[ignore] // TODO: Remove this test and replace with something that does not depend on internal IP
 fn parse_dwritecore() {
     let pdbi = PdbiStream::parse(DWRITECORE_PDBI).unwrap();
     for (name, stream) in pdbi.named_streams().iter() {

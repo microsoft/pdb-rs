@@ -99,8 +99,16 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
             let page_size = self.pages.page_size;
 
-            let mut stream_pages: Vec<Page> = Vec::new();
-            let mut stream_page_starts: Vec<u32> = Vec::new();
+            // We can easily determine the right size for allocating 'stream_pages'.
+            let mut num_stream_pages: usize = 0;
+            for &stream_size in self.stream_sizes.iter() {
+                if stream_size != NIL_STREAM_SIZE {
+                    num_stream_pages += num_pages_for_stream_size(stream_size, page_size) as usize;
+                }
+            }
+
+            let mut stream_pages: Vec<Page> = Vec::with_capacity(num_stream_pages);
+            let mut stream_page_starts: Vec<u32> = Vec::with_capacity(self.stream_sizes.len() + 1);
 
             for (stream, &stream_size) in self.stream_sizes.iter().enumerate() {
                 stream_page_starts.push(stream_pages.len() as u32);
