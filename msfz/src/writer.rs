@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use pow2::Pow2;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
+use tracing::{trace, trace_span};
 use zerocopy::{AsBytes, FromZeroes};
 
 /// The default threshold for compressing a chunk of data.
@@ -61,6 +62,8 @@ impl<F: Write + Seek> MsfzWriter<F> {
     /// Creates a new writer on an object that implements [`Write`] (and [`Seek`]), such as
     /// [`File`].
     pub fn new(mut file: F) -> Result<Self> {
+        let _span = trace_span!("MsfzWriter::new").entered();
+
         file.seek(SeekFrom::Start(0))?;
 
         // Write a meaningless (zero-filled) file header, just so we get the file position that we
@@ -258,15 +261,30 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
             return Ok(());
         }
 
-        self.compressed_chunk_buffer.clear();
-        crate::compress_utils::compress_to_vec_mut(
-            self.chunk_compression_mode,
-            &self.uncompressed_chunk_data,
-            &mut self.compressed_chunk_buffer,
-        )?;
+        let _span = trace_span!("MsfzWriter::finish_current_chunk").entered();
 
-        let file_pos = self.out.stream_position()?;
-        self.out.write_all(&self.compressed_chunk_buffer)?;
+        {
+            let _span = trace_span!("compress chunk").entered();
+            self.compressed_chunk_buffer.clear();
+            crate::compress_utils::compress_to_vec_mut(
+                self.chunk_compression_mode,
+                &self.uncompressed_chunk_data,
+                &mut self.compressed_chunk_buffer,
+            )?;
+        }
+
+        let file_pos;
+        {
+            let _span = trace_span!("write to disk").entered();
+            file_pos = self.out.stream_position()?;
+            self.out.write_all(&self.compressed_chunk_buffer)?;
+        }
+
+        trace!(
+            file_pos,
+            compressed_size = self.compressed_chunk_buffer.len(),
+            uncompressed_size = self.uncompressed_chunk_data.len()
+        );
 
         self.chunks.push(ChunkEntry {
             compressed_size: U32::new(self.compressed_chunk_buffer.len() as u32),
@@ -362,6 +380,9 @@ impl<'a, F: Write + Seek> Write for StreamWriter<'a, F> {
     }
 
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let _span = trace_span!("msfz write data").entered();
+        trace!(buf_len = buf.len());
+
         if buf.is_empty() {
             return Ok(0);
         }
@@ -475,6 +496,8 @@ fn add_fragment_uncompressed(
 
 /// Encodes a stream directory to its byte representation.
 pub(crate) fn encode_stream_dir(streams: &[Option<Stream>]) -> Vec<u8> {
+    let _span = trace_span!("encode_stream_dir").entered();
+
     let mut stream_dir_encoded: Vec<u8> = Vec::new();
     let mut enc = Encoder {
         vec: &mut stream_dir_encoded,

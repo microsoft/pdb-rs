@@ -142,21 +142,23 @@ const STREAM_DIR_PAGE_MAP_FILE_OFFSET: u64 = MSF_HEADER_LEN as u64;
 static_assertions::const_assert_eq!(MSF_HEADER_LEN, 52);
 
 /// The minimum page size.
-const MIN_PAGE_SIZE: PageSize = PageSize::from_exponent(9);
+pub const MIN_PAGE_SIZE: PageSize = PageSize::from_exponent(9);
+
 /// The default page size.
-const DEFAULT_PAGE_SIZE: PageSize = PageSize::from_exponent(12);
+pub const DEFAULT_PAGE_SIZE: PageSize = PageSize::from_exponent(12);
+
 /// A large page size. This is less than the largest supported page size.
-#[allow(dead_code)]
-const LARGE_PAGE_SIZE: PageSize = PageSize::from_exponent(13);
+pub const LARGE_PAGE_SIZE: PageSize = PageSize::from_exponent(13);
+
 /// The largest supported page size.
-const MAX_PAGE_SIZE: PageSize = PageSize::from_exponent(16);
+pub const MAX_PAGE_SIZE: PageSize = PageSize::from_exponent(16);
 
 /// This size is used to mark a stream as "invalid". An invalid stream is different from a
 /// stream with a length of zero bytes.
 pub const NIL_STREAM_SIZE: u32 = 0xffff_ffff;
 
 /// Specifies a page size used in an MSF file. This value is always a power of 2.
-type PageSize = Pow2;
+pub type PageSize = Pow2;
 
 /// The stream index of the Stream Directory stream. This is reserved and cannot be used by
 /// applications.
@@ -173,7 +175,7 @@ fn interval_to_page(interval: u32, page_size: PageSize) -> u32 {
 }
 
 /// Gets the byte offset within a page, for a given offset within a stream.
-fn offset_within_page(offset: u32, page_size: PageSize) -> u32 {
+pub fn offset_within_page(offset: u32, page_size: PageSize) -> u32 {
     let page_low_mask = (1u32 << page_size.exponent()) - 1u32;
     offset & page_low_mask
 }
@@ -249,7 +251,7 @@ impl<F> Msf<F> {
     /// provide the mapping from offsets within a stream to offsets within the entire PDB (MSF) file.
     ///
     /// If the stream is a NIL stream, then this returns `(NIL_STREAM_SIZE, &[])`.
-    pub(crate) fn stream_size_and_pages(
+    pub fn stream_size_and_pages(
         &self,
         stream: u32,
     ) -> Result<(u32, &[u32]), anyhow::Error> {

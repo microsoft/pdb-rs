@@ -2,19 +2,11 @@
 resolver = "2"
 
 members = [
-#    "dia",
     "dump_utils",
-#    "fs_utils",
     "msf",
     "msfz",
     "mspdb",
-#    "parallel_utils",
-#    "pdbtool",
-#    "pdbview",
-#    "replace",
-#    "self_profile",
-#    "trie",
-#    "win_utils",
+    "pdbtool",
 ]
 
 [workspace.dependencies]

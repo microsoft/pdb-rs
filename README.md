@@ -1,14 +1,32 @@
-# Project
+# PDB tools
 
-> This repo has been populated by an initial template to help get you started. Please
-> make sure to update the content to build a great experience for community-building.
+This repository contains libraries and tools for working with Microsoft Program
+Database (PDB) files. All of the code is in Rust.
 
-As the maintainer of this project, please make a few updates:
+* The `msf` crate contains code for reading, creating, and modifying PDB files
+  that use the MSF container format. Currently, all PDBs produced by Microsoft
+  tools use the MSF container format.
+  
+  This is a lower-level building block for PDBs, and most developers will never
+  need to directly use the `msf` crate. Instead, they should use the `mspdb`
+  crate.
 
-- Improving this README.MD file to provide a great experience
-- Updating SUPPORT.MD with content about this project's support experience
-- Understanding the security reporting process in SECURITY.MD
-- Remove this section from the README
+* The `msfz` crate contains code for reading and writing PDB files that use the
+  MSFZ container format. MSFZ is a new container format that is optimized for
+  "cold storage"; PDB/MSFZ files cannot be modified in-place in the way PDB/MSF
+  files can, but MSFZ files use an efficient form of compression that allows
+  data to be accessed without decompressing the entire file. MSFZ is intended to
+  be a format for storing PDBs, not for local development.
+
+  Most developers will not need to use the `msfz` crate directly. Instead, they
+  should use the `mspdb` crate.
+
+* The `mspdb` crate supports reading, creating, and modifying PDB files. It
+  builds on the `msf` and `msfz` crate. The `msf` and `msfz` crates provide the
+  container format for PDB, but they do not contain any code for working with
+  the contents of PDBs. That is the job of the `mspdb` crate -- it provides
+  methods for reading specific PDB data structures, such as debug symbols, line
+  mappings, module records, etc.
 
 ## Contributing
 
@@ -31,3 +49,7 @@ trademarks or logos is subject to and must follow
 [Microsoft's Trademark & Brand Guidelines](https://www.microsoft.com/en-us/legal/intellectualproperty/trademarks/usage/general).
 Use of Microsoft trademarks or logos in modified versions of this project must not cause confusion or imply Microsoft sponsorship.
 Any use of third-party trademarks or logos are subject to those third-party's policies.
+
+## Contacts
+
+* `sivadeilra` on GitHub
