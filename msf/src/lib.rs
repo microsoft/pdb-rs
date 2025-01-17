@@ -12,9 +12,6 @@
 #![allow(clippy::needless_late_init)]
 #![allow(clippy::needless_lifetimes)]
 
-#[macro_use]
-mod macros;
-
 #[doc(hidden)]
 pub mod stream_reader;
 
@@ -43,7 +40,7 @@ use std::path::Path;
 use sync_file::{RandomAccessFile, ReadAt, WriteAt};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
 
-use self::pages::{num_pages_for_stream_size, PageAllocator, StreamPageMapper};
+use self::pages::{num_pages_for_stream_size, PageAllocator};
 
 /// Identifies a page number in the MSF file. Not to be confused with `StreamPage`.
 type Page = u32;
@@ -161,6 +158,10 @@ pub const NIL_STREAM_SIZE: u32 = 0xffff_ffff;
 /// Specifies a page size used in an MSF file. This value is always a power of 2.
 type PageSize = Pow2;
 
+/// The stream index of the Stream Directory stream. This is reserved and cannot be used by
+/// applications.
+pub const STREAM_DIR_STREAM: u32 = 0;
+
 /// Converts a page number to a file offset.
 fn page_to_offset(page: u32, page_size: PageSize) -> u64 {
     (page as u64) << page_size.exponent()
@@ -178,8 +179,6 @@ fn offset_within_page(offset: u32, page_size: PageSize) -> u32 {
 }
 
 /// Allows reading and writing the contents of a PDB/MSF file.
-///
-/// This type allows reading and writing PDB/MSF files.
 ///
 /// The [`Msf::open`] function opens an MSF file for read access, given a file. This is the most
 /// commonly-used way to open a file.
@@ -249,16 +248,18 @@ impl<F> Msf<F> {
     /// Gets access to the stream page pointers for a given stream. The stream page pointers
     /// provide the mapping from offsets within a stream to offsets within the entire PDB (MSF) file.
     ///
-    /// If the stream is a NIL stream, then this returns `(0, &[])`.
-    pub fn stream_size_and_pages(&self, stream: u32) -> Result<(u32, &[u32]), anyhow::Error> {
+    /// If the stream is a NIL stream, then this returns `(NIL_STREAM_SIZE, &[])`.
+    pub(crate) fn stream_size_and_pages(
+        &self,
+        stream: u32,
+    ) -> Result<(u32, &[u32]), anyhow::Error> {
         let Some(&stream_size) = self.stream_sizes.get(stream as usize) else {
             bail!("Stream index is out of range.  Index: {stream}");
         };
 
         if stream_size == NIL_STREAM_SIZE {
             // This is a NIL stream.
-            // We return a length of 0 so that callers will not be tempted to actually read 0xFFFF_FFFF bytes.
-            return Ok((0, &[]));
+            return Ok((NIL_STREAM_SIZE, &[]));
         }
 
         // The stream index is valid and the stream is not a NIL stream.
@@ -266,7 +267,7 @@ impl<F> Msf<F> {
             num_pages_for_stream_size(stream_size, self.pages.page_size) as usize;
 
         if num_stream_pages == 0 {
-            // The stream is valid and is a zero-length stream.
+            // The stream is valid (is not nil) and is a zero-length stream.
             // It has no pages assigned to it.
             return Ok((0, &[]));
         }
@@ -279,7 +280,6 @@ impl<F> Msf<F> {
 
         let start = self.committed_stream_page_starts[stream as usize] as usize;
         let pages = &self.committed_stream_pages[start..start + num_stream_pages];
-
         Ok((stream_size, pages))
     }
 
@@ -337,8 +337,18 @@ impl<F> Msf<F> {
     }
 
     /// Extracts the underlying file for this MSF. **All pending modifications are dropped**.
-    pub fn into_inner(self) -> F {
+    pub fn into_file(self) -> F {
         self.file
+    }
+
+    /// Gets access to the contained file
+    pub fn file(&self) -> &F {
+        &self.file
+    }
+
+    /// Gets mutable access to the contained file
+    pub fn file_mut(&mut self) -> &mut F {
+        &mut self.file
     }
 
     /// Indicates whether this [`Msf`] was opened for read/write access.

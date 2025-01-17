@@ -1,6 +1,7 @@
 use super::*;
 use std::collections::hash_map::Entry;
 use std::io::Write;
+use tracing::{trace, trace_span};
 
 impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
     /// Writes data to a stream at a given offset. This is the main driver for all `write()` calls
@@ -539,7 +540,7 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
         // Cow the pages, just so we get fresh pages.
         let num_xfer_pages = num_pages_owned.min(num_buf_pages);
         if num_xfer_pages != 0 {
-            debug!("writing {num_xfer_pages} whole pages");
+            trace!(num_pages = num_xfer_pages, "writing whole pages");
 
             let num_xfer_bytes = num_xfer_pages << page_size.exponent();
             let buf_head = take_n(buf, num_xfer_bytes as usize);
@@ -566,10 +567,7 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
         // We may have gotten here because buf.len() is now less than a full page size, but we still
         // have another page assigned in the stream. Cow it now.
         if *self.size - *pos > 0 {
-            debug!(
-                "special case: buf has partial page remaining.  buf.len = 0x{:x}",
-                buf.len()
-            );
+            trace!(buf_len = buf.len(), "buffer has partial page remaining.");
             assert!(
                 buf.len() < usize::from(page_size),
                 "size = {:x}, pos = {:x}, buf.len = 0x{:x}",
@@ -781,17 +779,20 @@ fn write_runs<F: WriteAt>(
 impl<F> Msf<F> {
     /// Adds a new stream to the MSF file. The stream has a length of zero.
     pub fn new_stream(&mut self) -> anyhow::Result<(u32, StreamWriter<'_, F>)> {
+        let _span = trace_span!("new_stream").entered();
+
         self.requires_writeable()?;
         self.check_can_add_stream()?;
 
         let new_stream_index = self.stream_sizes.len() as u32;
+        trace!(new_stream_index);
 
         self.stream_sizes.push(0);
         let size = self.stream_sizes.last_mut().unwrap();
 
         let pages = match self.modified_streams.entry(new_stream_index) {
             Entry::Occupied(_) => {
-                panic!("Found entry in modified streams table that should be present.")
+                panic!("Found entry in modified streams table that should not be present.")
             }
             Entry::Vacant(v) => v.insert(Vec::new()),
         };

@@ -5,6 +5,25 @@ use anyhow::Result;
 use dump_utils::{DumpRangesSucc, HexDump};
 use std::io::{Cursor, Seek, SeekFrom, Write};
 use std::sync::Mutex;
+use sync_file::{ReadAt, WriteAt};
+use tracing::{debug, trace, trace_span};
+
+#[static_init::dynamic]
+static INIT_LOGGER: () = {
+    use tracing_subscriber::fmt::format::FmtSpan;
+
+    tracing_subscriber::fmt::fmt()
+        .compact()
+        .with_max_level(tracing_subscriber::filter::LevelFilter::TRACE)
+        .with_level(false)
+        .with_file(true)
+        .with_line_number(true)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::EXIT)
+        .with_test_writer()
+        .without_time()
+        .with_ansi(false)
+        .init();
+};
 
 macro_rules! assert_bytes_eq {
     ($a:expr, $b:expr) => {
@@ -85,17 +104,12 @@ struct TestFile {
 
 impl ReadAt for TestFile {
     fn read_exact_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<()> {
-        debug!(
-            "TestFile: read at 0x{:08x}, len 0x{:08x}",
-            offset,
-            buf.len()
-        );
+        let _span = trace_span!("TestFile::read_exact_at").entered();
+
+        debug!(offset, buf_len = buf.len(), "TestFile::read_exact_at");
         let lock = self.data.lock().unwrap();
         lock.read_exact_at(buf, offset)?;
-        debug!(
-            "TestFile: read received:\n{:?}",
-            HexDump::new(buf).at(offset as usize)
-        );
+        debug!(data = ?HexDump::new(buf).at(offset as usize), "read received");
         Ok(())
     }
 
@@ -103,8 +117,8 @@ impl ReadAt for TestFile {
         let lock = self.data.lock().unwrap();
         let n = lock.read_at(buf, offset)?;
         debug!(
-            "TestFile: read received:\n{:?}",
-            HexDump::new(&buf[0..n]).at(offset as usize)
+            data = ?HexDump::new(&buf[..n]).at(offset as usize),
+            "TestFile::read_at: read received"
         );
         Ok(n)
     }
@@ -118,10 +132,10 @@ impl WriteAt for TestFile {
 
     fn write_all_at(&self, buf: &[u8], offset: u64) -> std::io::Result<()> {
         debug!(
-            "TestFile: write at 0x{:08x}, len 0x{:08x}\n{:?}",
-            offset,
-            buf.len(),
-            HexDump::new(buf).at(offset as usize)
+            offset = offset,
+            len = buf.len(),
+            data = ?HexDump::new(buf).at(offset as usize),
+            "TestFile: write_all_at"
         );
 
         let mut lock = self.data.lock().unwrap();
@@ -520,10 +534,65 @@ fn finish_and_dump(mut w: Msf<TestFile>) {
     }
 }
 
+/// Commits changes in a writer, then closes it and re-opens it as a new `Msf`.
+#[track_caller]
+fn finish_and_read(mut w: Msf<TestFile>) -> Msf<TestFile> {
+    w.commit().unwrap();
+    let file = w.into_file();
+
+    // Now re-open the file.
+    Msf::open_with_file(file).unwrap()
+}
+
+#[track_caller]
+fn commit_and_read(w: &mut Msf<TestFile>) -> Msf<TestFile> {
+    let _span = trace_span!("commit_and_read");
+    w.commit().unwrap();
+
+    let cloned_file_data = w.file_mut().data.get_mut().unwrap().clone();
+    Msf::open_with_file(TestFile {
+        data: Mutex::new(cloned_file_data),
+    })
+    .unwrap()
+}
+
+#[test]
+fn page_size() {
+    let w = writer();
+    assert_eq!(usize::from(w.page_size()), 4096);
+}
+
 #[test]
 fn empty_pdb() {
     let w = writer();
     finish_and_dump(w);
+}
+
+#[test]
+fn read_stream_out_of_range() {
+    let w = writer();
+    let r = finish_and_read(w);
+    let s = r.get_stream_reader(100);
+    assert!(s.is_err());
+}
+
+#[test]
+fn read_stream_dir_stream() {
+    let w = writer();
+    let r = finish_and_read(w);
+    let s = r.get_stream_reader(STREAM_DIR_STREAM).unwrap();
+    assert!(!s.is_nil());
+}
+
+#[test]
+fn read_nil_stream() {
+    let mut w = writer();
+    let si = w.nil_stream().unwrap();
+    debug!(nil_stream_index = si);
+    let r = finish_and_read(w);
+    let s = r.get_stream_reader(si).unwrap();
+    assert!(s.is_nil());
+    assert_eq!(s.len(), 0);
 }
 
 #[test]
@@ -589,4 +658,257 @@ fn mix_and_match() -> Result<()> {
     finish_and_dump(w);
 
     Ok(())
+}
+
+#[test]
+fn commit_on_read_only() -> Result<()> {
+    let mut w = writer();
+
+    let (_si, mut sw) = w.new_stream().unwrap();
+    sw.write(b"Hello!").unwrap();
+
+    let mut r = finish_and_read(w);
+
+    // This commit() call should do nothing (but should succeed).
+    assert!(!r.commit().unwrap());
+    Ok(())
+}
+
+#[test]
+fn commit_no_writes() {
+    let mut w = writer();
+    // First call should write the initial MSF file.
+    assert!(w.commit().unwrap());
+    // Second call should have no writes at all, though.
+    assert!(!w.commit().unwrap());
+}
+
+#[test]
+fn single_commit() {
+    let mut w = writer();
+    let (si1, mut sw1) = w.new_stream().unwrap();
+    sw1.write(b"Alpha").unwrap();
+
+    {
+        let r = commit_and_read(&mut w);
+        let contents1 = r.read_stream_to_vec(si1).unwrap();
+        assert_eq!(contents1, b"Alpha");
+    }
+}
+
+#[test]
+fn multiple_commit() {
+    let mut w = writer();
+
+    trace!("multi_commit: writing first stream");
+    let (si1, mut sw1) = w.new_stream().unwrap();
+    sw1.write(b"Alpha").unwrap();
+
+    {
+        trace!("multi_commit: first commit");
+        let r = commit_and_read(&mut w);
+        let contents1 = r.read_stream_to_vec(si1).unwrap();
+        assert_eq!(contents1, b"Alpha");
+    }
+
+    trace!("multi_commit: writing second stream");
+    let (si2, mut sw2) = w.new_stream().unwrap();
+    sw2.write(b"Bravo").unwrap();
+
+    {
+        trace!("multi_commit: second commit");
+        let r = commit_and_read(&mut w);
+
+        let contents1 = r.read_stream_to_vec(si1).unwrap();
+        assert_bytes_eq!(contents1, b"Alpha");
+
+        let contents2 = r.read_stream_to_vec(si2).unwrap();
+        assert_bytes_eq!(contents2, b"Bravo");
+    }
+}
+
+#[test]
+fn many_commits() {
+    let num_commits: usize = 37;
+
+    let mut w = writer();
+
+    let (si1, _sw1) = w.new_stream().unwrap();
+
+    let mut expected_stream_contents: Vec<u8> = Vec::new();
+
+    for i in 0..num_commits {
+        let sw = w.write_stream(si1).unwrap();
+        let pos = i * 2039; // 2039 is next-lower prime under 2048
+
+        let text = format!("i{i} pos{pos};");
+        let buf = text.as_bytes();
+
+        // Write the buffer to expected_stream_contents.
+        let text_end = pos as usize + text.len();
+        if expected_stream_contents.len() < text_end {
+            // Extend, if necessary.
+            expected_stream_contents.resize(text_end, 0);
+        }
+        expected_stream_contents[pos as usize..][..buf.len()].copy_from_slice(buf);
+
+        sw.into_random().write_at(buf, pos as u64).unwrap();
+
+        {
+            let r = commit_and_read(&mut w);
+            let read_buf = r.read_stream_to_vec(si1).unwrap();
+            assert_bytes_eq!(expected_stream_contents, read_buf);
+        }
+    }
+}
+
+/// Test the WriteAt impl for StreamReader
+#[test]
+fn stream_writer_random_write_at() {
+    let mut w = writer();
+
+    let (si, sw) = w.new_stream().unwrap();
+    let sw = sw.into_random();
+    assert_eq!(sw.write_at(b"Hello", 0).unwrap(), 5);
+    sw.write_all_at(b"World", 5).unwrap();
+
+    let r = commit_and_read(&mut w);
+    let data = r.read_stream_to_vec(si).unwrap();
+    assert_eq!(data, b"HelloWorld");
+}
+
+/// Test the WriteAt and ReadAt impl for RandomStreamWriter
+#[test]
+fn stream_writer_random_read_at() {
+    let mut w = writer();
+
+    let (_si, sw) = w.new_stream().unwrap();
+    let sw = sw.into_random();
+
+    sw.write_at(b"012345", 5).unwrap();
+    sw.write_all_at(b"AlphaBravo", 5).unwrap();
+
+    {
+        let mut buf: [u8; 5] = [0; 5];
+        assert_eq!(sw.read_at(&mut buf, 12).unwrap(), 3);
+        assert_eq!(&buf, b"avo\0\0");
+    }
+
+    {
+        let mut buf: [u8; 5] = [0; 5];
+        sw.read_exact_at(&mut buf, 7).unwrap();
+        assert_eq!(&buf, b"phaBr");
+    }
+
+    {
+        // attempting to read beyond the end of the buffer
+        let mut buf: [u8; 5] = [0; 5];
+        assert!(sw.read_exact_at(&mut buf, 12).is_err());
+    }
+}
+
+#[test]
+fn stream_writer_flush() {
+    let mut w = writer();
+    let (_si, mut sw) = w.new_stream().unwrap();
+    sw.flush().unwrap();
+}
+
+#[test]
+fn stream_writer_write_at() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+    assert_eq!(sw.write_at_mut(b"Alpha", 0).unwrap(), 5);
+    sw.write_all_at_mut(b"Bravo", 5).unwrap();
+
+    let r = commit_and_read(&mut w);
+    let data = r.read_stream_to_vec(si).unwrap();
+    assert_bytes_eq!(data, b"AlphaBravo");
+}
+
+/// Test set_contents() on a newly-created stream.
+#[test]
+fn stream_writer_set_contents_new() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+    sw.set_contents(FRIENDS_ROMANS.as_bytes()).unwrap();
+
+    let r = commit_and_read(&mut w);
+    let data = r.read_stream_to_vec(si).unwrap();
+    assert_bytes_eq!(data, FRIENDS_ROMANS);
+}
+
+/// Test set_contents() on a stream that has not been modified yet.
+/// Extend the buffer.
+#[test]
+fn stream_writer_set_contents_modifying_extending() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+    sw.set_contents(b"this will get overwritten").unwrap();
+
+    let _r = commit_and_read(&mut w);
+
+    let mut sw = w.write_stream(si).unwrap();
+    sw.set_contents(b"this string is a lot longer than the first string so it extends the buffer")
+        .unwrap();
+
+    let r2 = commit_and_read(&mut w);
+    let data = r2.read_stream_to_vec(si).unwrap();
+    assert_bytes_eq!(
+        data,
+        b"this string is a lot longer than the first string so it extends the buffer"
+    );
+}
+
+/// Test set_contents() on a stream that has not been modified yet.
+/// Shrink the buffer.
+#[test]
+fn stream_writer_set_contents_modifying_shrinking() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+    sw.set_contents(b"this is a moderately long string which will get overwritten")
+        .unwrap();
+
+    let _r = commit_and_read(&mut w);
+
+    let mut sw = w.write_stream(si).unwrap();
+    sw.set_contents(b"goodbye!").unwrap();
+
+    let r2 = commit_and_read(&mut w);
+    let data = r2.read_stream_to_vec(si).unwrap();
+    assert_bytes_eq!(data, b"goodbye!");
+}
+
+#[test]
+fn stream_writer_write_at_empty() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+
+    // This should succeed, but...
+    sw.write_all_at_mut(&[], 100).unwrap();
+
+    // ...it shouldn't extend the stream size.
+    assert_eq!(sw.len(), 0);
+
+    let r = commit_and_read(&mut w);
+    let data = r.read_stream_to_vec(si).unwrap();
+    assert!(data.is_empty());
+}
+
+/// Test extending a stream with a large number of pages, which should
+/// test the path in `StreamWriter::write_page`.
+#[test]
+fn stream_writer_extend_large() {
+    let mut w = writer();
+    let (si, mut sw) = w.new_stream().unwrap();
+
+    let mut large_data = vec![0; 0x10000];
+    large_data[0xffff] = 0xff;
+
+    sw.set_contents(&large_data).unwrap();
+
+    let r = commit_and_read(&mut w);
+    let data = r.read_stream_to_vec(si).unwrap();
+
+    assert_bytes_eq!(large_data, data);
 }

@@ -1,5 +1,6 @@
 use super::*;
 use std::cell::RefCell;
+use tracing::{trace, trace_span};
 
 /// Provides read/write access for a stream within an MSF (PDB) file.
 pub struct StreamWriter<'a, F> {
@@ -37,7 +38,7 @@ impl<'a, F> StreamWriter<'a, F> {
         *self.size == 0 || *self.size == NIL_STREAM_SIZE
     }
 
-    /// Replaces the contents of a stream.
+    /// Replaces the contents of a stream. The length of the stream is set to the length of `data`.
     pub fn set_contents(&mut self, data: &[u8]) -> std::io::Result<()>
     where
         F: ReadAt + WriteAt,
@@ -58,6 +59,29 @@ impl<'a, F> StreamWriter<'a, F> {
         Ok(())
     }
 
+    /// Writes data to a given position in the file.
+    ///
+    /// This method exists to work around the limitation of `WriteAt`, which takes `&self`
+    /// instead of `&mut self`.
+    pub fn write_at_mut(&mut self, buf: &[u8], offset: u64) -> std::io::Result<usize>
+    where
+        F: ReadAt + WriteAt,
+    {
+        self.write_core(buf, offset)?;
+        Ok(buf.len())
+    }
+
+    /// Writes data to a given position in the file.
+    ///
+    /// This method exists to work around the limitation of `WriteAt`, which takes `&self`
+    /// instead of `&mut self`.
+    pub fn write_all_at_mut(&mut self, buf: &[u8], offset: u64) -> std::io::Result<()>
+    where
+        F: ReadAt + WriteAt,
+    {
+        self.write_core(buf, offset)
+    }
+
     /// Sets the length of this stream, in bytes.
     ///
     /// If the stream is a nil stream, this changes it to a non-nil stream, even if `len` is zero.
@@ -75,17 +99,25 @@ impl<'a, F> StreamWriter<'a, F> {
     {
         use std::cmp::Ordering;
 
+        let _span = trace_span!("StreamWriter::set_len");
+        trace!(new_len = len);
+
         if *self.size == NIL_STREAM_SIZE {
+            trace!("stream changes from nil to non-nil");
             *self.size = 0;
         }
 
         let page_size = self.page_allocator.page_size;
 
         match Ord::cmp(&len, self.size) {
-            Ordering::Equal => {}
+            Ordering::Equal => {
+                trace!(len = self.size, "no change in stream size");
+            }
 
             Ordering::Less => {
                 // Truncating the stream. Find the number of pages that need to be freed.
+                trace!(old_len = self.size, new_len = len, "reducing stream size");
+
                 let num_pages_old = num_pages_for_stream_size(*self.size, page_size) as usize;
                 let num_pages_new = num_pages_for_stream_size(len, page_size) as usize;
                 assert!(num_pages_new <= num_pages_old);
@@ -100,6 +132,12 @@ impl<'a, F> StreamWriter<'a, F> {
 
             Ordering::Greater => {
                 // Zero-extend the stream.
+                trace!(
+                    old_len = self.size,
+                    new_len = len,
+                    "increasing stream size (zero-filling)"
+                );
+
                 let end_phase = offset_within_page(*self.size, page_size);
                 if end_phase != 0 {
                     // Total number of bytes we need to fill
@@ -158,6 +196,13 @@ impl<'a, F> StreamWriter<'a, F> {
         }
 
         Ok(())
+    }
+
+    /// Converts this `StreamWriter` into a `RandomStreamWriter`.
+    pub fn into_random(self) -> RandomStreamWriter<'a, F> {
+        RandomStreamWriter {
+            cell: RefCell::new(self),
+        }
     }
 }
 

@@ -1,12 +1,15 @@
 //! Code for reading data from streams
 
-use super::*;
+use sync_file::ReadAt;
+
+use crate::pages::StreamPageMapper;
+use crate::PageSize;
 
 /// This reads data from a stream. It maps byte offsets within a stream to byte offsets within the
 /// containing MSF file.
 ///
-/// It will read as much data in a single `read()` call as it can, provided the pages within the
-/// stream are contiguous.
+/// It will read as much data in a single `read()` call (to the underlying storage) as it can,
+/// provided the pages within the stream are contiguous.
 ///
 /// Returns `(bytes_transferred, new_pos)`, where `new_pos` is the position within the stream
 /// after the last byte was read. If no bytes were transferred, then this is the same as `pos`.
@@ -24,6 +27,7 @@ pub(super) fn read_stream_core<F: ReadAt>(
     if pos >= stream_size as u64 {
         return Ok((0, pos));
     }
+
     let mut pos = pos as u32;
 
     let original_len = dst.len();

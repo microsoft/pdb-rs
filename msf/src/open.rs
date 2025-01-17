@@ -2,6 +2,7 @@
 
 use super::*;
 use sync_file::RandomAccessFile;
+use tracing::{trace, trace_span, warn};
 
 /// Options for creating a new PDB/MSF file.
 #[derive(Clone, Debug)]
@@ -38,8 +39,11 @@ impl Msf<RandomAccessFile> {
         Self::new_with_access_mode(random_file, AccessMode::Read)
     }
 
-    /// Creates a new MSF file on disk (**truncating any existing file!**) and creates a new MSF object
-    /// in-memory object with read/write access.
+    /// Creates a new MSF file on disk (**truncating any existing file!**) and creates a new
+    /// [`Msf`] object in-memory object with read/write access.
+    ///
+    /// This function does not write anything to disk until stream data is written or
+    /// [`Self::commit`] is called.
     pub fn create(file_name: &Path, options: CreateOptions) -> anyhow::Result<Self> {
         let file = File::create(file_name)?;
         let random_file = RandomAccessFile::from(file);
@@ -60,7 +64,7 @@ impl<F: ReadAt> Msf<F> {
         Self::new_with_access_mode(file, AccessMode::Read)
     }
 
-    /// Given a [`File`] that has already been opened.
+    /// Creates a new MSF file, given a file handle that has already been opened.
     ///
     /// **This function destroys the contents of the existing file.**
     pub fn create_with_file(file: F, options: CreateOptions) -> anyhow::Result<Self> {
@@ -76,32 +80,6 @@ impl<F: ReadAt> Msf<F> {
     pub fn modify_with_file(file: F) -> anyhow::Result<Self> {
         Self::new_with_access_mode(file, AccessMode::ReadWrite)
     }
-}
-
-#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
-#[repr(C)]
-struct OldMsfStreamDirHeader {
-    num_streams: U16<LE>,
-    ignored: U16<LE>,
-}
-
-#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
-#[repr(C)]
-struct OldMsfStreamEntry {
-    stream_size: U32<LE>,
-    ignored: U32<LE>,
-}
-
-impl<F: ReadAt> Msf<F> {
-    /// Reads the header of a PDB file and provides access to the streams contained within the
-    /// PDB file.
-    ///
-    /// This function reads the MSF File Header, which is the header for the entire file.
-    /// It also reads the stream directory, so it knows how to find each of the streams
-    /// and the pages of the streams.
-    pub fn new(file: F) -> anyhow::Result<Self> {
-        Self::new_with_access_mode(file, AccessMode::Read)
-    }
 
     /// Reads the header of a PDB file and provides access to the streams contained within the
     /// PDB file.
@@ -111,6 +89,8 @@ impl<F: ReadAt> Msf<F> {
     /// and the pages of the streams.
     fn new_with_access_mode(file: F, access_mode: AccessMode) -> anyhow::Result<Self> {
         // Read the MSF File Header.
+
+        let _span = trace_span!("Msf::new_with_access_mode").entered();
 
         const MIN_PAGE_SIZE_USIZE: usize = 1usize << MIN_PAGE_SIZE.exponent();
 
@@ -153,11 +133,9 @@ impl<F: ReadAt> Msf<F> {
             num_pages = msf_header.num_pages.get() as u32;
             stream_dir_size = msf_header.stream_dir_size.get();
             msf_kind = MsfKind::Small;
+        } else if page0[16..24] == *b"PDB v1.0" {
+            bail!("This file is a Portable PDB, which is not supported.");
         } else {
-            if page0[16..24] == *b"PDB v1.0" {
-                bail!("This file is a Portable PDB, which is not supported.");
-            }
-
             bail!("PDB file does not have the correct header (magic is wrong).");
         }
 
@@ -201,7 +179,7 @@ impl<F: ReadAt> Msf<F> {
                 // The number of bytes used within stream_dir_pages is stream_dir_pages * 4.
 
                 if stream_dir_size % 4 != 0 {
-                    debug!("Stream directory size is not a multiple of 4.");
+                    bail!("MSF Stream Directory has an invalid size; it is not a multiple of 4.");
                 }
 
                 // We are going to read the stream directory into this vector.
@@ -229,7 +207,10 @@ impl<F: ReadAt> Msf<F> {
 
                     page_allocator.init_mark_stream_dir_page_busy(page_map_l1_ptr)?;
                     if is_special_page_big_msf(page_size_pow2, page_map_l1_ptr) {
-                        bail!("Stream dir contains invalid page number: {page_map_l1_ptr}.  Page points to Page 0 or to an FPM page.");
+                        bail!(
+                            "Stream dir contains invalid page number: {page_map_l1_ptr}. \
+                             Page points to Page 0 or to an FPM page."
+                        );
                     }
 
                     // Read the page pointers.
@@ -251,7 +232,10 @@ impl<F: ReadAt> Msf<F> {
 
                         page_allocator.init_mark_stream_dir_page_busy(l2_page)?;
                         if is_special_page_big_msf(page_size_pow2, l2_page) {
-                            bail!("Stream dir contains invalid page number: {l2_page}.  Page points to Page 0 or to an FPM page.");
+                            bail!(
+                                "Stream dir contains invalid page number: {l2_page}. \
+                                 Page points to Page 0 or to an FPM page."
+                            );
                         }
 
                         let l2_file_offset = page_to_offset(l2_page, page_size_pow2);
@@ -289,7 +273,10 @@ impl<F: ReadAt> Msf<F> {
                         let num_stream_pages =
                             num_pages_for_stream_size(stream_size, page_size_pow2) as usize;
                         if num_stream_pages > stream_pages_iter.len() {
-                            bail!("Stream directory is invalid.  Stream {stream} has size {stream_size}, which exceeds the size of the stream directory.");
+                            bail!(
+                                "Stream directory is invalid.  Stream {stream} has size {stream_size}, \
+                                 which exceeds the size of the stream directory."
+                            );
                         }
                         let (this_stream_pages, next) =
                             stream_pages_iter.split_at(num_stream_pages);
@@ -314,8 +301,11 @@ impl<F: ReadAt> Msf<F> {
 
                 let mut pages_u16: Vec<U16<LE>> = vec![U16::new(0); stream_dir_num_pages as usize];
                 if page_pointers_size_bytes + size_of::<SmallMsfHeader>() as u32 > page_size {
-                    bail!("The MSF header is invalid. The page pointers for the stream directory exceed the range of the first page. Stream dir size (in bytes): {}  Page size: {}",
-                    stream_dir_size, page_size);
+                    bail!(
+                        "The MSF header is invalid. The page pointers for the stream directory \
+                         exceed the range of the first page. \
+                         Stream dir size (in bytes): {stream_dir_size}  Page size: {page_size}"
+                    );
                 }
 
                 file.read_exact_at(pages_u16.as_bytes_mut(), size_of::<SmallMsfHeader>() as u64)?;
@@ -384,9 +374,9 @@ impl<F: ReadAt> Msf<F> {
                 committed_stream_page_starts.push(committed_stream_pages.len() as u32);
 
                 if !rest.is_empty() {
-                    debug!(
-                        "old-style stream dir contained unused bytes, len = {}",
-                        rest.len()
+                    warn!(
+                        unused_bytes = rest.len(),
+                        "old-style stream dir contained unused bytes"
                     );
                 }
             }
@@ -415,37 +405,27 @@ impl<F: ReadAt> Msf<F> {
         assert_eq!(fpm_on_disk.len(), page_allocator.fpm.len()); // because num_pages defines both
 
         if page_allocator.fpm != fpm_on_disk {
-            #[cfg(test)]
+            // #[cfg(test)]
             {
-                eprintln!("FPM computed from Stream Directory is not equal to FPM found on disk.");
-                eprintln!(
+                use tracing::warn;
+
+                warn!("FPM computed from Stream Directory is not equal to FPM found on disk.");
+                warn!(
                     "Num pages = {num_pages} (0x{num_pages:x} bytes, bit offset: 0x{:x}:{})",
                     num_pages / 8,
                     num_pages % 8
                 );
-                /*
-                eprintln!("FPM computed from Stream Directory:");
-                eprintln!(
-                    "{:?}",
-                    dump_utils::HexDump::new(page_allocator.fpm.as_raw_slice().as_bytes())
-                );
-                eprintln!("FPM on disk:");
-                eprintln!(
-                    "{:?}",
-                    dump_utils::HexDump::new(fpm_on_disk.as_raw_slice().as_bytes())
-                );
-                */
 
                 for i in 0..num_pages as usize {
                     if fpm_on_disk[i] != page_allocator.fpm[i] {
-                        eprintln!(
+                        warn!(
                             "  bit 0x{:04x} is different. disk = {}, computed = {}",
                             i, fpm_on_disk[i], page_allocator.fpm[i]
                         );
                     }
                 }
             }
-            bail!("FPM is corrupted");
+            bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
         }
 
         // We have finished checking all the data that we have read from disk.
@@ -454,7 +434,10 @@ impl<F: ReadAt> Msf<F> {
 
         match (access_mode, msf_kind) {
             (AccessMode::ReadWrite, MsfKind::Small) => {
-                bail!("This PDB file uses the obsolete 'Small MSF' encoding. This library does not support read-write mode with Small MSF files.");
+                bail!(
+                    "This PDB file uses the obsolete 'Small MSF' encoding. \
+                     This library does not support read-write mode with Small MSF files."
+                );
             }
 
             (AccessMode::ReadWrite, MsfKind::Big) => {}
@@ -508,12 +491,18 @@ impl<F: ReadAt> Msf<F> {
 
 /// Read each page of the FPM. Each page of the FPM is stored in a different interval;
 /// they are not contiguous.
+///
+/// num_pages is the total number of pages in the FPM.
 fn read_fpm_big_msf<F: ReadAt>(
     file: &F,
     active_fpm: u32,
     num_pages: u32,
     page_size: PageSize,
 ) -> anyhow::Result<BitVec<u32, Lsb0>> {
+    let _span = trace_span!("read_fpm_big_msf").entered();
+
+    assert!(num_pages > 0);
+
     let mut free_page_map: BitVec<u32, Lsb0> = BitVec::new();
     free_page_map.resize(num_pages as usize, false);
     let fpm_bytes: &mut [u8] = free_page_map.as_raw_mut_slice().as_bytes_mut();
@@ -522,6 +511,13 @@ fn read_fpm_big_msf<F: ReadAt>(
     for (interval, fpm_page_bytes) in fpm_bytes.chunks_mut(page_size_usize).enumerate() {
         let interval_page = interval_to_page(interval as u32, page_size);
         let file_pos = page_to_offset(interval_page + active_fpm, page_size);
+
+        trace!(
+            interval,
+            interval_page,
+            file_pos,
+            "reading FPM page, interval_page = 0x{interval_page:x}, file_pos = 0x{file_pos:x}"
+        );
         file.read_exact_at(fpm_page_bytes, file_pos)?;
     }
 
@@ -575,4 +571,20 @@ fn is_fpm_page_big_msf(page_size: PageSize, page: u32) -> bool {
 /// Tests whether `page` is one of the special pages (Page 0, FPM1, or FPM2)
 fn is_special_page_big_msf(page_size: PageSize, page: u32) -> bool {
     page == 0 || is_fpm_page_big_msf(page_size, page)
+}
+
+/// Describes the "old" MSF Stream Directory Header.
+#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[repr(C)]
+struct OldMsfStreamDirHeader {
+    num_streams: U16<LE>,
+    ignored: U16<LE>,
+}
+
+/// An entry in the "old" MSF Stream Directory.
+#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[repr(C)]
+struct OldMsfStreamEntry {
+    stream_size: U32<LE>,
+    ignored: U32<LE>,
 }

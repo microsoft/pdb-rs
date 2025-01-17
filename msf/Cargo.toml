@@ -22,3 +22,5 @@ zerocopy-derive.workspace = true
 dump_utils = { path = "../dump_utils" }
 
 [dev-dependencies]
+static_init.workspace = true
+tracing-subscriber = { workspace = true, features = ["fmt"] }

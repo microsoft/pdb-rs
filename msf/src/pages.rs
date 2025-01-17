@@ -1,6 +1,7 @@
 //! Page management code
 
 use super::*;
+use tracing::{trace, trace_span};
 
 /// Given the size of a stream in bytes, returns the number of pages needed to store it.
 ///
@@ -429,6 +430,9 @@ impl PageAllocator {
     ///
     /// This function does not do any disk I/O. It only updates in-memory state.
     pub fn alloc_pages(&mut self, num_pages_wanted: u32) -> (Page, u32) {
+        let _span = trace_span!("alloc_pages");
+        trace!(num_pages_wanted);
+
         assert!(num_pages_wanted > 0);
         assert_eq!(self.num_pages as usize, self.fpm.len());
         assert_eq!(self.num_pages as usize, self.fpm_freed.len());
@@ -459,15 +463,18 @@ impl PageAllocator {
                     run_len += 1;
                 }
 
+                trace!(first_page = p0, run_len, "allocated pages");
                 return (p0, run_len);
             }
 
             // There are no more free pages. Fast-forward to the end of the FPM so we don't
             // waste time re-scanning this part of the FPM on future calls.
+            trace!("there are no free pages");
             self.next_free_page_hint = self.fpm.len() as u32;
         }
 
         // We need to add new pages to the MSF file.
+        trace!(num_pages = self.num_pages, "adding new pages to MSF file");
         assert_eq!(self.next_free_page_hint, self.num_pages);
         let low_mask = (1u32 << self.page_size.exponent()) - 1;
         let page_size = u32::from(self.page_size);
@@ -477,6 +484,7 @@ impl PageAllocator {
                 // exactly at the beginning of an interval. There is exactly 1 usable page at the
                 // start of an interval; after that page is the FPM1 and then the FPM2.
                 // So we can only allocate a single page.
+                trace!("next free page is first page of an interval; can only allocate 1 page");
                 1
             }
             1 => {
@@ -523,6 +531,11 @@ impl PageAllocator {
         assert_eq!(self.num_pages as usize, self.fpm_freed.len());
         assert_eq!(self.num_pages as usize, self.fresh.len());
 
+        trace!(
+            first_page = start_page,
+            num_pages_allocated,
+            "allocated pages"
+        );
         (start_page, num_pages_allocated)
     }
 
