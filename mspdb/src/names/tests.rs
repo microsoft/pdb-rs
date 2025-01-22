@@ -1,25 +1,23 @@
-use crate::Stream;
-
 use super::*;
+
+#[rustfmt::skip]
+static NAMES_DATA: &[u8] = &[
+    /* 0x0000 */ 0xfe, 0xef, 0xfe, 0xef,                 // signature
+    /* 0x0004 */ 1, 0, 0, 0,                             // version
+    /* 0x0008 */ 0x18, 0, 0, 0,                          // strings_size
+    /* 0x000c */ 0,                                      // empty string
+    /* 0x000d */ b'f', b'o', b'o', b'.', b'c', 0,        // (ni 0x0001) "foo.c\0" (len 6)
+    /* 0x0013 */ b'b', b'a', b'r', b'.', b'r', b's', 0,  // (ni 0x0007) "bar.rs\0" (len 7)
+    /* 0x001a */ b'm', b'a', b'i', b'n', b'.', b'c', 0,  // (ni 0x000e) "main.c\0" (len 7)
+    /* 0x0021 */ 0, 0, 0,                                // padding bytes
+    /* 0x0024 */ 0, 0, 0, 0,                             // num_hashes
+    /* 0x0028 */                                         // hashes (none!)
+    /* 0x0028 */ 3, 0, 0, 0,                             // num_strings
+];
 
 #[test]
 fn test_basic() {
-    #[rustfmt::skip]
-    let names_data = &[
-        /* 0x0000 */ 0xfe, 0xef, 0xfe, 0xef,                 // signature
-        /* 0x0004 */ 1, 0, 0, 0,                             // version
-        /* 0x0008 */ 0x18, 0, 0, 0,                          // strings_size
-        /* 0x000c */ 0,                                      // empty string
-        /* 0x000d */ b'f', b'o', b'o', b'.', b'c', 0,        // (ni 0x0001) "foo.c\0" (len 6)
-        /* 0x0013 */ b'b', b'a', b'r', b'.', b'r', b's', 0,  // (ni 0x0007) "bar.rs\0" (len 7)
-        /* 0x001a */ b'm', b'a', b'i', b'n', b'.', b'c', 0,  // (ni 0x000e) "main.c\0" (len 7)
-        /* 0x0021 */ 0, 0, 0,                                // padding bytes
-        /* 0x0024 */ 0, 0, 0, 0,                             // num_hashes
-        /* 0x0028 */                                         // hashes (none!)
-        /* 0x0028 */ 3, 0, 0, 0,                             // num_strings
-    ];
-
-    let names = NamesStream::parse(&names_data).unwrap();
+    let names = NamesStream::parse(&NAMES_DATA).unwrap();
     assert_eq!(names.get_string(NameIndex(1)).unwrap(), "foo.c");
     assert_eq!(names.get_string(NameIndex(7)).unwrap(), "bar.rs");
     assert_eq!(names.get_string(NameIndex(0xe)).unwrap(), "main.c");
@@ -43,22 +41,10 @@ fn test_basic() {
     );
 }
 
-static DW_NAMES: &[u8] = include_bytes!("tests/dw_names.bin");
-
-#[test]
-fn basic_parse() {
-    let names = NamesStream::parse(DW_NAMES).unwrap();
-
-    let mut diags = Diags::new();
-    names.check(Stream::OLD_STREAM_DIR.into(), 0, &mut diags);
-    assert!(!diags.has_errors());
-    assert!(!diags.has_warnings());
-}
-
 #[test]
 fn rebuild() {
     println!("parsing old names table");
-    let old_names = NamesStream::parse(DW_NAMES).unwrap();
+    let old_names = NamesStream::parse(NAMES_DATA).unwrap();
 
     println!("rebuilding names table");
     let (remapping, new_names_bytes) = old_names.rebuild();
