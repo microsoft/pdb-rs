@@ -4,20 +4,18 @@
 //! files. They contain a set of streams, which are indexed by number. Each stream is a sequence
 //! of bytes, similar to an ordinary file.
 //!
-//! See the [`docs`] module for a description of the MSFZ file format.
+//! See the [`spec`] module for a description of the MSFZ file format.
 
 #![forbid(unsafe_code)]
 #![forbid(unused_must_use)]
 #![warn(missing_docs)]
 #![allow(clippy::needless_lifetimes)]
 
-/*
 #[cfg(doc)]
-pub mod docs {
-    #![doc = include_str!("docs.md")]
+pub mod spec {
+    #![doc = include_str!("msfz.md")]
     use super::*;
 }
-    */
 
 use anyhow::Result;
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32, U64};
@@ -158,8 +156,8 @@ pub const MSFZ_FILE_SIGNATURE: [u8; 32] = *b"Microsoft MSFZ Container\r\n\x1aALD
 
 #[test]
 fn print_file_signature() {
-    use dump_utils::HexDump;
-    println!("\n{:?}", HexDump::new(&MSFZ_FILE_SIGNATURE));
+    use pretty_hex::PrettyHex;
+    println!("\n{:?}", MSFZ_FILE_SIGNATURE.hex_dump());
 }
 
 /// The current version of the PDZ specification being developed.

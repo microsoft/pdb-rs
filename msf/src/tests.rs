@@ -2,15 +2,29 @@
 
 use super::*;
 use anyhow::Result;
-use dump_utils::{DumpRangesSucc, HexDump};
+use pretty_hex::{HexConfig, PrettyHex};
 use std::io::{Cursor, Seek, SeekFrom, Write};
 use std::sync::Mutex;
 use sync_file::{ReadAt, WriteAt};
-use tracing::{debug, trace, trace_span};
+use tracing::{debug, debug_span, trace, trace_span};
 
 #[static_init::dynamic]
 static INIT_LOGGER: () = {
     use tracing_subscriber::fmt::format::FmtSpan;
+
+    if let Ok(s) = std::env::var("ENABLE_TRACY") {
+        if s == "1" {
+            use tracing_subscriber::layer::SubscriberExt;
+
+            if let Ok(_) = std::env::var("ENABLE_TRACY") {
+                tracing::subscriber::set_global_default(
+                    tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
+                )
+                .expect("setup tracy layer");
+                return;
+            }
+        }
+    }
 
     tracing_subscriber::fmt::fmt()
         .compact()
@@ -34,9 +48,9 @@ macro_rules! assert_bytes_eq {
 
                 if a_bytes != b_bytes {
                     panic!(
-                        "Bytes do not match:\n{:?}\n{:?}",
-                        HexDump::new(a_bytes),
-                        HexDump::new(b_bytes)
+                        "Bytes do not match:\n{}\n{}",
+                        a_bytes.hex_dump(),
+                        b_bytes.hex_dump()
                     );
                 }
             }
@@ -53,8 +67,8 @@ macro_rules! assert_bytes_eq {
                     let msg = format!($($msg)*);
                     panic!(
                         "Bytes do not match: {msg}\n{:?}\n{:?}",
-                        HexDump::new(a_bytes),
-                        HexDump::new(b_bytes)
+                        a_bytes.hex_dump(),
+                        b_bytes.hex_dump()
                     );
                 }
             }
@@ -105,21 +119,17 @@ struct TestFile {
 impl ReadAt for TestFile {
     fn read_exact_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<()> {
         let _span = trace_span!("TestFile::read_exact_at").entered();
-
         debug!(offset, buf_len = buf.len(), "TestFile::read_exact_at");
         let lock = self.data.lock().unwrap();
         lock.read_exact_at(buf, offset)?;
-        debug!(data = ?HexDump::new(buf).at(offset as usize), "read received");
+        debug!(data = buf, "read received");
         Ok(())
     }
 
     fn read_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<usize> {
         let lock = self.data.lock().unwrap();
         let n = lock.read_at(buf, offset)?;
-        debug!(
-            data = ?HexDump::new(&buf[..n]).at(offset as usize),
-            "TestFile::read_at: read received"
-        );
+        debug!(data = &buf[..n], "TestFile::read_at: read received");
         Ok(n)
     }
 }
@@ -134,7 +144,7 @@ impl WriteAt for TestFile {
         debug!(
             offset = offset,
             len = buf.len(),
-            data = ?HexDump::new(buf).at(offset as usize),
+            data = buf,
             "TestFile: write_all_at"
         );
 
@@ -205,9 +215,13 @@ impl StreamTester {
     #[inline(never)]
     #[track_caller]
     fn write_at(&mut self, pos: u64, data: &[u8]) {
-        debug!("----- Writing piece -----");
-        debug!("current stream size: 0x{:x}", self.stream_size);
-        debug!("piece contents:\n{:?}", HexDump::new(data).at(pos as usize));
+        let _span = debug_span!("StreamTester::write_at");
+        debug!(
+            pos,
+            current_stream_size = self.stream_size,
+            piece_contents = data,
+            "write_at"
+        );
 
         let mut w = self.writer();
         w.seek(SeekFrom::Start(pos)).unwrap();
@@ -233,11 +247,7 @@ impl StreamTester {
             "number of pages should be consistent with stream size"
         );
 
-        debug!("Stream pages: {:?}", DumpRangesSucc::new(&self.pages));
-
         let file = self.file.data.lock().unwrap();
-
-        debug!("MSF contents:\n{:?}", HexDump::new(&file));
 
         for (spage, &page) in self.pages.iter().enumerate() {
             let whole_page_data =
@@ -528,7 +538,7 @@ fn finish_and_dump(mut w: Msf<TestFile>) {
                 "Finished PDB.  Size = 0x{:x} {}:\n{:#?}",
                 data.len(),
                 data.len(),
-                HexDump::new(data)
+                data.hex_dump()
             );
         }
     }
@@ -546,7 +556,7 @@ fn finish_and_read(mut w: Msf<TestFile>) -> Msf<TestFile> {
 
 #[track_caller]
 fn commit_and_read(w: &mut Msf<TestFile>) -> Msf<TestFile> {
-    let _span = trace_span!("commit_and_read");
+    let _span = trace_span!("commit_and_read").entered();
     w.commit().unwrap();
 
     let cloned_file_data = w.file_mut().data.get_mut().unwrap().clone();

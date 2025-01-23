@@ -2,7 +2,7 @@
 
 use super::*;
 use anyhow::Result;
-use tracing::{debug, trace, trace_span};
+use tracing::{debug, debug_span, info, info_span, trace, trace_span};
 
 impl<F: ReadAt + WriteAt> Msf<F> {
     /// Commits all changes to the MSF file to disk.
@@ -13,13 +13,13 @@ impl<F: ReadAt + WriteAt> Msf<F> {
     /// Returns `Ok(false)` if this `Msf` did not contain any uncomitted changes. In this case,
     /// no `write()` calls are issued to the underlying storage.
     pub fn commit(&mut self) -> Result<bool> {
-        let _span = trace_span!("Msf::commit").entered();
+        let _span = info_span!("Msf::commit").entered();
 
         self.assert_invariants();
 
         // If this was not opened for write access then there are no pending changes at all.
         if self.access_mode != AccessMode::ReadWrite {
-            trace!("this Msf is not opened for read-write access");
+            info!("this Msf is not opened for read-write access");
             debug_assert!(self.modified_streams.is_empty());
             return Ok(false);
         };
@@ -29,7 +29,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
         // If no streams have been modified, then there is nothing to do.
         if self.modified_streams.is_empty() {
-            trace!("there are no modified streams; nothing to commit");
+            info!("there are no modified streams; nothing to commit");
             return Ok(false);
         }
 
@@ -38,10 +38,10 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             FPM_NUMBER_2 => FPM_NUMBER_1,
             _ => panic!("Active FPM has invalid value"),
         };
-        trace!(
+        info!(
             old_fpm = self.active_fpm,
             new_fpm = new_fpm_number,
-            "changing FPM"
+            "beginning commit"
         );
 
         let stream_dir_info = self.write_new_stream_dir()?;
@@ -78,7 +78,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
         // ------------------------ THE BIG COMMIT ----------------------
 
-        trace!("writing MSF File Header");
+        info!("writing MSF File Header");
         self.file.write_all_at(page0.as_bytes(), 0)?;
 
         // After this point, _nothing can fail_.
@@ -133,13 +133,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
                     };
                 assert_eq!(num_stream_pages, pages.len());
 
-                trace!(
-                    stream,
-                    stream_size,
-                    num_stream_pages,
-                    is_modified,
-                    pages = ?dump_utils::DumpRangesSucc::new(pages)
-                );
+                trace!(stream, stream_size, num_stream_pages, is_modified,);
 
                 stream_pages.extend_from_slice(pages);
             }
@@ -180,6 +174,8 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             self.active_fpm = new_fpm_number;
         }
 
+        info!("commit complete");
+
         self.assert_invariants();
 
         Ok(true)
@@ -217,11 +213,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
                 &self.committed_stream_pages[start..start + num_stream_pages]
             };
             assert_eq!(num_stream_pages, pages.len());
-
-            debug!(
-                "stream {stream} : size = 0x{stream_size:08x}, pages = {:?}",
-                dump_utils::DumpRangesSucc::new(pages)
-            );
+            debug!(stream, stream_size);
 
             stream_dir.reserve(pages.len());
             for &p in pages.iter() {
@@ -237,7 +229,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
     /// This builds the stream directory and the page map pages and writes it to disk. It returns
     /// the size in bytes of the stream directory and the page numbers of the page map.
     fn write_new_stream_dir(&mut self) -> anyhow::Result<StreamDirInfo> {
-        let _span = trace_span!("Msf::write_new_stream_dir").entered();
+        let _span = debug_span!("Msf::write_new_stream_dir").entered();
 
         let page_size = self.pages.page_size;
         let page_size_usize = usize::from(page_size);
@@ -275,7 +267,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             self.file.write_all_at(page_bytes, page_offset)?;
         }
 
-        // Now we build the next level of indirection (L1 over L2), and allocate pages for them
+        // Now we build the next level of indirection (the "page map"), and allocate pages for them
         // and write them.
         let mut map_pages: Vec<U32<LE>> = Vec::new();
 
@@ -307,7 +299,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
     /// Writes the FPM for the new transaction state.
     fn write_fpm(&mut self, new_fpm_number: u32) -> anyhow::Result<()> {
-        let _span = trace_span!("write_fpm").entered();
+        let _span = debug_span!("write_fpm").entered();
 
         let page_size = self.pages.page_size;
         let page_size_usize = usize::from(page_size);
@@ -354,11 +346,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             let interval_page = interval_to_page(interval_index, page_size);
             let new_fpm_page = interval_page + new_fpm_number;
 
-            trace!(
-                interval = interval_index,
-                bitmap =
-                ?dump_utils::HexDump::new(slice_to_write),
-                "writing fpm chunk");
+            debug!(interval = interval_index, "writing fpm chunk");
 
             self.file
                 .write_all_at(slice_to_write, page_to_offset(new_fpm_page, page_size))?;
@@ -388,6 +376,7 @@ fn fill_last_word_of_fpm(fpm: &mut BitVec<u32, Lsb0>) {
     *last |= 0xffff_ffff << unaligned_len;
 }
 
+/// Information about the new Stream Directory that we just constructed and wrote to disk.
 struct StreamDirInfo {
     /// Size in bytes of the Stream Directory
     dir_size: u32,

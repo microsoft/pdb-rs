@@ -1,7 +1,7 @@
 use super::*;
 use bstr::BStr;
-use dump_utils::HexDump;
 use pow2::Pow2;
+use pretty_hex::PrettyHex;
 use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use sync_file::ReadAt;
 
@@ -30,17 +30,14 @@ where
 
     println!("Encoded stream directory:");
     let stream_dir_bytes = encode_stream_dir(&w.streams);
-    println!(
-        "{:?}",
-        HexDump::new(&stream_dir_bytes).chars(false).row_len(4)
-    );
+    println!("{:?}", stream_dir_bytes.hex_dump());
 
     let (summary, returned_file) = w.finish().unwrap();
     println!("{summary}");
     let msfz_data = returned_file.into_inner();
 
     println!();
-    println!("{:?}", HexDump::new(&msfz_data));
+    println!("{:?}", msfz_data.hex_dump());
 
     match Msfz::from_file(msfz_data) {
         Ok(msfz) => msfz,

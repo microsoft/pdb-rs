@@ -7,7 +7,7 @@ use tracing::{trace, trace_span};
 ///
 /// This function correctly handles the case where the stream size is [`NIL_STREAM_SIZE`].
 /// In this case, it returns 0.
-pub fn num_pages_for_stream_size(stream_size: u32, page_size: PageSize) -> u32 {
+pub(crate) fn num_pages_for_stream_size(stream_size: u32, page_size: PageSize) -> u32 {
     if stream_size == NIL_STREAM_SIZE {
         0
     } else {
@@ -16,14 +16,14 @@ pub fn num_pages_for_stream_size(stream_size: u32, page_size: PageSize) -> u32 {
 }
 
 /// Maps ranges of bytes within a stream to contiguous ranges of bytes in the containing MSF file.
-pub(super) struct StreamPageMapper<'a> {
-    pages: &'a [u32],
+pub(crate) struct StreamPageMapper<'a> {
+    pages: &'a [Page],
     page_size: PageSize,
     stream_size: u32,
 }
 
 impl<'a> StreamPageMapper<'a> {
-    pub fn new(pages: &'a [u32], page_size: PageSize, stream_size: u32) -> Self {
+    pub(crate) fn new(pages: &'a [Page], page_size: PageSize, stream_size: u32) -> Self {
         assert_eq!(
             num_pages_for_stream_size(stream_size, page_size) as usize,
             pages.len()
@@ -52,7 +52,7 @@ impl<'a> StreamPageMapper<'a> {
     ///
     /// * if returned `Some`, then `transfer_len <= bytes_wanted`
     /// * if returned `Some`, then `transfer_len > 0`
-    pub fn map(&self, pos: u32, bytes_wanted: u32) -> Option<(u64, u32)> {
+    pub(crate) fn map(&self, pos: u32, bytes_wanted: u32) -> Option<(u64, u32)> {
         if self.stream_size == NIL_STREAM_SIZE {
             return None;
         }
@@ -219,17 +219,18 @@ fn test_page_mapper_basic() {
 
 /// Contains state for allocating pages.
 ///
-/// The `free_page_map`, `deleted_page_map` and `modified_page_map` bit vectors all describe the
-/// state of pages. These are parallel vectors; the same index in each vector is related to the
-/// same page. Only certain combinations of values for these vectors are legal.
+/// The `fpm`, `fpm_freed` and `fresh` bit vectors all describe the state of pages. These are
+/// parallel vectors; the same index in each vector is related to the same page. Only certain
+/// combinations of values for these vectors are legal.
 ///
-/// Pages can be in one of the following states:
+/// Each page `p` can be in one of the following states:
 ///
-/// * `FREE` (free = 1, deleted = 0): The page is available for use. The contents of the data (on disk) are meaningless
-/// * `BUSY` (free = 0, deleted = 0): The page is assigned to some purpose (FPM, Page 0, or stream contents (other than stream 0)). The page contents cannot be modified.
-/// * `DELETED` (free = 0, deleted = 1): The page is used by the committed state but has been deleted in the uncommitted state. The page contents cannot be modified.
-///
-/// There is no valid state with `free = 1, deleted = 1`.
+/// `fpm[p]`  | `fpm_freed[p]` | State    | Description
+/// ----------|----------------|----------|------------------
+/// `true`    | `false`        | FREE     | The page is available for use. This page is not used by any stream.
+/// `false`   | `false`        | BUSY     | The page is being used by a stream.
+/// `false`   | `true`         | DELETING | The page is used by the previous (committed) state of some stream, but has been deleted in the next (uncommitted) state.
+/// `true`    | `true`         | (illegal) | (illegal)
 pub(super) struct PageAllocator {
     /// Free Page Map (FPM): A bit vector that lists the pages in the MSF that are free.
     pub(super) fpm: BitVec<u32, Lsb0>,
@@ -305,7 +306,7 @@ impl PageAllocator {
         }
     }
 
-    pub fn alloc_page_buffer(&self) -> Box<[u8]> {
+    pub(crate) fn alloc_page_buffer(&self) -> Box<[u8]> {
         FromZeroes::new_box_slice_zeroed(usize::from(self.page_size))
     }
 
@@ -313,7 +314,7 @@ impl PageAllocator {
     /// Stream Directory. This should not be used for Stream 0, which is the Old Stream Directory.
     ///
     /// The `stream` and `stream_page` values are only for diagnostics.
-    pub fn init_mark_stream_page_busy(
+    pub(crate) fn init_mark_stream_page_busy(
         &mut self,
         page: Page,
         _stream: u32,
@@ -338,7 +339,7 @@ impl PageAllocator {
     ///
     /// These pages are marked "free pending" (freed) because these pages become unused after
     /// the next successful call to `commit()`.
-    pub fn init_mark_stream_dir_page_busy(&mut self, page: Page) -> anyhow::Result<()> {
+    pub(crate) fn init_mark_stream_dir_page_busy(&mut self, page: Page) -> anyhow::Result<()> {
         // We mark the page as "freed". It is still marked "free" in the FPM.
         // The page allocator will not use this page, because it is marked "freed".
 
@@ -369,53 +370,10 @@ impl PageAllocator {
         Ok(())
     }
 
-    /// Checks that a given set of pages is marked free. If any of the pages are invalid (out of range)
-    /// or are marked busy then this function returns `Err`.
-    #[allow(dead_code)]
-    pub fn check_pages_free(&self, pages: &[u32]) -> anyhow::Result<()> {
-        let num_pages = self.num_pages as usize;
-        assert_eq!(num_pages, self.fpm.len());
-        assert_eq!(num_pages, self.fpm_freed.len());
-
-        for &page in pages.iter() {
-            match self.fpm_freed.get(page as usize) {
-                None => bail!("Page number {page} is invalid."),
-                Some(b) => {
-                    if *b {
-                        bail!("Page number {page} is marked busy, but it should be marked free.");
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Checks that a given page is valid and is marked free.
-    #[allow(dead_code)]
-    pub fn check_page_free(&self, pages: &[u32]) -> anyhow::Result<()> {
-        let num_pages = self.num_pages as usize;
-        assert_eq!(num_pages, self.fpm.len());
-        assert_eq!(num_pages, self.fpm_freed.len());
-
-        for &page in pages.iter() {
-            match self.fpm_freed.get(page as usize) {
-                None => bail!("Page number {page} is invalid."),
-                Some(b) => {
-                    if *b {
-                        bail!("Page number {page} is marked busy, but it should be marked free.");
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-
     /// Allocates a single page.
     ///
     /// This function does not do any disk I/O. It only updates in-memory state.
-    pub fn alloc_page(&mut self) -> Page {
+    pub(crate) fn alloc_page(&mut self) -> Page {
         let (page, run_len) = self.alloc_pages(1);
         debug_assert_eq!(run_len, 1);
         page
@@ -429,7 +387,7 @@ impl PageAllocator {
     /// the returned `run_len` value will be equal to `num_pages_wanted`.
     ///
     /// This function does not do any disk I/O. It only updates in-memory state.
-    pub fn alloc_pages(&mut self, num_pages_wanted: u32) -> (Page, u32) {
+    pub(crate) fn alloc_pages(&mut self, num_pages_wanted: u32) -> (Page, u32) {
         let _span = trace_span!("alloc_pages");
         trace!(num_pages_wanted);
 
@@ -480,16 +438,17 @@ impl PageAllocator {
         let page_size = u32::from(self.page_size);
         let num_pages_available = match self.num_pages & low_mask {
             0 => {
-                // This is an unusual but legal case. The end of the file is currently positioned
-                // exactly at the beginning of an interval. There is exactly 1 usable page at the
-                // start of an interval; after that page is the FPM1 and then the FPM2.
-                // So we can only allocate a single page.
-                trace!("next free page is first page of an interval; can only allocate 1 page");
+                // This is an unusual but legal case. num_pages is currently positioned exactly at
+                // the beginning of an interval. There is exactly 1 usable page at the start of an
+                // interval; after that page is the FPM1 and then the FPM2. So we can only allocate
+                // a single page.
+                trace!("num_pages is positioned on first page of an interval; can only allocate 1 page");
                 1
             }
             1 => {
-                // We are positioned on FPM1. That's fine.  Step over FPM1 and FPM2.
+                // num_pages is positioned on FPM1. That's fine.  Step over FPM1 and FPM2.
                 // Increment phase to pretend like that's how we got here in the first place.
+                trace!("num_pages is positioned on FPM1; incrementing by 2 and using remainder of interval");
                 self.fpm_freed.push(false); // FPM1
                 self.fpm_freed.push(false); // FPM2
                 self.fpm.push(false); // FPM1
@@ -501,6 +460,7 @@ impl PageAllocator {
             2 => {
                 // We are positioned on FPM2. That's unusual but OK. Step over FPM2 and mark it
                 // as busy.
+                trace!("num_pages is positioned on FPM2; incrementing by 1 and using remainder of interval");
                 self.fpm_freed.push(false);
                 self.fpm.push(false);
                 self.num_pages += 1;
@@ -531,37 +491,19 @@ impl PageAllocator {
         assert_eq!(self.num_pages as usize, self.fpm_freed.len());
         assert_eq!(self.num_pages as usize, self.fresh.len());
 
-        trace!(
-            first_page = start_page,
-            num_pages_allocated,
-            "allocated pages"
-        );
+        trace!(start_page, num_pages_allocated, "allocated pages");
         (start_page, num_pages_allocated)
     }
 
-    #[allow(dead_code)]
-    pub fn cow_page(&mut self, page: Page) -> PageCow {
-        let p = page as usize;
-
-        assert!(!self.fpm[p], "cannot copy-on-write a page that is free");
-        assert!(
-            !self.fpm_freed[p],
-            "cannot copy-on-write a page that is freed (pending)"
-        );
-
-        if self.fresh[p] {
-            PageCow::AlreadyOwned(page)
-        } else {
-            let (new_page, _) = self.alloc_pages(1);
-            self.fpm_freed.set(p, true);
-            PageCow::NeedToCopy {
-                old: page,
-                new: new_page,
-            }
-        }
-    }
-
-    pub fn cow_page_mut(&mut self, page: &mut Page) -> Page {
+    /// Ensures that a given page is mutable (is "fresh", i.e. can be modified in the uncommitted
+    /// state).
+    ///
+    /// * If `*page` is not fresh, then this function allocates a new page and assigns its page
+    ///   number to `*page`. This function _does not_ do any disk I/O; it does not copy the
+    ///   contents of the old page to the new.
+    ///
+    /// * If `*page` is already fresh, then this function does nothing.
+    pub(crate) fn make_page_fresh(&mut self, page: &mut Page) -> Page {
         let p = *page as usize;
 
         if self.fresh[p] {
@@ -574,15 +516,22 @@ impl PageAllocator {
         }
     }
 
-    /// Get fresh pages for a range of stream pages. We call this `cow_pages` even though we are
-    /// not doing any _copying_, just for consistency with the other `cow_*` functions.
-    pub fn cow_pages(&mut self, pages: &mut [Page]) {
+    /// Ensures that a sequence of pages are "fresh" (can be modified in the uncommitted state).
+    ///
+    /// This function ensures that each page number in `pages` points to a fresh page. If an
+    /// existing page number is not fresh, then this function will allocate a new page and replace
+    /// the old page number with the new one.
+    ///
+    /// This function _does not_ do any disk I/O. It does not copy the contents of old pages to
+    /// new pages.
+    pub(crate) fn make_pages_fresh(&mut self, pages: &mut [Page]) {
         for p in pages.iter_mut() {
-            self.cow_page_mut(p);
+            self.make_page_fresh(p);
         }
     }
 
-    pub fn check_vector_consistency(&self) -> anyhow::Result<()> {
+    /// Checks that the `fpm` and `fpm_freed` vectors are consistent.
+    pub(crate) fn check_vector_consistency(&self) -> anyhow::Result<()> {
         let num_pages = self.num_pages as usize;
         assert_eq!(num_pages, self.fpm.len());
         assert_eq!(num_pages, self.fpm_freed.len());
@@ -620,59 +569,50 @@ impl PageAllocator {
     /// Checks invariants that are visible at this scope.
     #[inline(never)]
     pub fn assert_invariants(&self) {
-        // #[cfg(debug_assertions)]
-        {
-            assert!(self.num_pages > 0);
-            assert_eq!(self.num_pages as usize, self.fpm.len());
-            assert_eq!(self.num_pages as usize, self.fpm_freed.len());
+        assert!(self.num_pages > 0);
+        assert_eq!(self.num_pages as usize, self.fpm.len());
+        assert_eq!(self.num_pages as usize, self.fpm_freed.len());
 
-            // Check that page 0, which stores the MSF File Header, is busy.
-            assert!(!self.fpm[0], "Page 0 should always be BUSY");
-            assert!(!self.fpm_freed[0], "Page 0 should never be deleted");
+        // Check that page 0, which stores the MSF File Header, is busy.
+        assert!(!self.fpm[0], "Page 0 should always be BUSY");
+        assert!(!self.fpm_freed[0], "Page 0 should never be deleted");
 
-            // Check that the pages assigned to the FPM are marked "busy" in all intervals.
+        // Check that the pages assigned to the FPM are marked "busy" in all intervals.
 
-            let mut interval: u32 = 0;
-            loop {
-                let p = (interval << self.page_size.exponent()) as usize;
-                let fpm1_index = p + 1;
-                let fpm2_index = p + 2;
+        let mut interval: u32 = 0;
+        loop {
+            let p = (interval << self.page_size.exponent()) as usize;
+            let fpm1_index = p + 1;
+            let fpm2_index = p + 2;
 
-                if fpm1_index < self.fpm.len() {
-                    assert!(!self.fpm[fpm1_index], "All FPM pages should be marked BUSY");
-                    assert!(
-                        !self.fpm_freed[fpm1_index],
-                        "FPM pages should never be deleted"
-                    );
-                }
-
-                if fpm2_index < self.fpm.len() {
-                    assert!(!self.fpm[fpm2_index], "All FPM pages should be marked BUSY");
-                    assert!(
-                        !self.fpm_freed[fpm2_index],
-                        "FPM pages should never be deleted"
-                    );
-                    interval += 1;
-                } else {
-                    break;
-                }
-            }
-
-            // Check that the free/deleted bit vectors are consistent.
-            for page in 0..self.num_pages {
-                let is_free = self.fpm[page as usize];
-                let is_freed = self.fpm_freed[page as usize];
+            if fpm1_index < self.fpm.len() {
+                assert!(!self.fpm[fpm1_index], "All FPM pages should be marked BUSY");
                 assert!(
-                    !(is_free && is_freed),
-                    "page {page} is in illegal state (both 'free' and 'freed')"
+                    !self.fpm_freed[fpm1_index],
+                    "FPM pages should never be deleted"
                 );
             }
+
+            if fpm2_index < self.fpm.len() {
+                assert!(!self.fpm[fpm2_index], "All FPM pages should be marked BUSY");
+                assert!(
+                    !self.fpm_freed[fpm2_index],
+                    "FPM pages should never be deleted"
+                );
+                interval += 1;
+            } else {
+                break;
+            }
+        }
+
+        // Check that the free/deleted bit vectors are consistent.
+        for page in 0..self.num_pages {
+            let is_free = self.fpm[page as usize];
+            let is_freed = self.fpm_freed[page as usize];
+            assert!(
+                !(is_free && is_freed),
+                "page {page} is in illegal state (both 'free' and 'freed')"
+            );
         }
     }
-}
-
-#[allow(dead_code)]
-pub enum PageCow {
-    AlreadyOwned(Page),
-    NeedToCopy { old: Page, new: Page },
 }

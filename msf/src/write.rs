@@ -547,7 +547,7 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
             *pos += num_xfer_bytes;
 
             let pages = &mut self.pages[pos_spage as usize..][..num_xfer_pages as usize];
-            self.page_allocator.cow_pages(pages);
+            self.page_allocator.make_pages_fresh(pages);
             write_runs(&self.file, buf_head, pages, page_size)?;
 
             // If the last page that we overwrite was a partial page, then we will have extended
@@ -667,7 +667,7 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
     /// allocates a new page. This function returns the page number of the writable page.
     fn cow_page(&mut self, spage: StreamPage) -> Page {
         self.page_allocator
-            .cow_page_mut(&mut self.pages[spage as usize])
+            .make_page_fresh(&mut self.pages[spage as usize])
     }
 
     /// Ensures that a stream page is writable and then writes it.

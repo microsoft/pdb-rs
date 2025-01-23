@@ -21,5 +21,5 @@ zstd.workspace = true
 pow2.workspace = true
 
 [dev-dependencies]
-dump_utils = { path = "../dump_utils" }
 bstr.workspace = true
+pretty-hex.workspace = true

@@ -514,3 +514,7 @@ Given a stream `s`, an `offset` within the stream to read, and `len` bytes to re
   * If necessary, read chunks from disk and decompress them.
   * Scan forward in the chunk list. Consume `len` bytes of data from chunks,
     crossing chunk boundaries if necessary.
+
+## Author
+
+* [Arlie Davis](ardavis@microsoft.com)

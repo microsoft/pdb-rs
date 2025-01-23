@@ -3,7 +3,7 @@
 use sync_file::ReadAt;
 
 use crate::pages::StreamPageMapper;
-use crate::PageSize;
+use crate::{Page, PageSize};
 
 /// This reads data from a stream. It maps byte offsets within a stream to byte offsets within the
 /// containing MSF file.
@@ -18,7 +18,7 @@ pub(super) fn read_stream_core<F: ReadAt>(
     file: &F,
     page_size: PageSize,
     stream_size: u32,
-    pages: &[u32],
+    pages: &[Page],
     pos: u64,
     dst: &mut [u8],
 ) -> std::io::Result<(usize, u64)> {

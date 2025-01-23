@@ -7,6 +7,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use sync_file::{RandomAccessFile, ReadAt};
+use tracing::{debug, debug_span, info, info_span};
 use zerocopy::{AsBytes, FromZeroes};
 
 /// Reads MSFZ files.
@@ -29,6 +30,8 @@ impl Msfz<RandomAccessFile> {
 impl<F: ReadAt> Msfz<F> {
     /// Opens an MSFZ file using an implementation of the [`ReadAt`] trait.
     pub fn from_file(file: F) -> Result<Self> {
+        let _span = info_span!("Msfz::from_file").entered();
+
         let mut header: MsfzFileHeader = MsfzFileHeader::new_zeroed();
         file.read_exact_at(header.as_bytes_mut(), 0)?;
 
@@ -45,27 +48,37 @@ impl<F: ReadAt> Msfz<F> {
         if num_streams == 0 {
             bail!("The stream directory is invalid; it is empty.");
         }
-        let stream_dir_size = header.stream_dir_size_uncompressed.get() as usize;
-        let mut stream_dir_bytes: Vec<u8> = vec![0; stream_dir_size];
-        if let Some(compression) =
-            Compression::try_from_code_opt(header.stream_dir_compression.get())?
-        {
-            let stream_dir_size_compressed = header.stream_dir_size_compressed.get() as usize;
+
+        let stream_dir_size_uncompressed = header.stream_dir_size_uncompressed.get() as usize;
+        let stream_dir_size_compressed = header.stream_dir_size_compressed.get() as usize;
+        let stream_dir_file_offset = header.stream_dir_offset.get();
+        let stream_dir_compression = header.stream_dir_compression.get();
+        info!(
+            num_streams,
+            stream_dir_size_uncompressed,
+            stream_dir_size_compressed,
+            stream_dir_compression,
+            stream_dir_file_offset,
+            "reading stream directory"
+        );
+
+        let mut stream_dir_bytes: Vec<u8> = vec![0; stream_dir_size_uncompressed];
+        if let Some(compression) = Compression::try_from_code_opt(stream_dir_compression)? {
             let mut compressed_stream_dir: Vec<u8> = vec![0; stream_dir_size_compressed];
             file.read_exact_at(
                 compressed_stream_dir.as_bytes_mut(),
                 header.stream_dir_offset.get(),
             )?;
+
+            debug!("decompressing stream directory");
+
             crate::compress_utils::decompress_to_slice(
                 compression,
                 &compressed_stream_dir,
                 &mut stream_dir_bytes,
             )?;
         } else {
-            file.read_exact_at(
-                stream_dir_bytes.as_bytes_mut(),
-                header.stream_dir_offset.get(),
-            )?;
+            file.read_exact_at(stream_dir_bytes.as_bytes_mut(), stream_dir_file_offset)?;
         }
 
         let stream_dir = decode_stream_dir(&stream_dir_bytes, num_streams)?;
@@ -76,10 +89,15 @@ impl<F: ReadAt> Msfz<F> {
         if chunk_index_size != num_chunks * size_of::<ChunkEntry>() {
             bail!("This PDZ file is invalid. num_chunks and chunk_index_size are not consistent.");
         }
-        let chunk_index_offset = header.chunk_table_offset.get();
+
+        let chunk_table_offset = header.chunk_table_offset.get();
         let mut chunk_table: Vec<ChunkEntry> = FromZeroes::new_vec_zeroed(num_chunks);
         if num_chunks != 0 {
-            file.read_exact_at(chunk_table.as_bytes_mut(), chunk_index_offset)?;
+            info!(
+                num_chunks,
+                chunk_table_offset, "reading compressed chunk table"
+            );
+            file.read_exact_at(chunk_table.as_bytes_mut(), chunk_table_offset)?;
         } else {
             // Don't issue a read. The writer code may not have actually extended the file.
         }
@@ -123,6 +141,8 @@ impl<F: ReadAt> Msfz<F> {
         }
     }
 
+    /// Gets a slice of a chunk. `offset` is the offset within the chunk and `size` is the
+    /// length in bytes of the slice. The chunk is loaded and decompressed, if necessary.
     fn get_chunk_slice(&self, chunk: u32, offset: u32, size: u32) -> std::io::Result<&[u8]> {
         let chunk_data = self.get_chunk_data(chunk)?;
         if let Some(slice) = chunk_data.get(offset as usize..offset as usize + size as usize) {
@@ -136,11 +156,9 @@ impl<F: ReadAt> Msfz<F> {
     }
 
     fn get_chunk_data(&self, chunk_index: u32) -> std::io::Result<&Arc<Vec<u8>>> {
-        let ci = chunk_index as usize;
+        debug_assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
 
-        assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
-
-        let Some(slot) = self.chunk_cache.get(ci) else {
+        let Some(slot) = self.chunk_cache.get(chunk_index as usize) else {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
                 "Chunk index is out of range.",
@@ -151,13 +169,24 @@ impl<F: ReadAt> Msfz<F> {
             return Ok(arc);
         }
 
-        // Release the lock so that we can do the I/O without holding the lock.
+        let arc = self.load_chunk_data(chunk_index)?;
+        Ok(slot.get_or_init(move || arc))
+    }
+
+    /// This is the slow path for `get_chunk_data`, which loads the chunk data from disk and
+    /// decompresses it.
+    #[inline(never)]
+    fn load_chunk_data<'a>(&self, chunk_index: u32) -> std::io::Result<Arc<Vec<u8>>> {
+        assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
+
+        let _span = debug_span!("load_chunk_data").entered();
+
         // We may race with another read that is loading the same entry.
         // For now, that's OK, but in the future we should be smarter about de-duping
         // cache fill requests.
 
         // We have already implicitly validated the chunk index.
-        let entry = &self.chunk_table[ci];
+        let entry = &self.chunk_table[chunk_index as usize];
 
         let compression_opt =
             Compression::try_from_code_opt(entry.compression.get()).map_err(|_| {
@@ -186,13 +215,7 @@ impl<F: ReadAt> Msfz<F> {
             compressed_data
         };
 
-        let new_arc: Arc<Vec<u8>> = Arc::new(uncompressed_data);
-
-        // This assignment may fail if we race with another thread that is loading the same chunk.
-        // If so, then we did some wasted work.
-        let _ = slot.set(new_arc);
-
-        Ok(slot.get().unwrap())
+        Ok(Arc::new(uncompressed_data))
     }
 
     /// Reads an entire stream to a vector.
@@ -216,7 +239,8 @@ impl<F: ReadAt> Msfz<F> {
         }
 
         // If this stream fits in a single fragment and the fragment is compressed, then we can
-        // return a single borrowed reference to it.
+        // return a single borrowed reference to it. This is common, and is one of the most
+        // important optimizations.
         if stream.fragments.len() == 1 {
             if let Fragment {
                 size,

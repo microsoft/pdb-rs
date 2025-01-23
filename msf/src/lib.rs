@@ -1,9 +1,29 @@
-//! Definitions for the Multi-Stream File (MSF) format. MSF is a container format, and allows
-//! storing a large number of "streams" within a single file.
+//! Reads and writes Multi-Stream Files (MSF). MSF is the underlying container format used by
+//! Program Database (PDB) files.
+//!
+//! MSF files contain a set of numbered _streams_. Each stream is like a file; a stream is a
+//! sequence of bytes.
+//!
+//! The bytes stored within a single stream are usually not stored sequentially on disk. The
+//! organization of the disk file and the mapping from stream locations to MSF file locations is
+//! similar to a traditional file system; managing that mapping is the main purpose of the MSF
+//! file format.
+//!
+//! MSF files are used as the container format for Program Database (PDB) files. PDB files are used
+//! by compilers, debuggers, and other tools when targeting Windows.
+//!
+//! Most developers should not use this crate directly. This crate is a building block for tools
+//! that read and write PDBs. This crate does not provide any means for building or parsing the
+//! data structures of PDB files; it only handles storing files in the MSF container format.
+//!
+//! The `mspdb` crate uses this crate for reading and writing PDB files. It provides an interface
+//! for reading PDB data structures, and in some cases for creating or modifying them. Most
+//! developers should use `mspdb` instead of using `msf` directly.
 //!
 //! # References
 //! * <https://llvm.org/docs/PDB/index.html>
 //! * <https://llvm.org/docs/PDB/MsfFile.html>
+//! * <https://github.com/microsoft/microsoft-pdb>
 
 #![forbid(unused_must_use)]
 #![forbid(unsafe_code)]
@@ -12,18 +32,17 @@
 #![allow(clippy::needless_late_init)]
 #![allow(clippy::needless_lifetimes)]
 
-#[doc(hidden)]
-pub mod stream_reader;
-
 mod check;
 mod commit;
 mod open;
 mod pages;
 mod read;
+mod stream_reader;
 mod stream_writer;
+mod write;
+
 #[cfg(test)]
 mod tests;
-mod write;
 
 pub use open::CreateOptions;
 pub use stream_reader::StreamReader;
@@ -60,23 +79,13 @@ const MSF_SMALL_MAGIC: [u8; 0x2c] = *b"Microsoft C/C++ program database 2.00\r\n
 
 #[test]
 fn show_magics() {
+    use pretty_hex::PrettyHex;
+
     println!("MSF_SMALL_MAGIC:");
-    println!(
-        "{:?}",
-        dump_utils::HexDump::new(&MSF_SMALL_MAGIC)
-            .row_len(8)
-            .rust_style()
-            .header(false)
-    );
+    println!("{:?}", MSF_SMALL_MAGIC.hex_dump());
 
     println!("MSF_BIG_MAGIC:");
-    println!(
-        "{:?}",
-        dump_utils::HexDump::new(&MSF_BIG_MAGIC)
-            .row_len(8)
-            .rust_style()
-            .header(false)
-    );
+    println!("{:?}", MSF_BIG_MAGIC.hex_dump());
 }
 
 /// The header of the PDB/MSF file, before the transition to "big" MSF files.
@@ -216,8 +225,16 @@ pub struct Msf<F = RandomAccessFile> {
     /// Vector contains offsets into `committed_stream_pages` where the pages for a given stream start.
     committed_stream_page_starts: Vec<u32>,
 
+    /// Handles allocating pages.
     pages: PageAllocator,
 
+    /// If a stream has been modified then there is an entry in this table for it. The key for
+    /// each entry is the stream number. The value is the sequence of pages for that stream.
+    ///
+    /// One of the side-effects of the [`Msf::commit`] function is that the `modified_streams`
+    /// table is cleared.
+    ///
+    /// This table is always empty if `access_mode == AccessMode::Read`.
     modified_streams: HashMap<u32, Vec<Page>>,
 
     access_mode: AccessMode,
@@ -251,10 +268,7 @@ impl<F> Msf<F> {
     /// provide the mapping from offsets within a stream to offsets within the entire PDB (MSF) file.
     ///
     /// If the stream is a NIL stream, then this returns `(NIL_STREAM_SIZE, &[])`.
-    pub fn stream_size_and_pages(
-        &self,
-        stream: u32,
-    ) -> Result<(u32, &[u32]), anyhow::Error> {
+    pub fn stream_size_and_pages(&self, stream: u32) -> Result<(u32, &[u32]), anyhow::Error> {
         let Some(&stream_size) = self.stream_sizes.get(stream as usize) else {
             bail!("Stream index is out of range.  Index: {stream}");
         };
