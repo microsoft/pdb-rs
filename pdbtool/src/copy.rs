@@ -1,9 +1,8 @@
 use mspdb::Pdb;
 use std::io::Write;
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct Options {
     /// The PDB to read.
     source_pdb: PathBuf,

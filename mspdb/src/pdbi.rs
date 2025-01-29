@@ -436,7 +436,4 @@ impl FeatureCode {
     ///
     /// See: <https://learn.microsoft.com/en-us/cpp/build/reference/debug-generate-debug-info?view=msvc-170>
     pub const MINI_PDB: FeatureCode = FeatureCode(0x494E494D);
-
-    /// TODO: document this
-    pub const NO_TYPE_MERGE: FeatureCode = FeatureCode(0x4D544F4E);
 }

@@ -5,10 +5,9 @@ use mspdb::{Pdb, Stream};
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
-use structopt::StructOpt;
 use tracing::{trace, trace_span};
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct PdzEncodeOptions {
     /// Path to the input PDB file.
     pub input_pdb: String,

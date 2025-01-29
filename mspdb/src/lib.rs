@@ -29,7 +29,6 @@ mod embedded_sources;
 pub mod names;
 pub mod parser;
 pub mod pdbi;
-pub mod srcsrv;
 mod stream_index;
 pub mod syms;
 pub mod tmcache;

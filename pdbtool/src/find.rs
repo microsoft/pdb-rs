@@ -1,4 +1,3 @@
-use super::*;
 use crate::dump::sym::dump_sym;
 use anyhow::Result;
 use bstr::BStr;
@@ -7,7 +6,7 @@ use mspdb::utils::iter::IteratorWithRangesExt;
 use std::path::Path;
 
 /// Searches the DBI Section Contributions table.
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct FindOptions {
     /// The PDB to search.
     pub pdb: String,
@@ -42,7 +41,7 @@ pub fn find_command(options: &FindOptions) -> Result<()> {
 }
 
 /// Searches the TPI Stream for a given type.
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct FindNameOptions {
     /// The PDB to search.
     pub pdb: String,
@@ -51,7 +50,7 @@ pub struct FindNameOptions {
     pub name: String,
 
     /// Indicates that `name` is a regex.
-    #[structopt(long, short)]
+    #[arg(long, short)]
     pub regex: bool,
 }
 

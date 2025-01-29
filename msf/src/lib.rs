@@ -437,7 +437,13 @@ impl<F: ReadAt> Msf<F> {
         F: ReadAt,
     {
         let (stream_size, stream_pages) = self.stream_size_and_pages(stream)?;
-        Ok(StreamReader::new(self, stream_size, stream_pages, 0))
+        Ok(StreamReader::new(
+            self,
+            stream,
+            stream_size,
+            stream_pages,
+            0,
+        ))
     }
 }
 

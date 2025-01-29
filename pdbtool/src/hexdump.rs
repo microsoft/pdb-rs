@@ -2,12 +2,11 @@ use anyhow::Result;
 use dump_utils::HexDump;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
-use structopt::StructOpt;
 
 use crate::util::HexU64;
 
 /// Dumps the contents of a file as a hex dump.
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct HexdumpOptions {
     /// The file to dump
     pub file: String,

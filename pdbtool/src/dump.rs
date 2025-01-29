@@ -12,7 +12,6 @@ use mspdb::{Pdb, Stream};
 use std::fmt::Write;
 use std::ops::Range;
 use std::path::Path;
-use structopt::StructOpt;
 use tracing::error;
 
 use self::sym::DumpSymsContext;
@@ -23,22 +22,21 @@ mod names;
 mod sources;
 mod streams;
 pub mod sym;
-mod tmcache;
 mod types;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct DumpOptions {
     /// The PDB to dump
     pub pdb: String,
 
-    #[structopt(long)]
+    #[arg(long)]
     pub lines_like_cvdump: bool,
 
-    #[structopt(subcommand)]
+    #[command(subcommand)]
     pub subcommand: Subcommand,
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Subcommand)]
 pub enum Subcommand {
     Names(names::DumpNamesOptions),
     Globals {
@@ -85,26 +83,24 @@ pub enum Subcommand {
 
     ModuleSymbols(sym::DumpModuleSymbols),
 
-    Tmcache,
-
     /// Dump the contents of a stream, or a subsection of it, using a hexadecimal dump format.
     /// By default, this will only show a portion of the stream; use `--len` to increase it.
     Hex {
         stream: String,
-        #[structopt(long)]
+        #[arg(long)]
         offset: Option<String>,
-        #[structopt(long)]
+        #[arg(long)]
         len: Option<String>,
 
-        #[structopt(long)]
+        #[arg(long)]
         no_chars: bool,
     },
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct ModulesOptions {
     /// Filter results to those where the object name matches this regex.
-    #[structopt(long)]
+    #[arg(long)]
     pub obj: Option<String>,
 
     /// Display a specific module by module number. This value is zero-based.
@@ -240,8 +236,6 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
                 println!("Stream length: 0x{len:x} ({len}).", len = stream_data.len());
             }
         }
-
-        Subcommand::Tmcache => tmcache::dump_tmcache(&p)?,
     }
 
     Ok(())

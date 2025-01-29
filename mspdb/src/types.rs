@@ -1,4 +1,7 @@
 //! Code for decoding type record streams (the TPI and IPI streams).
+//!
+//! # References
+//! * [CodeView Type Records](https://llvm.org/docs/PDB/CodeViewTypes.html)
 
 mod iter;
 #[doc(inline)]

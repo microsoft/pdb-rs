@@ -2,9 +2,8 @@ use anyhow::bail;
 use mspdb::{names::NAMES_STREAM_NAME, Pdb, Stream};
 use std::ops::Range;
 use std::path::Path;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct SaveStreamOptions {
     /// The PDB file to read.
     pdb: String,

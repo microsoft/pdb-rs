@@ -2,6 +2,8 @@ use super::*;
 
 /// Allows reading a stream using the [`Read`], [`Seek`], and [`ReadAt`] traits.
 pub struct StreamReader<'a, F> {
+    /// The stream index. This is used only for diagnostics.
+    stream: u32,
     /// Size in bytes of the stream. This value _is never_ equal to [`NIL_STREAM_SIZE`].
     stream_size: u32,
     is_nil: bool,
@@ -16,8 +18,15 @@ pub struct StreamReader<'a, F> {
 }
 
 impl<'a, F: ReadAt> StreamReader<'a, F> {
-    pub(crate) fn new(pdb: &'a Msf<F>, stream_size: u32, page_map: &'a [Page], pos: u64) -> Self {
+    pub(crate) fn new(
+        pdb: &'a Msf<F>,
+        stream: u32,
+        stream_size: u32,
+        page_map: &'a [Page],
+        pos: u64,
+    ) -> Self {
         Self {
+            stream,
             stream_size: if stream_size == NIL_STREAM_SIZE {
                 0
             } else {
@@ -68,6 +77,7 @@ impl<'a, F: ReadAt> Seek for StreamReader<'a, F> {
 impl<'a, F: ReadAt> Read for StreamReader<'a, F> {
     fn read(&mut self, dst: &mut [u8]) -> std::io::Result<usize> {
         let (n, new_pos) = super::read::read_stream_core(
+            self.stream,
             self.file,
             self.page_size,
             self.stream_size,
@@ -84,6 +94,7 @@ impl<'a, F: ReadAt> Read for StreamReader<'a, F> {
 impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {
     fn read_exact_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<()> {
         let (n, _new_pos) = super::read::read_stream_core(
+            self.stream,
             self.file,
             self.page_size,
             self.stream_size,
@@ -99,6 +110,7 @@ impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {
 
     fn read_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<usize> {
         let (n, _new_pos) = super::read::read_stream_core(
+            self.stream,
             self.file,
             self.page_size,
             self.stream_size,

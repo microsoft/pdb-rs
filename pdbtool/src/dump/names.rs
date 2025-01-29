@@ -2,19 +2,18 @@ use super::*;
 use mspdb::hash;
 use mspdb::names::NameIndex;
 use mspdb::utils::iter::IteratorWithRangesExt;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct DumpNamesOptions {
-    #[structopt(long)]
+    #[arg(long)]
     max: Option<usize>,
 
     /// Show hex offsets (NameIndex) for each string.
-    #[structopt(long)]
+    #[arg(long)]
     show_offsets: bool,
 
     /// Show the contents of the name hash table
-    #[structopt(long)]
+    #[arg(long)]
     show_hashes: bool,
 }
 

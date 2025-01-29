@@ -4,10 +4,10 @@ use mspdb::lines::{FileChecksum, FileChecksumsSubsection, LinesSubsection, Subse
 use std::collections::HashMap;
 
 /// Dumps C13 Line Data for a given module.
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct LinesOptions {
     /// The module index of the module to dump.
-    #[structopt(long)]
+    #[arg(long)]
     pub module: Option<usize>,
 }
 

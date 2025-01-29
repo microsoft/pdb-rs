@@ -1,22 +1,22 @@
 use super::*;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct SourcesOptions {
     /// Show all files
-    #[structopt(long)]
+    #[arg(long)]
     pub files: bool,
 
     /// Show all modules and their source files. This is the default, if no other options
     /// are specified.
-    #[structopt(long)]
+    #[arg(long)]
     pub modules: bool,
 
     /// Show one specific file, by index.
-    #[structopt(long, short)]
+    #[arg(long, short)]
     pub file: Option<u32>,
 
     /// Show indexes (name offsets, etc.).
-    #[structopt(long)]
+    #[arg(long)]
     pub indexes: bool,
 }
 

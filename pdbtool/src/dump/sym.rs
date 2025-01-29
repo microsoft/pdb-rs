@@ -15,7 +15,7 @@ pub fn dump_sym(
     use super::types::dump_item_short as item_ref;
     use super::types::dump_type_index_short as ty_ref;
 
-    if context.scope_depth == 0 && kind.starts_block() {
+    if context.scope_depth == 0 && kind.starts_scope() {
         writeln!(out)?;
     }
 
@@ -222,7 +222,7 @@ pub fn dump_sym(
 
     writeln!(out)?;
 
-    if kind.starts_block() {
+    if kind.starts_scope() {
         context.scope_depth += 1;
     }
 
@@ -336,25 +336,25 @@ pub fn dump_symbol_stream(
 }
 
 /// Displays the symbols for a specific module.
-#[derive(StructOpt, Debug)]
+#[derive(clap::Parser, Debug)]
 pub struct DumpModuleSymbols {
     /// The module to dump
     pub module_index: u32,
 
     /// Skip this many symbol records before beginning the dump.
-    #[structopt(long)]
+    #[arg(long)]
     pub skip: Option<usize>,
 
     /// Stop after this many symbol records have been displayed.
-    #[structopt(long)]
+    #[arg(long)]
     pub max: Option<usize>,
 
     /// Dump the hex bytes of each symbol record.
-    #[structopt(long)]
+    #[arg(long)]
     pub bytes: bool,
 
     /// Show the contents of the Global Refs section.
-    #[structopt(long)]
+    #[arg(long)]
     pub global_refs: bool,
 }
 

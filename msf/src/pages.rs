@@ -1,7 +1,7 @@
 //! Page management code
 
 use super::*;
-use tracing::{trace, trace_span};
+use tracing::{error, trace, trace_span};
 
 /// Given the size of a stream in bytes, returns the number of pages needed to store it.
 ///
@@ -317,16 +317,22 @@ impl PageAllocator {
     pub(crate) fn init_mark_stream_page_busy(
         &mut self,
         page: Page,
-        _stream: u32,
-        _stream_page: StreamPage,
+        stream: u32,
+        stream_page: StreamPage,
     ) -> anyhow::Result<()> {
         if let Some(mut b) = self.fpm.get_mut(page as usize) {
             if !*b {
+                error!(page, stream, stream_page, "Page cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
                 bail!("Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
             }
+
             b.set(false);
             Ok(())
         } else {
+            error!(
+                page,
+                stream, stream_page, "Page is invalid; it is out of range (exceeds num_pages)"
+            );
             bail!(
                 "Page {} is invalid; it is out of range (exceeds num_pages)",
                 page

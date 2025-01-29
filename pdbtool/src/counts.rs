@@ -7,30 +7,29 @@ use mspdb::{Pdb, Stream};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
 use std::mem::size_of;
-use structopt::StructOpt;
 use zerocopy::{AsBytes, FromZeroes};
 
 /// Counts the number of records and record sizes for a given set of PDBs.
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct CountsOptions {
     /// The set of PDBs to read.
-    #[structopt(flatten)]
+    #[command(flatten)]
     pdbs: crate::glob_pdbs::PdbList,
 
     /// Count type records in the Global Symbol Stream.
-    #[structopt(long)]
+    #[arg(long)]
     global_symbols: bool,
 
     /// Count symbol records in the TPI Stream.
-    #[structopt(long)]
+    #[arg(long)]
     tpi: bool,
 
     /// Count symbol records in the IPI Stream.
-    #[structopt(long)]
+    #[arg(long)]
     ipi: bool,
 
     /// Count symbol records in each module symbol stream.
-    #[structopt(long)]
+    #[arg(long)]
     module_symbols: bool,
 }
 

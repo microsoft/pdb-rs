@@ -3,24 +3,23 @@ use mspdb::tpi::TypeStreamKind;
 use mspdb::types::fields::Field;
 use mspdb::types::primitive::dump_primitive_type_index;
 use mspdb::types::{ItemId, Leaf, TypeData, TypeIndex, UdtProperties, BUILD_INFO_ARG_NAMES};
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct DumpTypeStreamOptions {
     /// Skip this many type records before beginning the dump.
-    #[structopt(long)]
+    #[arg(long)]
     pub skip: Option<usize>,
 
     /// Stop after this many records have been dumped.
-    #[structopt(long)]
+    #[arg(long)]
     pub max: Option<usize>,
 
     /// Show a hex dump of each type record.
-    #[structopt(long)]
+    #[arg(long)]
     pub show_bytes: bool,
 
     /// Show the value of `TypeIndex` references.
-    #[structopt(long)]
+    #[arg(long)]
     pub show_type_indexes: bool,
 }
 

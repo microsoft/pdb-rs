@@ -1,15 +1,19 @@
+//! Symbol kind enumeration
+
 #[cfg(doc)]
 use super::BlockHeader;
 
 /// Identifies symbol records.
+///
+/// Symbol records are stored in the Global Symbol Stream and in each per-module symbol stream.
+///
+/// Many symbols can only appear in the Global Symbol Stream or in a per-module symbol stream.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct SymKind(pub u16);
 
 macro_rules! sym_kinds {
     (
-        $(
-            $code:expr, $name:ident ;
-        )*
+        $( $code:expr, $name:ident; )*
     ) => {
         #[allow(missing_docs)]
         impl SymKind {
@@ -35,7 +39,7 @@ sym_kinds! {
     0x000d, S_RETURN;
     // 0x0100..0x0400 is for 16-bit types
     0x0400, S_PROCREF_ST;
-    0x0401, S_DATAREF_SET;
+    0x0401, S_DATAREF_ST;
     0x0402, S_ALIGN;
     0x0403, S_LPROCREF_ST;
     0x0404, S_OEM;
@@ -62,10 +66,13 @@ sym_kinds! {
     0x1101, S_OBJNAME;
     0x1102, S_THUNK32;
     0x1103, S_BLOCK32;
+    0x1104, S_WITH32;
     0x1105, S_LABEL32;
     0x1106, S_REGISTER;
     0x1107, S_CONSTANT;
     0x1108, S_UDT;
+    0x1109, S_COBOLUDT;
+    0x110a, S_MANYREG;
     0x110b, S_BPREL32;
     0x110c, S_LDATA32;
     0x110d, S_GDATA32;
@@ -77,8 +84,15 @@ sym_kinds! {
     0x1112, S_LTHREAD32;
     0x1113, S_GTHREAD32;
     0x1116, S_COMPILE2;
+    0x1117, S_MANYREG2;
+    0x1118, S_LPROCIA64;
+    0x1119, S_GPROCIA64;
+    0x111a, S_LOCALSLOT;
+    0x111b, S_PARAMSLOT;
     0x111c, S_LMANDATA;
     0x111d, S_GMANDATA;
+    0x111e, S_MANFRAMEREL;
+    0x111f, S_MANREGISTER;
 
     0x1120, S_MANSLOT;
     0x1121, S_MANMANYREG;
@@ -154,29 +168,8 @@ sym_kinds! {
     0x1163, S_LDATA_HLSL32;
     0x1164, S_GDATA_HLSL32_EX;
     0x1165, S_LDATA_HLSL32_EX;
-    0x1166, S_FRAMEREG;
-    0x1167, S_FASTLINK; // aka S_REF_MINIPDB2
+    0x1167, S_FASTLINK;
     0x1168, S_INLINEES;
-    0x1169, S_HOTPATCHFUNC;
-
-    0x1170, S_BPREL32_INDIR;
-    0x1171, S_REGREL32_INDIR;
-    0x1172, S_GPROC32EX;
-    0x1173, S_LPROC32EX;
-    0x1174, S_GPROC32EX_ID;
-    0x1175, S_LPROC32EX_ID;
-    0x1176, S_STATICLOCAL;
-    0x1177, S_DEFRANGE_REGISTER_REL_INDIR;
-    0x1178, S_BPREL32_ENCTMP;
-    0x1179, S_REGREL32_ENCTMP;
-    0x117a, S_BPREL32_INDIR_ENCTMP;
-    0x117b, S_REGREL32_INDIR_ENCTMP;
-    0x117c, S_ASSOCIATION;
-    0x117d, S_HYBRIDRANGE;
-    0x117e, S_SOURCELINK;
-    0x117f, S_DEFRANGE_CONSTVAL_FULL_SCOPE;
-
-    0x1180, S_DEFRANGE_GLOBALSYM_FULL_SCOPE;
 }
 
 impl std::fmt::Debug for SymKind {
@@ -206,9 +199,9 @@ fn test_sym_kind_debug() {
 }
 
 impl SymKind {
-    /// True if this `SymKind` starts a "block". All symbols that start a block begin with
+    /// True if this `SymKind` starts a scope. All symbols that start a block begin with
     /// [`BlockHeader`].
-    pub fn starts_block(self) -> bool {
+    pub fn starts_scope(self) -> bool {
         matches!(
             self,
             SymKind::S_GPROC32

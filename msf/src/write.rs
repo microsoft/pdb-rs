@@ -26,6 +26,8 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
     /// This function always writes all of the data in `buf`. If it cannot, it returns `Err`.
     #[inline(never)]
     pub(super) fn write_core(&mut self, mut buf: &[u8], offset: u64) -> std::io::Result<()> {
+        let _span = trace_span!("StreamWriter::write_core").entered();
+
         if buf.is_empty() {
             return Ok(());
         }
@@ -136,8 +138,18 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
             }
 
             let buf_head = take_n(buf, xfer_len as usize);
-            self.file
-                .write_all_at(buf_head, page_to_offset(first_page, page_size))?;
+
+            let file_offset = page_to_offset(first_page, page_size);
+
+            trace!(
+                stream_pos = *pos,
+                first_page = first_page,
+                file_offset,
+                xfer_len,
+                "write_append_complete_pages"
+            );
+
+            self.file.write_all_at(buf_head, file_offset)?;
 
             *self.size += xfer_len;
             *pos += xfer_len;
@@ -160,22 +172,33 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
         // The only thing left is a single partial page at the end. We use the page buffer so that we
         // are sending down complete page writes to the lower-level storage device.
         assert!(buf.len() < usize::from(page_size));
-        if !buf.is_empty() {
-            let page = self.page_allocator.alloc_page();
-
-            let mut page_buffer = self.page_allocator.alloc_page_buffer();
-            page_buffer[..buf.len()].copy_from_slice(buf);
-            page_buffer[buf.len()..].fill(0);
-
-            self.pages.push(page);
-            *self.size += buf.len() as u32;
-
-            self.file
-                .write_all_at(&page_buffer, page_to_offset(page, page_size))?;
-
-            *pos += buf.len() as u32;
-            *buf = &[];
+        if buf.is_empty() {
+            return Ok(());
         }
+
+        let page = self.page_allocator.alloc_page();
+
+        let mut page_buffer = self.page_allocator.alloc_page_buffer();
+        page_buffer[..buf.len()].copy_from_slice(buf);
+        page_buffer[buf.len()..].fill(0);
+
+        self.pages.push(page);
+        *self.size += buf.len() as u32;
+
+        let file_offset = page_to_offset(page, page_size);
+
+        trace!(
+            stream_pos = *pos,
+            page = page,
+            file_offset,
+            unaligned_len = buf.len(),
+            "write_append_final_unaligned_page"
+        );
+
+        self.file.write_all_at(&page_buffer, file_offset)?;
+
+        *pos += buf.len() as u32;
+        *buf = &[];
 
         Ok(())
     }
@@ -640,10 +663,16 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
         // We read the entire page because that simplifies the case where the new-data ends
         // before stream_size.
         let mut page_buffer = self.page_allocator.alloc_page_buffer();
-        self.file.read_exact_at(
-            &mut page_buffer,
-            page_to_offset(self.pages[pos_spage as usize], page_size),
-        )?;
+
+        let file_offset = page_to_offset(self.pages[pos_spage as usize], page_size);
+        trace!(
+            stream_pos = *pos,
+            file_offset,
+            len = u32::from(page_size),
+            "write_unaligned_start_page: reading existing unaligned data"
+        );
+
+        self.file.read_exact_at(&mut page_buffer, file_offset)?;
 
         // Copy the data from 'buf' (new-data) into the page and advance 'buf' and 'pos'.
         let new_data_len = (usize::from(page_size) - pos_phase as usize).min(buf.len());
@@ -685,33 +714,54 @@ impl<'a, F: ReadAt + WriteAt> StreamWriter<'a, F> {
         );
 
         let page = self.cow_page(spage);
-        let offset = page_to_offset(page, self.page_allocator.page_size);
-        self.file.write_all_at(data, offset)
+        let file_offset = page_to_offset(page, self.page_allocator.page_size);
+
+        trace!(
+            stream_page = spage,
+            file_offset,
+            len = u32::from(self.page_allocator.page_size),
+            "cow_page_and_write"
+        );
+
+        self.file.write_all_at(data, file_offset)
     }
 
-    /// Reads a stream page.
-    pub(super) fn read_page(&self, spage: StreamPage, data: &mut [u8]) -> std::io::Result<()> {
-        // At most one page of data can be read.
+    /// Reads a stream page.  The length of `data` must be exactly one page, or less. It cannot
+    /// cross page boundaries.
+    pub(super) fn read_page(
+        &self,
+        stream_page: StreamPage,
+        data: &mut [u8],
+    ) -> std::io::Result<()> {
         debug_assert!(
             data.len() <= usize::from(self.page_allocator.page_size),
             "buffer cannot exceed size of a single page"
         );
 
-        let page = self.pages[spage as usize];
+        let page = self.pages[stream_page as usize];
         let offset = page_to_offset(page, self.page_allocator.page_size);
         self.file.read_exact_at(data, offset)
     }
 
     /// The caller **must** guarantee that this page is already writable.
-    pub(super) fn write_page(&self, spage: StreamPage, data: &[u8]) -> std::io::Result<()> {
-        let page = self.pages[spage as usize];
+    pub(super) fn write_page(&self, stream_page: StreamPage, data: &[u8]) -> std::io::Result<()> {
+        let page = self.pages[stream_page as usize];
         assert!(
             self.page_allocator.fresh[page as usize],
             "page is required to be fresh (writable)"
         );
 
-        let offset = page_to_offset(page, self.page_allocator.page_size);
-        self.file.write_all_at(data, offset)
+        let file_offset = page_to_offset(page, self.page_allocator.page_size);
+
+        trace!(
+            stream_page,
+            page = page,
+            file_offset,
+            len = u32::from(self.page_allocator.page_size),
+            "write_page"
+        );
+
+        self.file.write_all_at(data, file_offset)
     }
 }
 
@@ -800,6 +850,7 @@ impl<F> Msf<F> {
         Ok((
             new_stream_index,
             StreamWriter {
+                stream: new_stream_index,
                 file: &self.file,
                 size,
                 page_allocator: &mut self.pages,
@@ -875,6 +926,7 @@ impl<F> Msf<F> {
         };
 
         Ok(StreamWriter {
+            stream,
             file: &self.file,
             size,
             page_allocator: &mut self.pages,

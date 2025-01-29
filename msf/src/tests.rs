@@ -202,6 +202,7 @@ impl StreamTester {
         let good = Cursor::new(&mut self.expected_stream_data);
 
         let test = StreamWriter {
+            stream: 100, // fake stream number
             file: &mut self.file,
             size: &mut self.stream_size,
             page_allocator: &mut self.page_allocator,

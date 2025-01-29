@@ -3,6 +3,7 @@
 //! # References
 //!
 //! * [`cvinfo.h`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/include/cvinfo.h)
+//! * [CodeView Symbols](https://llvm.org/docs/PDB/CodeViewSymbols.html)
 
 pub mod builder;
 mod iter;

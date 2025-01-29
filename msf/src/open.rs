@@ -462,6 +462,8 @@ impl<F: ReadAt> Msf<F> {
     /// Creates a new MSF object in memory. The on-disk file is not modified until `commit()` is
     /// called.
     pub fn create_for(file: F, options: CreateOptions) -> anyhow::Result<Self> {
+        let _span = trace_span!("Msf::create_for").entered();
+
         assert!(options.page_size >= MIN_PAGE_SIZE);
         assert!(options.page_size <= MAX_PAGE_SIZE);
 

@@ -35,10 +35,10 @@ enum StreamUsage {
     },
 }
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct StreamsOptions {
     /// Show the blocks assigned to each stream
-    #[structopt(long)]
+    #[arg(long)]
     pages: bool,
 
     /// Show only this stream (name or index)

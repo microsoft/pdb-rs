@@ -1,8 +1,7 @@
 use anyhow::{bail, Result};
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct PdbList {
     /// The set of PDB files to read. This can contain globs, e.g. `*.pdb` or `foo\**\*.pdb`.
     pub pdbs: Vec<String>,

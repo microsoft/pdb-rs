@@ -4,6 +4,9 @@ use tracing::{trace, trace_span};
 
 /// Provides read/write access for a stream within an MSF (PDB) file.
 pub struct StreamWriter<'a, F> {
+    /// The stream number. This is used only for diagnostics.
+    pub(super) stream: u32,
+
     pub(super) file: &'a F,
 
     /// The current byte size of this stream. Points directly into the `stream_sizes` vector.
@@ -43,6 +46,8 @@ impl<'a, F> StreamWriter<'a, F> {
     where
         F: ReadAt + WriteAt,
     {
+        let _span = trace_span!("StreamWriter::set_contents").entered();
+
         if data.len() as u64 >= NIL_STREAM_SIZE as u64 {
             return Err(std::io::ErrorKind::InvalidInput.into());
         }
@@ -67,6 +72,8 @@ impl<'a, F> StreamWriter<'a, F> {
     where
         F: ReadAt + WriteAt,
     {
+        let _span = trace_span!("StreamWriter::write_at_mut").entered();
+
         self.write_core(buf, offset)?;
         Ok(buf.len())
     }
@@ -99,7 +106,7 @@ impl<'a, F> StreamWriter<'a, F> {
     {
         use std::cmp::Ordering;
 
-        let _span = trace_span!("StreamWriter::set_len");
+        let _span = trace_span!("StreamWriter::set_len").entered();
         trace!(new_len = len);
 
         if *self.size == NIL_STREAM_SIZE {
@@ -226,6 +233,7 @@ impl<'a, F: ReadAt> std::io::Seek for StreamWriter<'a, F> {
 impl<'a, F: ReadAt> std::io::Read for StreamWriter<'a, F> {
     fn read(&mut self, dst: &mut [u8]) -> std::io::Result<usize> {
         let (n, new_pos) = super::read::read_stream_core(
+            self.stream,
             self.file,
             self.page_allocator.page_size,
             *self.size,
@@ -258,6 +266,7 @@ impl<'a, F: ReadAt> ReadAt for RandomStreamWriter<'a, F> {
     fn read_exact_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<()> {
         let sw = self.cell.borrow();
         let (n, _new_pos) = super::read::read_stream_core(
+            sw.stream,
             &sw.file,
             sw.page_allocator.page_size,
             *sw.size,
@@ -274,6 +283,7 @@ impl<'a, F: ReadAt> ReadAt for RandomStreamWriter<'a, F> {
     fn read_at(&self, buf: &mut [u8], offset: u64) -> std::io::Result<usize> {
         let sw = self.cell.borrow();
         let (n, _new_pos) = super::read::read_stream_core(
+            sw.stream,
             &sw.file,
             sw.page_allocator.page_size,
             *sw.size,

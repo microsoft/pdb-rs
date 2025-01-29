@@ -17,13 +17,13 @@ bitvec = "1"
 bstr = "1.8.0"
 bumpalo = "3.13.0"
 cc = "1.0.79"
+clap = "4.5.27"
 dbg-ranges = "0.1.0"
 flate2 = "1.0.27"
 pow2 = "0.1.1"
 pretty-hex = "0.4.1"
 static_assertions = "1.0"
 static_init = "1.0.3"
-structopt = "0.3.26"
 sync_file = "0.2.6"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
@@ -42,7 +42,7 @@ debug = 2
 # especially sensitive to optimization. This makes it a lot easier to do
 # development and run tests with local code in debug mode but external dependencies
 # fully optimized.
-[profile.dev.packages."*"]
+[profile.dev.package."*"]
 opt-level = 2
 
 [profile.coverage]

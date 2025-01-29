@@ -1,9 +1,8 @@
-use super::*;
 use anyhow::{bail, Context, Result};
 use bstr::ByteSlice;
 use mspdb::{BStr, Pdb};
 
-#[derive(StructOpt)]
+#[derive(clap::Parser)]
 pub struct AddSrcOptions {
     /// The PDB to modify.
     pub pdb: String,
@@ -16,8 +15,8 @@ pub struct AddSrcOptions {
     /// that was compiled and is underneath any path in the `under` list. If so, then the
     /// source file will be read and embedded into the PDB.
     ///
-    /// For example: `pdbtool add-src $(OBJ_PATH)\O\$(TARGETNAME).pdb --under=$(OBJ_PATH)\$O`
-    #[structopt(long)]
+    /// For example: `pdbtool add-src foo.pdb --under=d:\some\dir`
+    #[arg(long)]
     pub under: Vec<String>,
 }
 
