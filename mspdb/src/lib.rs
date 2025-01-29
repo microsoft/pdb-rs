@@ -15,7 +15,6 @@
 
 pub mod container;
 pub mod dbi;
-pub mod diag;
 pub mod encoder;
 pub mod globals;
 pub mod guid;
@@ -30,7 +29,6 @@ mod embedded_sources;
 pub mod names;
 pub mod parser;
 pub mod pdbi;
-pub mod sort_utils;
 pub mod srcsrv;
 mod stream_index;
 pub mod syms;

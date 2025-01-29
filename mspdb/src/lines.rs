@@ -3,7 +3,6 @@
 //! # References
 //! * [/ZH (Hash algorithm for calculation of file checksum in debug info)](https://learn.microsoft.com/en-us/cpp/build/reference/zh?view=msvc-170)
 
-pub mod check;
 mod checksum;
 mod subsection;
 
@@ -48,11 +47,9 @@ macro_rules! subsections {
 }
 
 subsections! {
-    /// TODO: not sure
     SYMBOLS = 0xf1;
     /// Contains C13 Line Data
     LINES = 0xf2;
-    /// TODO: not sure
     STRING_TABLE = 0xf3;
     /// Contains file checksums and pointers to file names. For a given module, there should be
     /// at most one `FILE_CHECKSUMS` subsection.

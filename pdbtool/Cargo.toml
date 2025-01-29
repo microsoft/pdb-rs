@@ -8,6 +8,7 @@ anyhow.workspace = true
 bitvec.workspace = true
 bstr.workspace = true
 bumpalo.workspace = true
+dbg-ranges = "0.1.1"
 dump_utils = { path = "../dump_utils" }
 friendly = "0.2"
 glob = "0.3.2"

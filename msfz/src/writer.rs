@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use pow2::Pow2;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
-use tracing::{trace, trace_span};
+use tracing::{debug, debug_span, trace, trace_span};
 use zerocopy::{AsBytes, FromZeroes};
 
 /// The default threshold for compressing a chunk of data.
@@ -165,6 +165,8 @@ impl<F: Write + Seek> MsfzWriter<F> {
     /// It then returns the inner file object. However, the caller should not write more data to
     /// the returned file object.
     pub fn finish(mut self) -> Result<(Summary, F)> {
+        let _span = debug_span!("MsfzWriter::finish").entered();
+
         self.file.finish_current_chunk()?;
 
         // Write the stream directory, and optionally compress it.
@@ -236,6 +238,8 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
     /// All of the bytes of `data` will be written to a single chunk; this function never splits
     /// the data across multiple chunks.
     fn write_to_chunks(&mut self, data: &[u8]) -> std::io::Result<ChunkAndOffset> {
+        let _span = debug_span!("write_to_chunks").entered();
+
         if data.len() + self.uncompressed_chunk_data.len()
             >= self.uncompressed_chunk_size_threshold as usize
         {
@@ -257,6 +261,8 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
     }
 
     fn finish_current_chunk(&mut self) -> std::io::Result<()> {
+        let _span = debug_span!("finish_current_chunk").entered();
+
         if self.uncompressed_chunk_data.is_empty() {
             return Ok(());
         }
@@ -380,7 +386,7 @@ impl<'a, F: Write + Seek> Write for StreamWriter<'a, F> {
     }
 
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let _span = trace_span!("msfz write data").entered();
+        let _span = trace_span!("StreamWriter::write").entered();
         trace!(buf_len = buf.len());
 
         if buf.is_empty() {
@@ -436,6 +442,11 @@ fn add_fragment_compressed(
     new_chunk: u32,
     new_offset_within_chunk: u32,
 ) {
+    debug!(
+        new_fragment_size,
+        new_chunk, new_offset_within_chunk, "add_fragment_compressed"
+    );
+
     // Either create a new fragment for this write or coalesce it with the previous fragment.
     match fragments.last_mut() {
         Some(Fragment {
@@ -471,6 +482,11 @@ fn add_fragment_uncompressed(
     new_fragment_size: u32,
     new_file_offset: u64,
 ) {
+    debug!(
+        new_fragment_size,
+        new_file_offset, "add_fragment_uncompressed"
+    );
+
     match fragments.last_mut() {
         Some(Fragment {
             size: last_fragment_size,

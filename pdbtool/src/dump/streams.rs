@@ -1,4 +1,5 @@
 use super::*;
+use dbg_ranges::debug_adjacent;
 use tracing::warn;
 
 #[derive(Debug)]
@@ -218,7 +219,7 @@ pub fn dump_streams(p: &Pdb, options: StreamsOptions) -> anyhow::Result<()> {
         if options.pages {
             if let Some(msf) = p.msf() {
                 let (_stream_len, stream_pages) = msf.stream_size_and_pages(stream_index)?;
-                println!("    Pages: {:?}", DumpRangesSucc::new(stream_pages));
+                println!("    Pages: {:?}", debug_adjacent(stream_pages));
             }
         }
     }

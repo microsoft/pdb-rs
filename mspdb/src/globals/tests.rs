@@ -1,3 +1,5 @@
+use pretty_hex::PrettyHex;
+
 use super::build_global_symbols_index;
 use super::gsi::GlobalSymbolIndex;
 use super::gss::GlobalSymbolStream;
@@ -5,7 +7,6 @@ use super::psi::PublicSymbolIndex;
 use crate::encoder::Encoder;
 use crate::syms::SymKind;
 use crate::types::TypeIndex;
-use dump_utils::HexDump;
 
 const NUM_BUCKETS: usize = 0x1000;
 
@@ -89,7 +90,7 @@ fn build_and_search_globals() {
     println!();
 
     let gss = GlobalSymbolStream::new(build_test_gss());
-    println!("GSS:\n{:?}", HexDump::new(&gss.stream_data));
+    println!("GSS:\n{:?}", &gss.stream_data.hex_dump());
 
     let indexes = build_global_symbols_index(&gss.stream_data, NUM_BUCKETS).unwrap();
 

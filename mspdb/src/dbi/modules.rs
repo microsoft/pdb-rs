@@ -1,14 +1,14 @@
 //! DBI Modules Substream
 
 use super::*;
-use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
+use crate::utils::iter::HasRestLen;
 use crate::StreamIndexU16;
 use bstr::BStr;
 use std::mem::take;
 
 /// The header of a Module Info record. Module Info records are stored in the DBI stream.
 ///
-/// See `msvc\src\vctools\PDB\dbi\dbi.h`, `struct MODI_60_Persist`
+/// See `dbi.h`, `MODI_60_Persist`
 #[derive(Unaligned, AsBytes, FromBytes, FromZeroes, Clone, Debug)]
 #[repr(C)]
 pub struct ModuleInfoFixed {
@@ -34,12 +34,10 @@ pub struct ModuleInfoFixed {
     pub stream: StreamIndexU16,
 
     /// Specifies the size of the symbols substream within the Module Stream.
-    ///
-    ///
     pub sym_byte_size: U32<LE>,
 
     /// Specifies the length of the C11 Line Data in a Module Information Stream.
-    /// We do not support C11 Line Data, so this value should always be zero.
+    /// C11 line data is obsolete and is not supported.
     pub c11_byte_size: U32<LE>,
 
     /// Specifies the length of the C13 Line Data in a Module Information Stream.
@@ -258,213 +256,5 @@ impl<'a> Iterator for IterModuleInfoMut<'a> {
             module_name,
             obj_file,
         })
-    }
-}
-
-/// Output of [`sort_module_info_records`]
-pub struct SortModulesOutput {
-    /// Maps `new_module_index --> old_module_index`
-    pub new_to_old: Vec<u32>,
-
-    /// Maps `old_module_index --> new_module_index`
-    pub old_to_new: Vec<u32>,
-}
-
-/// Sorts the Module Info records within a DBI stream.
-///
-/// `new_stream_index_base` specifies the starting value for the module streams. The `stream_index`
-/// field of each `ModuleInfo` is updated to `new_stream_index_base + module_index`. The old
-/// stream index for each module is returned in `SortModulesOutput::old_module_streams`. Nil stream
-/// indexes are not modified.
-pub fn sort_module_info_records(records: &mut [u8]) -> anyhow::Result<SortModulesOutput> {
-    assert!(records.len() <= u32::MAX as usize);
-
-    // Verify that the module_index in the first section contribution for each module matches
-    // the module index (the order of the Module Info record in the substream data).
-
-    let mut num_modules = 0;
-    for (i, module) in IterModuleInfoMut::new(records).enumerate() {
-        let contrib_module_index = module.header.section_contrib.module_index.get();
-        if contrib_module_index != 0xffff {
-            if contrib_module_index as usize != i {
-                bail!(
-                    "Module Info record #{i} has inconsistent value for the module_index ({contrib_module_index}) \
-                     of its first section contribution."
-                );
-            }
-        }
-
-        num_modules += 1;
-    }
-
-    // Take another pass through the modules and build a table of (module_name, object_file),
-    // which forms our primary key for sorting.
-    //
-    // Also record the module byte ranges, and create records_starts from it.
-
-    // Contains (module_name, obj_file) of each module.
-    // Index is the old module index.
-    let mut module_strings: Vec<(&BStr, &BStr)> = Vec::with_capacity(num_modules);
-    let mut records_starts: Vec<u32> = Vec::with_capacity(num_modules + 1);
-
-    for (record_range, module) in IterModuleInfo::new(records).with_ranges() {
-        records_starts.push(record_range.start as u32);
-        module_strings.push((module.module_name, module.obj_file));
-    }
-    records_starts.push(records.len() as u32);
-
-    // Build the reordering permutation vector and sort the module records.
-    let mut reorder_vec: Vec<u32> = identity_permutation_u32(num_modules);
-    let mut found_equal: Option<(u32, u32)> = None;
-    reorder_vec.sort_unstable_by(|&a, &b| {
-        let module_strings_a = &module_strings[a as usize];
-        let module_strings_b = &module_strings[b as usize];
-        let ord = Ord::cmp(module_strings_a, module_strings_b);
-        if ord.is_eq() {
-            found_equal = Some((a, b));
-        }
-        ord
-    });
-
-    // Check to see whether there are any modules that have the same (name, obj).
-    if let Some((a, b)) = found_equal {
-        let (name, obj) = module_strings[a as usize];
-        bail!(
-            "Two modules exist that have the same name and object file.\n\
-               Module indexes {a}, {b}.\n\
-               Module name: {name}\n\
-               Module object file: {obj}"
-        );
-    }
-
-    assert_eq!(records_starts.len(), num_modules + 1);
-
-    // Copy the old module records into a temporary buffer, since we are going to rewrite the
-    // record data buffer.
-    let old_record_data = records.to_vec();
-    let get_module_data = |i: usize| -> &[u8] {
-        &old_record_data[records_starts[i] as usize..records_starts[i + 1] as usize]
-    };
-
-    let mut dst_iter: &mut [u8] = records;
-    for &i in reorder_vec.iter() {
-        let src = get_module_data(i as usize);
-        let (lo, hi) = dst_iter.split_at_mut(src.len());
-        lo.copy_from_slice(src);
-        dst_iter = hi;
-    }
-    assert!(dst_iter.is_empty(), "dst_iter.len() = {}", dst_iter.len());
-
-    // Fix the module_index in the first section contribution.
-    for (i, module) in IterModuleInfoMut::new(records).enumerate() {
-        // In most PDBs, unused1 is zero. In some, we see values that appear to be equal to the
-        // module index. Set it to zero.
-        module.header.unused1 = U32::new(0);
-
-        // We sometimes see garbage values in unused2.
-        module.header.unused2 = U32::new(0);
-
-        module.header.padding = [0; 2];
-
-        let old_module_index = module.header.section_contrib.module_index.get();
-        if old_module_index != 0xffff {
-            module.header.section_contrib.module_index = U16::new(i as u16);
-        }
-    }
-
-    let inverse_module_order = invert_permutation_u32(&reorder_vec);
-
-    Ok(SortModulesOutput {
-        new_to_old: reorder_vec,
-        old_to_new: inverse_module_order,
-    })
-}
-
-/// Check the DBI Modules Substream for consistency.
-pub fn check_module_infos<F: ReadAt>(
-    pdb: &crate::Pdb<F>,
-    diags: &mut crate::diag::Diags,
-) -> Result<()> {
-    let modules = pdb.read_modules()?;
-
-    for (module_index, module) in modules.iter().enumerate() {
-        check_module_info(pdb, module_index as u16, &module, diags);
-    }
-
-    Ok(())
-}
-
-/// Check the fields of `ModuleInfo` for consistency.
-pub fn check_module_info<F: ReadAt>(
-    pdb: &crate::Pdb<F>,
-    module_index: u16,
-    module: &ModuleInfo,
-    diags: &mut crate::diag::Diags,
-) {
-    // Check that the module index in the first section contribution is the same as the current
-    // module index, or is 0xffff, indicating that there is no section contribution at all.
-    let contrib_module_index = module.header.section_contrib.module_index.get();
-    if !(contrib_module_index == module_index || contrib_module_index == 0xffff) {
-        diags.error(format!(
-            "Module #{module_index} has incorrect value for section_contrib.module_index"
-        ));
-    }
-
-    if module.c11_size() % 4 != 0 {
-        diags.error(format!(
-            "Module #{module_index} has invalid value for c11_byte_size (not a multiple of 4)"
-        ));
-    }
-
-    if module.c13_size() % 4 != 0 {
-        diags.error(format!(
-            "Module #{module_index} has invalid value for c13_byte_size (not a multiple of 4)"
-        ));
-    }
-
-    if module.sym_size() % 4 != 0 {
-        diags.error(format!(
-            "Module #{module_index} has invalid value for sym_byte_size (not a multiple of 4)"
-        ));
-    }
-
-    if module.c11_size() != 0 && module.c13_size() != 0 {
-        diags.error(format!(
-            "Module #{module_index} has both C11 and C13 line data; these should be mutually-exclusive."
-        ));
-    }
-
-    if let Some(module_stream) = module.stream() {
-        // is_stream_valid() checks both the stream index and checks whether the stream is nil.
-        if pdb.is_stream_valid(module_stream) {
-            let module_stream_len = pdb.stream_len(module_stream);
-
-            // Cast to u64 to avoid overflow
-            let sum_of_sizes =
-                module.c11_size() as u64 + module.c13_size() as u64 + module.sym_size() as u64;
-            if sum_of_sizes > module_stream_len {
-                diags.error(format!("Module #{module_index} specifies substream sizes that exceed the size of the module stream."));
-            }
-        } else {
-            diags.error(format!("Module #{module_index} specifies stream #{module_stream}, but that stream is invalid."));
-        }
-    } else {
-        if module.c11_size() != 0 {
-            diags.warning(format!(
-                "Module #{module_index} has non-zero c11_byte_size, but no stream"
-            ));
-        }
-
-        if module.c13_size() != 0 {
-            diags.warning(format!(
-                "Module #{module_index} has non-zero c13_byte_size, but no stream"
-            ));
-        }
-
-        if module.sym_size() != 0 {
-            diags.warning(format!(
-                "Module #{module_index} has non-zero sym_byte_size, but no stream"
-            ));
-        }
     }
 }

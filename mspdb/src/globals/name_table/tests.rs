@@ -1,3 +1,5 @@
+use pretty_hex::PrettyHex;
+
 use super::*;
 
 fn test_names(names: &[String]) -> NameTable {
@@ -26,7 +28,7 @@ fn test_names(names: &[String]) -> NameTable {
 
     let mut encoded_bytes = vec![0u8; prepared_info.table_size_bytes];
     builder.encode(&prepared_info, &mut encoded_bytes);
-    println!("Encoded name table:\n{:?}", HexDump::new(&encoded_bytes));
+    println!("Encoded name table:\n{:?}", encoded_bytes.hex_dump());
 
     // Decode the table.
     let rt_table = NameTable::parse(num_buckets, 0, &encoded_bytes)

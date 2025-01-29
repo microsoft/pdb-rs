@@ -38,16 +38,14 @@
 #[cfg(test)]
 mod tests;
 
-use crate::diag::Diags;
-use crate::parser::{Parser, ParserError, ParserMut};
+use crate::parser::{Parser, ParserMut};
 use crate::utils::align_4;
 use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use crate::ReadAt;
 use anyhow::bail;
 use bstr::BStr;
-use std::mem::size_of;
 use std::ops::Range;
-use tracing::{debug, error, trace, trace_span, warn};
+use tracing::{debug, trace, trace_span, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
 
 /// The name of the `/names` stream. This identifies the stream in the Named Streams Table,
@@ -194,137 +192,6 @@ where
             hashes_offset,
             num_strings,
         })
-    }
-
-    /// Checks invariants of the Names Stream.
-    ///
-    /// The `stream` and `stream_offset` values are for reporting diagnostic locations. The
-    /// `stream_offset` value is the byte offset within `stream` where this `NamesStream` is located.
-    pub fn check(&self, stream: u32, stream_offset: u32, diags: &mut Diags) {
-        let _span = trace_span!("NamesStream::check").entered();
-
-        // Verify that all entries in the hash table are in the right place.
-        // There is a degree of freedom here, because hash collisions can be
-        // resolved in any order.
-
-        let strings_bytes = self.strings_bytes();
-
-        // The first is the NameIndex (byte offset into strings data).
-        // The second value in the tuple is the hash index of the value.
-        let mut sorted_name_indexes: Vec<(u32, u32)> = Vec::new();
-
-        let stream_offset_of_hash_index =
-            |i: u32| stream_offset + self.hashes_offset as u32 + i * 4;
-
-        let mut collision_ranges_opt: Option<(Range<usize>, Range<usize>)> = None;
-
-        let mut num_hashes_good: u32 = 0;
-        let mut num_hashes_bad: u32 = 0;
-
-        let hashes = self.hashes();
-        for (i, &name_index) in hashes.iter().enumerate() {
-            let name_index: u32 = name_index.get();
-            if name_index == 0 {
-                // This hash slot is not used. Drop the current collision range.
-                collision_ranges_opt = None;
-                continue;
-            }
-
-            // If needed, find the collision range.
-            let collision_ranges: &(Range<usize>, Range<usize>) = match &mut collision_ranges_opt {
-                Some(value) => value,
-                empty => empty.insert(find_collision_ranges(hashes, i)),
-            };
-
-            let name_index_stream_offset =
-                stream_offset + size_of::<NamesStreamHeader>() as u32 + name_index;
-
-            // This is equivalent to get_string(), but reports errors with more verbosely.
-            let Some(s_bytes) = strings_bytes.get(name_index as usize..) else {
-                if let Some(e) = diags.error_opt(format!("Hash entry #{i} points to NameIndex 0x{name_index:x}, which is invalid (out of range)")) {
-                    e.stream_at(stream, stream_offset_of_hash_index(i as u32));
-                }
-                continue;
-            };
-
-            let mut p = Parser::new(s_bytes);
-            let string = match p.strz() {
-                Ok(s) => s,
-                Err(ParserError) => {
-                    if let Some(e) = diags.error_opt(format!(
-                        "Names Stream: NameIndex (0x{name_index:x}) points to a name that \
-                            could not be decoded as a valid NUL-terminated UTF-8 string. \
-                            Found from hash index 0x{i:x}",
-                    )) {
-                        e.stream_at(stream, stream_offset_of_hash_index(i as u32));
-                        e.stream_at(stream, name_index_stream_offset);
-                    }
-                    continue;
-                }
-            };
-
-            let computed_hash = crate::hash::hash_mod_u32(string, hashes.len() as u32);
-
-            // We found 'string' in hash slot 'i'. Verify that the hash code matches slot 'i',
-            // but keep in mind that hash collisions may have occurred, so what we are really
-            // checking is whether 'string' is in a position that is contiguous with other non-empty
-            // hash slots. We also have to keep in mind that the collision may have wrapped around
-            // at the end of the array, so "contiguous" needs to take into account those cycles.
-
-            if collision_ranges.0.contains(&(computed_hash as usize))
-                || collision_ranges.1.contains(&(computed_hash as usize))
-            {
-                // Hash checks out correctly.
-                num_hashes_good += 1;
-            } else {
-                num_hashes_bad += 1;
-                if let Some(e) = diags.error_opt(format!(
-                    "Names Stream: Hash entry #{i} points to NameIndex (0x{name_index:x}), \n\
-                        but the string at that location has a hash value that is not equal \n\
-                        to the expected hash value.\n\
-                        Computed hash:     0x{computed_hash:08x}\n\
-                        Collision ranges:  {:?}, {:?}\n\
-                        Current hash:      0x{i:08x} (max acceptable hash)",
-                    collision_ranges.0, collision_ranges.1
-                )) {
-                    e.stream_at(stream, stream_offset_of_hash_index(i as u32));
-                    e.stream_at(stream, name_index_stream_offset);
-                }
-            }
-
-            sorted_name_indexes.push((name_index, i as u32));
-        }
-
-        if sorted_name_indexes.len() != self.num_strings {
-            diags.error(format!(
-                "Names Stream: Number of non-nil hashes ({}) is not equal to num_strings ({})",
-                sorted_name_indexes.len(),
-                self.num_strings
-            ));
-        }
-
-        // Sort the NameIndex values that we found in the hash table. They should be unique;
-        // there should be no reason to list the same string more than once.
-        sorted_name_indexes.sort_unstable();
-        for w in sorted_name_indexes.windows(2) {
-            if w[0].0 == w[1].0 {
-                if let Some(e) = diags.error_opt(format!(
-                    "Found NameIndex 0x{:x} in more than one hash slot.\n\
-                     First hash slot: #{}\n\
-                     Second hash slot: #{}
-                ",
-                    w[0].0, w[0].1, w[1].1
-                )) {
-                    e.stream_at(stream, stream_offset_of_hash_index(w[0].1));
-                    e.stream_at(stream, stream_offset_of_hash_index(w[1].1));
-                }
-            }
-        }
-
-        trace!(num_hashes_good);
-        if num_hashes_bad != 0 {
-            error!("Number of incorrect hashes: {num_hashes_bad}");
-        }
     }
 
     /// Returns the byte range within the stream of the string data.
@@ -599,6 +466,7 @@ impl NameIndexMapping {
 /// (cannot) distinguish between those two cases, because it does not have the original strings.
 /// Instead, it just computes the places where a given string could legally be. The caller then
 /// verifies that each hash entry is in a range that is valid for it.
+#[allow(dead_code)]
 fn find_collision_ranges(hashes: &[U32<LE>], i: usize) -> (Range<usize>, Range<usize>) {
     assert!(i < hashes.len());
     assert!(hashes[i].get() != 0);

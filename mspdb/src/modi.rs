@@ -2,8 +2,7 @@
 //!
 //! # References
 //! * <https://llvm.org/docs/PDB/ModiStream.html>
-
-pub mod check;
+//! [`MODI_60_Persist` in `dbi.h`]
 
 use crate::dbi::ModuleInfoFixed;
 use crate::parser::Parser;

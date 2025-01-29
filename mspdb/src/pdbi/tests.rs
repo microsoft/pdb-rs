@@ -1,11 +1,11 @@
-use dump_utils::HexDump;
+use pretty_hex::PrettyHex;
 
 use super::*;
 
 fn names_build(names: &NamedStreams) {
     let mut bytes = Vec::new();
     names.to_bytes(&mut Encoder::new(&mut bytes));
-    println!("\n{:?}", HexDump::new(&bytes));
+    println!("\n{:?}", bytes.hex_dump());
 
     // Round-trip testing: Decode the stream that we just built.
     let mut p = Parser::new(&bytes);
@@ -16,7 +16,7 @@ fn names_build(names: &NamedStreams) {
     assert!(
         p.is_empty(),
         "found unparsed bytes at the end:\n{:?}",
-        HexDump::new(p.peek_rest())
+        p.peek_rest().hex_dump()
     );
 
     // Round-trip testing *again*.  Encode the round-trip table into bytes again, and verify that

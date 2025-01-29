@@ -3,12 +3,16 @@
 use zerocopy::{LE, U32};
 
 #[cfg(test)]
-use dump_utils::HexStr;
+use pretty_hex::PrettyHex;
 
 /// Computes a 32-bit hash. This produces the same results as the hash function used in the
 /// MSVC PDB reader library.
 ///
 /// This is a port of the `LHashPbCb` function.
+///
+/// # References
+///
+/// * [`misc.h](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/PDB/include/misc.h#L15)
 pub fn hash_mod_u32(pb: &[u8], m: u32) -> u32 {
     hash_u32(pb) % m
 }
@@ -159,7 +163,7 @@ fn test_hash_sig() {
             actual_hash,
             expected_hash,
             "actual: 0x{actual_hash:08x}, expected: 0x{expected_hash:08x}, input_sig: 0x{input_sig:08x}, bytes: {:?}",
-            HexStr::new(input_bytes)
+            input_bytes.hex_dump()
         );
     }
 }

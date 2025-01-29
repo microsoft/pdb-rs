@@ -3,7 +3,7 @@
 use super::Leaf;
 use crate::parser::{Parse, Parser, ParserError};
 use bstr::BStr;
-use dump_utils::HexStr;
+use pretty_hex::PrettyHex;
 use std::fmt::{Debug, Display};
 use std::num::TryFromIntError;
 use tracing::warn;
@@ -239,7 +239,7 @@ impl<'a> Display for Number<'a> {
             }
 
             lf => {
-                write!(f, "?? {lf:?} {:?}", HexStr::new(self.bytes))
+                write!(f, "?? {lf:?} {:?}", self.bytes.hex_dump())
             }
         }
     }

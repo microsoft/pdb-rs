@@ -9,9 +9,8 @@ use crate::syms::Sym;
 use anyhow::bail;
 use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::BStr;
-use dump_utils::{HexDump, HexStr};
 use std::mem::size_of;
-use tracing::{debug, error, info, trace, warn};
+use tracing::{debug, debug_span, error, info, trace, warn};
 use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U32};
 
 /// This is the size used for calculating hash indices. It was the size of the in-memory form
@@ -107,6 +106,8 @@ impl NameTable {
         // The hash records are the same for the small and large hash table formats. They are
         // different in how the hash buckets are stored.
 
+        let _span = debug_span!("NameTable::parse").entered();
+
         let original_len = stream_offset + sym_hash_bytes.len();
 
         // See gsi.cpp, GSI1::readHash()
@@ -120,9 +121,11 @@ impl NameTable {
             if hash_header.signature.get() == GSI_HASH_HEADER_SIGNATURE
                 && hash_header.version.get() == GSI_HASH_HEADER_VERSION
             {
-                debug!("Hash table format: small buckets");
-                debug!("    cb_hash_records = {}", hash_header.hash_records_size);
-                debug!("    cb_buckets = {}", hash_header.buckets_size);
+                debug!(
+                    hash_records_size = hash_header.hash_records_size.get(),
+                    buckets_size = hash_header.buckets_size.get(),
+                    "Hash table format: small buckets"
+                );
 
                 let hash_records_size = hash_header.hash_records_size.get() as usize;
                 let buckets_size = hash_header.buckets_size.get() as usize;
@@ -140,17 +143,17 @@ impl NameTable {
                 }
 
                 if hash_records_size % size_of::<HashRecord>() != 0 {
-                    trace!("GSI/PSI name table contains hash table with a length that is not a multiple of the hash record size.");
+                    warn!("GSI/PSI name table contains hash table with a length that is not a multiple of the hash record size.");
                 }
                 let num_hash_records = hash_records_size / size_of::<HashRecord>();
                 let hash_records_slice: &[HashRecord] =
                     Parser::new(hash_records_bytes).slice(num_hash_records)?;
 
-                info!(num_hash_records, "Number of records in name table");
+                debug!(num_hash_records, "Number of records in name table");
 
                 hash_records = hash_records_slice.to_vec();
 
-                info!(num_buckets, "Number of hash buckets in name table");
+                debug!(num_buckets, "Number of hash buckets in name table");
 
                 debug!("[........] Stream offsets:");
                 debug!("[{:08x}] : NameTableHeader", stream_offset_table_header);
@@ -364,7 +367,9 @@ fn expand_buckets(
     num_hash_records: usize,
     stream_offset: usize, // offset of this data structure in stream; for diagnostics only
 ) -> anyhow::Result<Vec<u32>> {
-    trace!("expand_buckets: num_buckets = 0x{num_buckets:x} 0x{num_hash_records:x}");
+    let _span = debug_span!("expand_buckets").entered();
+
+    trace!(num_buckets, num_hash_records, "expanding buckets");
 
     let original_len = stream_offset + buckets_bytes.len();
     let mut p = Parser::new(buckets_bytes);
@@ -372,27 +377,22 @@ fn expand_buckets(
     let output_len = num_buckets + 1;
 
     let bitmap_len_in_bytes = nonempty_bitmap_size_bytes(num_buckets);
-    trace!("bitmap_len_in_bytes = 0x{:08x}", bitmap_len_in_bytes);
     let bitmap_bytes = p.bytes(bitmap_len_in_bytes)?;
-
     let bv: &BitSlice<u8, Lsb0> = BitSlice::from_slice(bitmap_bytes);
+    trace!(bitmap_bytes, bitmap_len_in_bytes);
 
     // Count the number of 1 bits set in the non-empty bucket bitmap.
     // Use min(num_buckets) so that we ignore any extra bits in the bitmap.
     let num_nonempty_buckets = bv.count_ones().min(num_buckets);
-    trace!("Number of non-empty buckets: {num_nonempty_buckets}");
-
-    trace!(
-        "Bitmap:\n{:?}",
-        HexDump::new(bitmap_bytes).at(stream_offset)
-    );
+    trace!(num_nonempty_buckets);
 
     let nonempty_pointers_stream_offset = original_len - p.len();
     let nonempty_pointers: &[I32<LE>] = p.slice(num_nonempty_buckets)?;
 
     trace!(
-        "Non-null pointers:\n{:?}",
-        HexDump::new(nonempty_pointers.as_bytes()).at(nonempty_pointers_stream_offset)
+        nonempty_pointers_stream_offset,
+        non_empty_pointers = nonempty_pointers.as_bytes(),
+        "non-empty pointers"
     );
 
     let mut nonempty_pointers_iter = nonempty_pointers.iter();
@@ -457,9 +457,9 @@ fn expand_buckets(
 
     if !nonempty_pointers_iter.as_slice().is_empty() {
         warn!(
-            "Compressed hash buckets table contains {} extra byte(s): {:?}",
-            p.len(),
-            HexStr::new(p.peek_rest())
+            num_extra_bytes = p.len(),
+            rest = p.peek_rest(),
+            "Compressed hash buckets table contains extra byte(s)"
         );
     }
 
@@ -469,7 +469,7 @@ fn expand_buckets(
             let start = hash_buckets[i];
             let end = hash_buckets[i + 1];
             if start != end {
-                trace!("  {i:4} : {:4} .. {:4}", start, end);
+                trace!(i, start, end);
             }
         }
     }

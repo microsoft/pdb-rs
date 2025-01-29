@@ -37,9 +37,6 @@
 //!   in the `index_offset_buffer_offset` and `index_offset_buffer_length` fields, respectively.
 //!
 
-pub mod check;
-pub mod dedup;
-pub mod find_type_refs;
 pub mod hash;
 
 use super::*;

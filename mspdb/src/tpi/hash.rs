@@ -1,7 +1,8 @@
 //! Hashing functions for Type Records
 //!
 //! # References
-//! See `TPI1::hashPrec` in `tpi.cpp`.
+//!
+//! * [`TPI1::hashPrec` in `tpi.cpp`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/PDB/dbi/tpi.cpp#L1296)
 
 use crate::hash::hash_u32;
 use crate::parser::ParserError;

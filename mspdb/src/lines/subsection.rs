@@ -1,5 +1,8 @@
 //! Iteration logic for subsections
 
+#[cfg(test)]
+use pretty_hex::PrettyHex;
+
 use super::*;
 
 /// Iterator state for subsections
@@ -146,8 +149,6 @@ impl<'a> Iterator for SubsectionIterMut<'a> {
 // The iterator will return `None`.
 #[test]
 fn empty_or_malformed_input() {
-    use dump_utils::HexDump;
-
     static CASES: &[(&str, &[u8])] = &[
         ("empty input", &[]),
         ("incomplete subsection_kind", &[0xf1, 0]),
@@ -163,7 +164,7 @@ fn empty_or_malformed_input() {
 
     for &(case_name, case_data) in CASES.iter() {
         // Test the subsection iterator
-        println!("case: {}\n{:?}", case_name, HexDump::new(case_data));
+        println!("case: {}\n{:?}", case_name, case_data.hex_dump());
         let ld = LineData::new(case_data);
         assert_eq!(ld.subsections().count(), 0);
         assert!(ld.find_checksums().is_none());

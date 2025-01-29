@@ -38,5 +38,12 @@ mspdb = { path = "mspdb" }
 [profile.release]
 debug = 2
 
+# This compiles external packages with optimizations. Compression libraries
+# especially sensitive to optimization. This makes it a lot easier to do
+# development and run tests with local code in debug mode but external dependencies
+# fully optimized.
+[profile.dev.packages."*"]
+opt-level = 2
+
 [profile.coverage]
 inherits = "dev"

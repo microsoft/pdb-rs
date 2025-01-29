@@ -1,9 +1,9 @@
 use super::*;
 use anyhow::bail;
 use dump_utils::indent;
-use tracing::warn;
 use mspdb::syms::SymData;
 use mspdb::tpi::TypeStream;
+use tracing::warn;
 
 pub fn dump_sym(
     out: &mut String,
@@ -239,7 +239,6 @@ pub fn dump_sym(
 
 pub struct DumpSymsContext<'a> {
     pub scope_depth: u32,
-    pub num_found: u32,
     pub type_stream: &'a TypeStream<Vec<u8>>,
     pub show_record_offsets: bool,
     pub show_type_index: bool,
@@ -250,7 +249,6 @@ impl<'a> DumpSymsContext<'a> {
     pub fn new(type_stream: &'a TypeStream<Vec<u8>>, ipi: &'a TypeStream<Vec<u8>>) -> Self {
         Self {
             scope_depth: 0,
-            num_found: 0,
             type_stream,
             show_record_offsets: true,
             show_type_index: false,
@@ -354,10 +352,6 @@ pub struct DumpModuleSymbols {
     /// Dump the hex bytes of each symbol record.
     #[structopt(long)]
     pub bytes: bool,
-
-    /// Show offsets that are relative to the record, not stream.
-    #[structopt(long)]
-    pub relative_offsets: bool,
 
     /// Show the contents of the Global Refs section.
     #[structopt(long)]

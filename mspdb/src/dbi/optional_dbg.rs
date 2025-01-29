@@ -5,6 +5,7 @@
 //!
 //! # References
 //! * <https://llvm.org/docs/PDB/DbiStream.html#id10>
+//! * [`DBGTYPE` in `pdb.h`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/langapi/include/pdb.h#L438)
 
 use super::*;
 

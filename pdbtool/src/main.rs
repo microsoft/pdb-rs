@@ -9,7 +9,6 @@
 use structopt::StructOpt;
 
 mod addsrc;
-mod check;
 mod copy;
 mod counts;
 mod dump;
@@ -32,17 +31,9 @@ struct CommandWithFlags {
     #[structopt(long, short)]
     verbose: bool,
 
-    /// Custom log directives, using same format as `RUST_LOG`.
-    #[structopt(long, short)]
-    log: Option<String>,
-
     /// Show timestamps in log messages
     #[structopt(long, short)]
     timestamps: bool,
-
-    /// Show source lines of logging messages.
-    #[structopt(long, short)]
-    source: bool,
 
     /// Connect to Tracy (diagnostics tool)
     #[structopt(long)]
@@ -65,7 +56,6 @@ enum Command {
     Save(save::SaveStreamOptions),
     Find(find::FindOptions),
     FindName(find::FindNameOptions),
-    Check(check::CheckOptions),
     Counts(counts::CountsOptions),
     Oscheck(oscheck::OSCheckOptions),
     /// Dumps part of a file (any file, not just a PDB) as a hex dump. If you want to dump a
@@ -92,10 +82,6 @@ fn main() -> anyhow::Result<()> {
             builder = builder.with_max_level(tracing_subscriber::filter::LevelFilter::DEBUG);
         } else {
             builder = builder.with_max_level(tracing_subscriber::filter::LevelFilter::INFO);
-        }
-
-        if let Some(log) = &command_with_flags.log {
-            // builder.parse_filters(log);
         }
 
         /*
@@ -128,7 +114,6 @@ fn main() -> anyhow::Result<()> {
         Command::Copy(args) => copy::copy_command(&args)?,
         Command::Save(args) => save::save_stream(&args)?,
         Command::Find(args) => find::find_command(&args)?,
-        Command::Check(args) => check::check_command(args)?,
         Command::FindName(args) => find::find_name_command(&args)?,
         Command::Counts(args) => counts::counts_command(args)?,
         Command::Oscheck(args) => oscheck::oscheck_command(args)?,

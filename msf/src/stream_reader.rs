@@ -8,7 +8,7 @@ pub struct StreamReader<'a, F> {
     /// Page size of the MSF file.
     page_size: PageSize,
     /// Maps page indices within the stream to page indices within the MSF file.
-    page_map: &'a [u32],
+    page_map: &'a [Page],
     /// Provides access to the MSF file contents.
     file: &'a F,
     /// The seek position of the stream reader.
@@ -16,7 +16,7 @@ pub struct StreamReader<'a, F> {
 }
 
 impl<'a, F: ReadAt> StreamReader<'a, F> {
-    pub(crate) fn new(pdb: &'a Msf<F>, stream_size: u32, page_map: &'a [u32], pos: u64) -> Self {
+    pub(crate) fn new(pdb: &'a Msf<F>, stream_size: u32, page_map: &'a [Page], pos: u64) -> Self {
         Self {
             stream_size: if stream_size == NIL_STREAM_SIZE {
                 0

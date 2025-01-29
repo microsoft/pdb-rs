@@ -1,15 +1,53 @@
 use super::*;
 use bstr::BStr;
 use pow2::Pow2;
-use pretty_hex::PrettyHex;
 use std::io::{Cursor, Read, Seek, SeekFrom, Write};
 use sync_file::ReadAt;
+use tracing::{debug_span, info, info_span, instrument};
+
+#[static_init::dynamic(drop)]
+static mut INIT_LOGGER: Option<tracy_client::Client> = {
+    use tracing_subscriber::fmt::format::FmtSpan;
+
+    if let Ok(s) = std::env::var("ENABLE_TRACY") {
+        if s == "1" {
+            use tracing_subscriber::layer::SubscriberExt;
+
+            if let Ok(_) = std::env::var("ENABLE_TRACY") {
+                let client = tracy_client::Client::start();
+
+                eprintln!("Enabling Tracy");
+                tracing::subscriber::set_global_default(
+                    tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
+                )
+                .expect("setup tracy layer");
+                return Some(client);
+            }
+        }
+    }
+
+    tracing_subscriber::fmt::fmt()
+        .compact()
+        .with_max_level(tracing_subscriber::filter::LevelFilter::TRACE)
+        .with_level(false)
+        .with_file(true)
+        .with_line_number(true)
+        .with_span_events(FmtSpan::ENTER | FmtSpan::EXIT)
+        .with_test_writer()
+        .without_time()
+        .with_ansi(false)
+        .init();
+
+    None
+};
 
 #[track_caller]
 fn make_msfz<F>(f: F) -> Msfz<Vec<u8>>
 where
     F: FnOnce(&mut MsfzWriter<Cursor<Vec<u8>>>),
 {
+    let _span = info_span!("make_msfz").entered();
+
     let cursor: Cursor<Vec<u8>> = Cursor::new(Vec::new());
     let mut w = MsfzWriter::new(cursor).unwrap();
 
@@ -18,26 +56,24 @@ where
 
     f(&mut w);
 
-    println!("Streams:");
+    info!("Streams:");
     for (i, stream_opt) in w.streams.iter().enumerate() {
         if let Some(stream) = stream_opt {
-            println!("  {i:3} : {:?}", stream.fragments);
+            info!(stream_index = i, fragments = ?stream.fragments);
         } else {
-            println!("  {i:3} : nil");
+            info!(stream_index = i, "nil stream");
         }
     }
-    println!();
 
-    println!("Encoded stream directory:");
+    info!("Encoded stream directory:");
     let stream_dir_bytes = encode_stream_dir(&w.streams);
-    println!("{:?}", stream_dir_bytes.hex_dump());
+    info!(stream_dir_bytes = stream_dir_bytes.as_slice());
 
     let (summary, returned_file) = w.finish().unwrap();
-    println!("{summary}");
+    info!(%summary);
     let msfz_data = returned_file.into_inner();
 
-    println!();
-    println!("{:?}", msfz_data.hex_dump());
+    info!(msfz_data = msfz_data.as_slice());
 
     match Msfz::from_file(msfz_data) {
         Ok(msfz) => msfz,
@@ -48,6 +84,7 @@ where
 }
 
 #[test]
+#[instrument]
 fn basic_compressed() {
     let r = make_msfz(|w| {
         w.reserve_num_streams(10);
@@ -127,6 +164,7 @@ fn basic_compressed() {
 
 /// Test the code for crossing chunk boundaries.
 #[test]
+#[instrument]
 fn multi_chunks() {
     let r = make_msfz(|w| {
         w.reserve_num_streams(2);
@@ -181,6 +219,7 @@ fn multi_chunks() {
 }
 
 #[test]
+#[instrument]
 fn basic_uncompressed() {
     let big_text: String = (0..100)
         .map(|i| format!("This should compress quite well #{i}\n"))
@@ -218,6 +257,7 @@ fn basic_uncompressed() {
 }
 
 #[test]
+#[instrument]
 fn uncompressed_stream_alignment() {
     let r = make_msfz(|w| {
         w.reserve_num_streams(5);
@@ -244,6 +284,7 @@ fn uncompressed_stream_alignment() {
 }
 
 #[test]
+#[instrument]
 fn interleaving() {
     // variant specifies bits for whether compression is enabled for various pieces.
     for variant in 0u64..16u64 {
@@ -327,6 +368,8 @@ fn check_read_ranges<F: ReadAt>(
     known_good_data: &[u8],
     ranges: &[(u64, usize)],
 ) {
+    let _span = debug_span!("check_read_ranges").entered();
+
     for &(offset, len) in ranges.iter() {
         let expected = &known_good_data[offset as usize..offset as usize + len];
 

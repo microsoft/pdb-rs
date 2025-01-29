@@ -1,5 +1,5 @@
 use anyhow::Result;
-use dump_utils::{DumpRangesSucc, HexDump, HexStr};
+use dump_utils::{HexDump, HexStr};
 use mspdb::dbi::optional_dbg::OptionalDebugHeaderStream;
 use mspdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
 use mspdb::names::NamesStream;

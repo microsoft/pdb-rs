@@ -1,7 +1,14 @@
 //! DBI Section Contribution Substream
+//!
+//! The Section Contributions Substream describes the COFF sections that contributed to a linked
+//! binary. Section contributions come from object files that are submitted to the linker.
+//!
+//! The Section Contributions table is usually quite large, especially for large binaries.
+//!
+//! # References
+//! * [`SC2` in `dbicommon.h`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/PDB/include/dbicommon.h#L107)
 
 use super::*;
-use crate::diag::Diags;
 
 /// Describes one section contribution.
 #[allow(missing_docs)]
@@ -10,12 +17,14 @@ use crate::diag::Diags;
 pub struct SectionContribEntry {
     /// The section index
     pub section: U16<LE>,
+    /// Alignment padding
     pub padding1: [u8; 2],
     pub offset: I32<LE>,
     pub size: I32<LE>,
     pub characteristics: U32<LE>,
     /// The zero-based module index of the module containing this section contribution.
     pub module_index: U16<LE>,
+    /// Alignment padding
     pub padding2: [u8; 2],
     pub data_crc: U32<LE>,
     pub reloc_crc: U32<LE>,
@@ -82,34 +91,6 @@ impl<'a> SectionContributionsSubstream<'a> {
         };
         let contribs: &[SectionContribEntry] = lv.into_slice();
         Ok(SectionContributionsSubstream { contribs })
-    }
-
-    /// Check invariants
-    pub fn check(&self, diags: &mut Diags) {
-        for (i, w) in self.contribs.windows(2).enumerate() {
-            if !diags.wants_error() {
-                break;
-            }
-
-            let section0 = w[0].section.get();
-            let section1 = w[1].section.get();
-            if section0 > section1 {
-                diags.error(format!("The Section Contributions Substream is invalid. It contains misordered records.  See records #{} and #{}.", i, i + 1));
-            }
-            if section0 == section1 {
-                let offset0 = w[0].offset.get();
-                let offset1 = w[1].offset.get();
-                if offset0 >= offset1 {
-                    diags.error(format!("The Section Contributions Substream is invalid. It contains misordered records.  See records #{} and #{}.", i, i + 1));
-                }
-
-                let size0 = w[0].size.get();
-                let end0 = offset0 + size0;
-                if end0 > offset1 {
-                    diags.error(format!("The Section Contributions Substream is invalid. Records have overlapping ranges.  See records #{} and #{}.", i, i + 1));
-                }
-            }
-        }
     }
 
     /// Searches for a section contribution that contains the given offset.

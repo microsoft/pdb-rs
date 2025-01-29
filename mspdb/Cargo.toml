@@ -19,6 +19,7 @@ msf = { path = "../msf" }
 msfz = { path = "../msfz" }
 pow2.workspace = true
 bstr.workspace = true
+pretty-hex.workspace = true
 static_assertions.workspace = true
 sync_file.workspace = true
 tracing.workspace = true
@@ -27,5 +28,5 @@ zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
 
 [dev-dependencies]
-tracing-subscriber.workspace = true
 static_init.workspace = true
+tracing-subscriber.workspace = true

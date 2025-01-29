@@ -388,7 +388,7 @@ impl PageAllocator {
     ///
     /// This function does not do any disk I/O. It only updates in-memory state.
     pub(crate) fn alloc_pages(&mut self, num_pages_wanted: u32) -> (Page, u32) {
-        let _span = trace_span!("alloc_pages");
+        let _span = trace_span!("alloc_pages").entered();
         trace!(num_pages_wanted);
 
         assert!(num_pages_wanted > 0);

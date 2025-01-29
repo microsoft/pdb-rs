@@ -2,7 +2,7 @@
 
 use super::*;
 use anyhow::Result;
-use pretty_hex::{HexConfig, PrettyHex};
+use pretty_hex::PrettyHex;
 use std::io::{Cursor, Seek, SeekFrom, Write};
 use std::sync::Mutex;
 use sync_file::{ReadAt, WriteAt};

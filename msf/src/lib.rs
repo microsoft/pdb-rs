@@ -268,7 +268,7 @@ impl<F> Msf<F> {
     /// provide the mapping from offsets within a stream to offsets within the entire PDB (MSF) file.
     ///
     /// If the stream is a NIL stream, then this returns `(NIL_STREAM_SIZE, &[])`.
-    pub fn stream_size_and_pages(&self, stream: u32) -> Result<(u32, &[u32]), anyhow::Error> {
+    pub fn stream_size_and_pages(&self, stream: u32) -> Result<(u32, &[Page]), anyhow::Error> {
         let Some(&stream_size) = self.stream_sizes.get(stream as usize) else {
             bail!("Stream index is out of range.  Index: {stream}");
         };
