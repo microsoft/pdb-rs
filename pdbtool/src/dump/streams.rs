@@ -1,9 +1,8 @@
 use super::*;
 use dbg_ranges::debug_adjacent;
-use tracing::warn;
 
 #[derive(Debug)]
-#[allow(dead_code)]
+#[allow(dead_code)] // dead code analysis ignores Debug impls, but that's why this type exists
 enum StreamUsage {
     OldStreamDir, // 0
     PDB,          // 1
@@ -29,9 +28,6 @@ enum StreamUsage {
     },
     TypeStreamAuxHashStream {
         parent_stream: Stream,
-    },
-    TMCache {
-        cache_slot: u32,
     },
 }
 
@@ -161,29 +157,6 @@ pub fn dump_streams(p: &Pdb, options: StreamsOptions) -> anyhow::Result<()> {
     } else {
         None
     };
-
-    match p.read_tmcache() {
-        Ok(Some(tmcache)) => {
-            // (stream_index, cache_slot)
-            let mut tm_cache_streams: Vec<(u32, u32)> = Vec::with_capacity(tmcache.tm_table.len());
-            for (i, &s) in tmcache.tm_table.iter().enumerate() {
-                tm_cache_streams.push((s as u32, i as u32));
-            }
-
-            tm_cache_streams.sort_unstable();
-            tm_cache_streams.dedup_by_key(|i| i.0); // de-dup by stream index
-
-            for &(s, cache_slot) in tm_cache_streams.iter() {
-                add_stream_usage(Some(s), StreamUsage::TMCache { cache_slot });
-            }
-        }
-
-        Ok(None) => {}
-
-        Err(e) => {
-            warn!("Failed to read TMCache stream: {e:?}");
-        }
-    }
 
     let mut num_streams_unknown_usage: u32 = 0;
 

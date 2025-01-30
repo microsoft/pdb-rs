@@ -17,7 +17,7 @@ use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::ByteSlice;
 use tracing::{trace, trace_span, warn};
 use uuid::Uuid;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
 
 /// Contains the PDB Information Stream.
 ///
@@ -168,7 +168,7 @@ fn pdbi_has_unique_id(version: u32) -> bool {
 }
 
 /// The header of the PDB Info stream.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct PdbiStreamHeader {
@@ -179,7 +179,7 @@ pub struct PdbiStreamHeader {
     // pub unique_id: GuidLe,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct HashTableHeader {
@@ -190,7 +190,7 @@ pub struct HashTableHeader {
     // (key, value) pairs
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct HashEntry {

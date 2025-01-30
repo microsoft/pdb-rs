@@ -8,13 +8,13 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use sync_file::{RandomAccessFile, ReadAt};
 use tracing::{debug, debug_span, info, info_span, trace, trace_span};
-use zerocopy::{AsBytes, FromZeroes};
+use zerocopy::IntoBytes;
 
 /// Reads MSFZ files.
 pub struct Msfz<F = RandomAccessFile> {
     file: F,
     stream_dir: Vec<Option<Stream>>,
-    chunk_table: Vec<ChunkEntry>,
+    chunk_table: Box<[ChunkEntry]>,
     chunk_cache: Vec<OnceLock<Arc<Vec<u8>>>>,
 }
 
@@ -33,7 +33,7 @@ impl<F: ReadAt> Msfz<F> {
         let _span = info_span!("Msfz::from_file").entered();
 
         let mut header: MsfzFileHeader = MsfzFileHeader::new_zeroed();
-        file.read_exact_at(header.as_bytes_mut(), 0)?;
+        file.read_exact_at(header.as_mut_bytes(), 0)?;
 
         if header.signature != MSFZ_FILE_SIGNATURE {
             bail!("This file does not have a PDZ file signature.");
@@ -66,7 +66,7 @@ impl<F: ReadAt> Msfz<F> {
         if let Some(compression) = Compression::try_from_code_opt(stream_dir_compression)? {
             let mut compressed_stream_dir: Vec<u8> = vec![0; stream_dir_size_compressed];
             file.read_exact_at(
-                compressed_stream_dir.as_bytes_mut(),
+                compressed_stream_dir.as_mut_bytes(),
                 header.stream_dir_offset.get(),
             )?;
 
@@ -78,7 +78,7 @@ impl<F: ReadAt> Msfz<F> {
                 &mut stream_dir_bytes,
             )?;
         } else {
-            file.read_exact_at(stream_dir_bytes.as_bytes_mut(), stream_dir_file_offset)?;
+            file.read_exact_at(stream_dir_bytes.as_mut_bytes(), stream_dir_file_offset)?;
         }
 
         let stream_dir = decode_stream_dir(&stream_dir_bytes, num_streams)?;
@@ -91,13 +91,14 @@ impl<F: ReadAt> Msfz<F> {
         }
 
         let chunk_table_offset = header.chunk_table_offset.get();
-        let mut chunk_table: Vec<ChunkEntry> = FromZeroes::new_vec_zeroed(num_chunks);
+        let mut chunk_table: Box<[ChunkEntry]> =
+            FromZeros::new_box_zeroed_with_elems(num_chunks).unwrap();
         if num_chunks != 0 {
             info!(
                 num_chunks,
                 chunk_table_offset, "reading compressed chunk table"
             );
-            file.read_exact_at(chunk_table.as_bytes_mut(), chunk_table_offset)?;
+            file.read_exact_at(chunk_table.as_mut_bytes(), chunk_table_offset)?;
         } else {
             // Don't issue a read. The writer code may not have actually extended the file.
         }

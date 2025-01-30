@@ -7,7 +7,7 @@ use mspdb::{Pdb, Stream};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
 use std::mem::size_of;
-use zerocopy::{AsBytes, FromZeroes};
+use zerocopy::{FromZeros, IntoBytes};
 
 /// Counts the number of records and record sizes for a given set of PDBs.
 #[derive(clap::Parser)]
@@ -174,9 +174,9 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
         let tpi_len = pdb.stream_len(Stream::TPI.into());
         counts.sc.tpi += tpi_len;
         if tpi_len as usize >= size_of::<TypeStreamHeader>() {
-            let mut header: TypeStreamHeader = TypeStreamHeader::new_zeroed();
+            let mut header = TypeStreamHeader::new_zeroed();
             let mut reader = pdb.get_stream_reader(Stream::TPI.into())?;
-            reader.read_exact(header.as_bytes_mut())?;
+            reader.read_exact(header.as_mut_bytes())?;
 
             if let Some(s) = header.hash_aux_stream_index.get() {
                 // TODO: yes, yes, I know, it's the wrong stream count
@@ -194,9 +194,9 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
         let ipi_len = pdb.stream_len(Stream::IPI.into());
         counts.sc.ipi += ipi_len;
         if ipi_len as usize >= size_of::<TypeStreamHeader>() {
-            let mut header: TypeStreamHeader = TypeStreamHeader::new_zeroed();
+            let mut header = TypeStreamHeader::new_zeroed();
             let mut reader = pdb.get_stream_reader(Stream::IPI.into())?;
-            reader.read_exact(header.as_bytes_mut())?;
+            reader.read_exact(header.as_mut_bytes())?;
 
             if let Some(s) = header.hash_aux_stream_index.get() {
                 // TODO: yes, yes, I know, it's the wrong stream count

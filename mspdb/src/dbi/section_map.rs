@@ -3,8 +3,9 @@
 
 use super::*;
 use bitflags::bitflags;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned)]
 #[repr(C)]
 pub struct SectionMapHeader {
     /// Total number of segment descriptors
@@ -13,7 +14,7 @@ pub struct SectionMapHeader {
     pub num_logical_segments: U16<LE>,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned)]
 #[repr(C)]
 pub struct SectionMapEntry {
     /// Descriptor flags bit field. See `SectionMapEntryFlags`.
@@ -75,12 +76,9 @@ impl<'a> SectionMap<'a> {
 
         let header: SectionMapHeader = p.copy()?;
 
-        let Some(lv) = zerocopy::Ref::new_slice_unaligned(p.take_rest()) else {
+        let Ok(entries) = <[SectionMapEntry]>::ref_from_bytes(p.take_rest()) else {
             bail!("Section map has invalid length (is not a multiple of SectionMapEntry size). Length (including 4-byte header): 0x{:x}", bytes.len());
         };
-        Ok(Self {
-            header,
-            entries: lv.into_slice(),
-        })
+        Ok(Self { header, entries })
     }
 }

@@ -16,13 +16,13 @@ use anyhow::{bail, Context};
 use bstr::BStr;
 use std::mem::size_of;
 use tracing::{debug, error, info};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 /// The header of the GSI stream.
 ///
 /// See `PSGSIHDR` in `microsoft-pdb/PDB/dbi/gsi.h`.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Clone, Debug)]
 #[allow(missing_docs)]
 pub struct PsiStreamHeader {
     /// Length in bytes of the symbol hash table.  This region immediately follows PSGSIHDR.
@@ -266,9 +266,7 @@ pub fn build_psi(
     sorted_hash_records.encode(&name_table_info, name_table_bytes);
 
     let addr_map_bytes = p.bytes_mut(addr_map_size_bytes).unwrap();
-    let addr_map_output: &mut [U32<LE>] = zerocopy::Ref::new_slice_unaligned(addr_map_bytes)
-        .unwrap()
-        .into_mut_slice();
+    let addr_map_output = <[U32<LE>]>::mut_from_bytes(addr_map_bytes).unwrap();
     // Write the address map. This converts from the array that we used for sorting, which contains
     // the symbol record byte offset and the segment:offset, to just the symbol record byte offset.
     {

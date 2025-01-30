@@ -2,37 +2,40 @@
 
 use std::io::{Read, Seek, SeekFrom, Write};
 use sync_file::ReadAt;
-use zerocopy::{AsBytes, FromBytes};
+use zerocopy::{FromBytes, FromZeros, IntoBytes};
 
-pub fn read_struct_at<T: FromBytes + AsBytes, R: ReadAt>(r: &R, offset: u64) -> std::io::Result<T> {
+pub fn read_struct_at<T: FromBytes + IntoBytes, R: ReadAt>(
+    r: &R,
+    offset: u64,
+) -> std::io::Result<T> {
     let mut value = T::new_zeroed();
-    r.read_exact_at(value.as_bytes_mut(), offset)?;
+    r.read_exact_at(value.as_mut_bytes(), offset)?;
     Ok(value)
 }
 
-pub fn read_struct<T: FromBytes + AsBytes, R: Read>(r: &mut R) -> std::io::Result<T> {
+pub fn read_struct<T: FromBytes + IntoBytes, R: Read>(r: &mut R) -> std::io::Result<T> {
     let mut value: T = T::new_zeroed();
-    let value_bytes = value.as_bytes_mut();
+    let value_bytes = value.as_mut_bytes();
     r.read_exact(value_bytes)?;
     Ok(value)
 }
 
-pub fn read_boxed_slice<T: FromBytes + AsBytes, R: Read>(
+pub fn read_boxed_slice<T: FromBytes + IntoBytes, R: Read>(
     r: &mut R,
     n: usize,
 ) -> std::io::Result<Box<[T]>> {
-    let mut value: Box<[T]> = T::new_box_slice_zeroed(n);
-    r.read_exact(value.as_bytes_mut())?;
+    let mut value = <[T]>::new_box_zeroed_with_elems(n).unwrap();
+    r.read_exact(value.as_mut_bytes())?;
     Ok(value)
 }
 
-pub fn read_boxed_slice_at<T: FromBytes + AsBytes, R: ReadAt>(
+pub fn read_boxed_slice_at<T: FromBytes + IntoBytes, R: ReadAt>(
     r: &mut R,
     offset: u64,
     n: usize,
 ) -> std::io::Result<Box<[T]>> {
-    let mut value: Box<[T]> = T::new_box_slice_zeroed(n);
-    r.read_exact_at(value.as_bytes_mut(), offset)?;
+    let mut value = <[T]>::new_box_zeroed_with_elems(n).unwrap();
+    r.read_exact_at(value.as_mut_bytes(), offset)?;
     Ok(value)
 }
 

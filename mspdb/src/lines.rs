@@ -15,7 +15,7 @@ use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use anyhow::{bail, Context};
 use std::mem::{size_of, take};
 use tracing::{trace, warn};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 /// Enumerates the kind of subsections found in C13 Line Data.
 ///
@@ -399,8 +399,8 @@ impl<'a> Block<'a> {
     /// Gets the line records for this block.
     pub fn lines(&self) -> &'a [LineRecord] {
         let num_lines = self.header.num_lines.get() as usize;
-        if let Some(lv) = zerocopy::Ref::new_slice_unaligned_from_prefix(self.data, num_lines) {
-            lv.0.into_slice()
+        if let Ok((lines, _)) = <[LineRecord]>::ref_from_prefix_with_elems(self.data, num_lines) {
+            lines
         } else {
             warn!("failed to get lines_data for a block; wrong size");
             &[]
@@ -409,25 +409,24 @@ impl<'a> Block<'a> {
 
     /// Gets the column records for this block, if it has any.
     pub fn columns(&self) -> Option<&'a [ColumnRecord]> {
-        if self.have_columns {
-            let num_lines = self.header.num_lines.get() as usize;
-            let lines_size = num_lines * size_of::<LineRecord>();
-            if let Some(column_data) = self.data.get(lines_size..) {
-                if let Some(columns) =
-                    zerocopy::Ref::new_slice_unaligned_from_prefix(column_data, num_lines)
-                {
-                    Some(columns.0.into_slice())
-                } else {
-                    warn!("failed to get column data for a block; byte size is wrong");
-                    None
-                }
-            } else {
-                warn!("failed to get column data for a block; wrong size");
-                None
-            }
-        } else {
-            None
+        if !self.have_columns {
+            return None;
         }
+
+        let num_lines = self.header.num_lines.get() as usize;
+        let lines_size = num_lines * size_of::<LineRecord>();
+        let Some(column_data) = self.data.get(lines_size..) else {
+            warn!("failed to get column data for a block; wrong size");
+            return None;
+        };
+
+        let Ok((columns, _)) = <[ColumnRecord]>::ref_from_prefix_with_elems(column_data, num_lines)
+        else {
+            warn!("failed to get column data for a block; byte size is wrong");
+            return None;
+        };
+
+        Some(columns)
     }
 }
 
@@ -447,7 +446,7 @@ pub struct BlockMut<'a> {
 /// A single line record
 ///
 /// See `CV_Line_t` in `cvinfo.h`
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Clone)]
 #[repr(C)]
 pub struct LineRecord {
     /// The byte offset from the start of this contribution (in the instruction stream, not the
@@ -501,7 +500,7 @@ impl std::fmt::Debug for LineRecord {
 }
 
 /// A single column record
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 #[repr(C)]
 pub struct ColumnRecord {
     /// byte offset in a source line
@@ -510,7 +509,7 @@ pub struct ColumnRecord {
     pub end_offset: U16<LE>,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct Contribution {
@@ -541,7 +540,7 @@ pub struct LinesEntry<'a> {
 /// Header for a variable-length Block record.
 ///
 /// Each block contains a sequence of line records, and optionally column records.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 #[repr(C)]
 pub struct BlockHeader {
     /// The byte offset into the file checksums subsection for this file.

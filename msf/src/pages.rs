@@ -2,6 +2,7 @@
 
 use super::*;
 use tracing::{error, trace, trace_span};
+use zerocopy::FromZeros;
 
 /// Given the size of a stream in bytes, returns the number of pages needed to store it.
 ///
@@ -302,12 +303,12 @@ impl PageAllocator {
             next_free_page_hint: 0,
             num_pages: num_pages as u32,
             page_size,
-            page_buffer: FromZeroes::new_box_slice_zeroed(usize::from(page_size)),
+            page_buffer: FromZeros::new_box_zeroed_with_elems(usize::from(page_size)).unwrap(),
         }
     }
 
     pub(crate) fn alloc_page_buffer(&self) -> Box<[u8]> {
-        FromZeroes::new_box_slice_zeroed(usize::from(self.page_size))
+        FromZeros::new_box_zeroed_with_elems(usize::from(self.page_size)).unwrap()
     }
 
     /// This marks a stream page as being busy. This is used only when loading the

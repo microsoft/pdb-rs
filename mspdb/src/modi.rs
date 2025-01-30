@@ -13,11 +13,11 @@ use anyhow::anyhow;
 use std::mem::size_of;
 use std::ops::Range;
 use tracing::{debug, warn};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
 
 /// The Module Symbols substream begins with this header. It is located at stream offset 0 in the
 /// Module Stream.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 #[repr(C)]
 pub struct ModuleSymbolsHeader {
     /// Indicates the version of the module symbol stream. Use the `CV_SIGNATURE_*` constants.
@@ -244,17 +244,13 @@ impl ModiStreamData {
     pub fn global_refs(&self) -> &[U32<LE>] {
         let range = self.global_refs_range();
         let stream_bytes: &[u8] = self.stream_data.as_ref();
-        zerocopy::Ref::new_slice_unaligned(&stream_bytes[range])
-            .unwrap()
-            .into_slice()
+        FromBytes::ref_from_bytes(&stream_bytes[range]).unwrap()
     }
 
     /// Returns a mutable reference to the global refs stored in this Module Stream.
     pub fn global_refs_mut(&mut self) -> &mut [U32<LE>] {
         let range = self.global_refs_range();
-        zerocopy::Ref::new_slice_unaligned(&mut self.stream_data[range])
-            .unwrap()
-            .into_mut_slice()
+        FromBytes::mut_from_bytes(&mut self.stream_data[range]).unwrap()
     }
 }
 

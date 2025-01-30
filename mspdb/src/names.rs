@@ -46,7 +46,7 @@ use anyhow::bail;
 use bstr::BStr;
 use std::ops::Range;
 use tracing::{debug, trace, trace_span, warn};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
 
 /// The name of the `/names` stream. This identifies the stream in the Named Streams Table,
 /// in the PDB Information Stream.
@@ -71,7 +71,9 @@ fn name_index_display() {
 }
 
 /// Represents a `NameIndex` value in LE byte order.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Debug, IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned,
+)]
 #[repr(transparent)]
 pub struct NameIndexLe(pub U32<LE>);
 
@@ -91,7 +93,7 @@ pub const NAMES_STREAM_VERSION_V1: u32 = 1;
 
 /// The header of the Names Stream.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 pub struct NamesStreamHeader {
     /// Signature identifies this as a Names Stream. Should always be `NAMES_STREAM_SIGNATURE`.
     pub signature: U32<LE>,
@@ -208,13 +210,9 @@ where
     /// the order of the hash of the strings.
     pub fn hashes(&self) -> &[U32<LE>] {
         let stream_data = self.stream_data.as_ref();
-        zerocopy::Ref::new_slice_unaligned_from_prefix(
-            &stream_data[self.hashes_offset..],
-            self.num_hashes,
-        )
-        .unwrap()
-        .0
-        .into_slice()
+        <[U32<LE>]>::ref_from_prefix_with_elems(&stream_data[self.hashes_offset..], self.num_hashes)
+            .unwrap()
+            .0
     }
 
     /// Retrieves one string from the string table.

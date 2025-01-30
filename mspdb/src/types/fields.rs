@@ -96,7 +96,7 @@ impl<'a> Parse<'a> for BaseClass<'a> {
 /// This is used by both DirectVirtualBaseClass and IndirectVirtualBaseClass.
 #[allow(missing_docs)]
 #[repr(C)]
-#[derive(Clone, Debug, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(Clone, Debug, IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned)]
 pub struct VirtualBaseClassFixed {
     pub attr: U16<LE>,
     pub btype: TypeIndexLe,

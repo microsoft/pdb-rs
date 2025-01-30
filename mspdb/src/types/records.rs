@@ -29,7 +29,7 @@ bitfield::bitfield! {
     pub mocom,         set_mocom:         14;     // CV_MOCOM_UDT
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned)]
 #[repr(transparent)]
 pub struct UdtPropertiesLe(pub U16<LE>);
 
@@ -53,7 +53,7 @@ pub struct Enum<'a> {
     pub unique_name: Option<&'a BStr>,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct EnumFixed {
     pub count: U16<LE>,
@@ -88,7 +88,7 @@ pub struct Array<'a> {
     pub name: &'a BStr,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct ArrayFixed {
     pub element_type: TypeIndexLe,
@@ -115,7 +115,7 @@ pub struct Struct<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct StructFixed {
     /// Number of elements in the class or structure. This count includes direct, virtual, and
     /// indirect virtual bases, and methods including overloads, data members, static data members,
@@ -161,7 +161,7 @@ pub struct Union<'a> {
     pub unique_name: Option<&'a BStr>,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct UnionFixed {
     pub count: U16<LE>,
@@ -192,7 +192,7 @@ impl<'a> Parse<'a> for Union<'a> {
 ///
 /// This record defines a qualified variation of another type. Bits indicate whether the qualifier
 /// uses `const`, `volatile`, `unaligned`, or a combination of these flags.
-#[derive(FromBytes, FromZeroes, AsBytes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned, Clone, Debug)]
 #[repr(C)]
 pub struct TypeModifier {
     pub underlying_type: TypeIndexLe,
@@ -237,7 +237,7 @@ bitfield! {
 
 /// `LF_PROCEDURE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct Proc {
     pub return_value: TypeIndexLe,
     pub call: u8,
@@ -247,7 +247,7 @@ pub struct Proc {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct MemberFunc {
     pub return_value: TypeIndexLe,
     pub class: TypeIndexLe,
@@ -260,7 +260,7 @@ pub struct MemberFunc {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned)]
 pub struct VTableShapeFixed {
     pub count: U16<LE>,
 }
@@ -320,7 +320,7 @@ pub struct MethodListItem {
     pub vtab_offset: Option<u32>,
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct PointerFixed {
     pub ty: TypeIndexLe,
@@ -433,7 +433,7 @@ impl<'a> Parse<'a> for Alias<'a> {
 /// `LF_UDT_SRC_LINE`
 ///
 /// See `lfUdtSrcLine` in `cvinfo.h`
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 #[repr(C)]
 pub struct UdtSrcLine {
     /// UDT's type index
@@ -450,7 +450,7 @@ pub struct UdtSrcLine {
 /// `LF_UDT_MOD_SRC_LINE`
 ///
 /// See `lfUdtModSrcLine` in `cvinfo.h`
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 #[repr(C)]
 pub struct UdtModSrcLine {
     /// UDT's type index
@@ -483,7 +483,7 @@ pub struct FuncId<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct FuncIdFixed {
     /// Parent scope of the ID, 0 if global. This is used for the namespace that contains a symbol.
     /// The value points into the IPI.
@@ -512,7 +512,7 @@ pub struct MFuncId<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct MFuncIdFixed {
     /// type index of parent
     pub parent_type: TypeIndexLe,
@@ -595,7 +595,7 @@ pub enum BuildInfoIndex {
 pub const BUILD_INFO_ARG_NAMES: [&str; 5] = ["cwd", "tool", "source_file", "pdb", "args"];
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct VFTable {
     /// type index of the root of path
     pub root: TypeIndexLe,

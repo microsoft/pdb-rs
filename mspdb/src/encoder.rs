@@ -4,7 +4,7 @@
 use crate::guid::GuidLe;
 use bstr::BStr;
 use uuid::Uuid;
-use zerocopy::AsBytes;
+use zerocopy::{Immutable, IntoBytes};
 
 pub struct Encoder<'a> {
     pub buf: &'a mut Vec<u8>,
@@ -39,7 +39,7 @@ impl<'a> Encoder<'a> {
         self.bytes(&x.to_le_bytes());
     }
 
-    pub fn t<T: AsBytes>(&mut self, x: &T) {
+    pub fn t<T: IntoBytes + Immutable>(&mut self, x: &T) {
         self.buf.extend_from_slice(x.as_bytes());
     }
 

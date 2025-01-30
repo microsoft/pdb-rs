@@ -7,7 +7,7 @@ use crate::types::TypeIndex;
 use bstr::{BStr, ByteSlice};
 use std::mem::{size_of, take};
 use zerocopy::byteorder::{I16, I32, I64, LE, U16, U32, U64};
-use zerocopy::{AsBytes, FromBytes, Unaligned, I128, U128};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I128, U128};
 
 pub use crate::types::number::Number;
 
@@ -103,12 +103,12 @@ impl<'a> Parser<'a> {
 
     /// Parses a reference to a structure. The input must contain at least [`size_of::<T>()`] bytes.
     #[inline(always)]
-    pub fn get<T: FromBytes + Unaligned>(&mut self) -> Result<&'a T, ParserError> {
-        if let Some((value, rest)) =
-            zerocopy::Ref::<&[u8], T>::new_unaligned_from_prefix(self.bytes)
-        {
+    pub fn get<T: FromBytes + Unaligned + KnownLayout + Immutable>(
+        &mut self,
+    ) -> Result<&'a T, ParserError> {
+        if let Ok((value, rest)) = T::ref_from_prefix(self.bytes) {
             self.bytes = rest;
-            Ok(value.into_ref())
+            Ok(value)
         } else {
             Err(ParserError::new())
         }
@@ -118,7 +118,7 @@ impl<'a> Parser<'a> {
     #[inline(always)]
     pub fn copy<T: FromBytes + Unaligned>(&mut self) -> Result<T, ParserError> {
         let item = self.bytes(size_of::<T>())?;
-        Ok(T::read_from(item).unwrap())
+        Ok(T::read_from_bytes(item).unwrap())
     }
 
     /// Parses a `T` from the input, if `T` knows how to read from a `Parser`.
@@ -130,11 +130,13 @@ impl<'a> Parser<'a> {
     }
 
     /// Parses a slice of items. The input must contain at least [`size_of::<T>() * n`] bytes.
-    pub fn slice<T: FromBytes + Unaligned>(&mut self, len: usize) -> Result<&'a [T], ParserError> {
-        if let Some((lo, hi)) = zerocopy::Ref::<&[u8], [T]>::new_slice_from_prefix(self.bytes, len)
-        {
+    pub fn slice<T: FromBytes + Unaligned + Immutable>(
+        &mut self,
+        len: usize,
+    ) -> Result<&'a [T], ParserError> {
+        if let Ok((lo, hi)) = <[T]>::ref_from_prefix_with_elems(self.bytes, len) {
             self.bytes = hi;
-            Ok(lo.into_slice())
+            Ok(lo)
         } else {
             Err(ParserError::new())
         }
@@ -334,37 +336,35 @@ impl<'a> ParserMut<'a> {
     }
 
     #[inline(always)]
-    pub fn get<T: FromBytes + Unaligned>(&mut self) -> Result<&'a T, ParserError> {
+    pub fn get<T: FromBytes + Unaligned + Immutable + KnownLayout>(
+        &mut self,
+    ) -> Result<&'a T, ParserError> {
         let bytes = self.bytes(size_of::<T>())?;
-        Ok(zerocopy::Ref::<&[u8], T>::new_unaligned(bytes)
-            .unwrap()
-            .into_ref())
+        Ok(T::ref_from_bytes(bytes).unwrap())
     }
 
     #[inline(always)]
-    pub fn get_mut<T: FromBytes + AsBytes + Unaligned>(
+    pub fn get_mut<T: FromBytes + IntoBytes + Unaligned + Immutable + KnownLayout>(
         &mut self,
     ) -> Result<&'a mut T, ParserError> {
         let bytes = self.bytes_mut(size_of::<T>())?;
-        Ok(zerocopy::Ref::<&mut [u8], T>::new_unaligned(bytes)
-            .unwrap()
-            .into_mut())
+        Ok(T::mut_from_bytes(bytes).unwrap())
     }
 
     #[inline(always)]
-    pub fn copy<T: FromBytes + Unaligned>(&mut self) -> Result<T, ParserError> {
+    pub fn copy<T: FromBytes + Unaligned + Immutable>(&mut self) -> Result<T, ParserError> {
         let item = self.bytes(size_of::<T>())?;
-        Ok(T::read_from(item).unwrap())
+        Ok(T::read_from_bytes(item).unwrap())
     }
 
-    pub fn slice_mut<T: FromBytes + AsBytes + Unaligned>(
+    pub fn slice_mut<T: FromBytes + IntoBytes + Unaligned>(
         &mut self,
         len: usize,
     ) -> Result<&'a mut [T], ParserError> {
         let d = take(&mut self.bytes);
-        if let Some((lo, hi)) = zerocopy::Ref::<&mut [u8], [T]>::new_slice_from_prefix(d, len) {
+        if let Ok((lo, hi)) = <[T]>::mut_from_prefix_with_elems(d, len) {
             self.bytes = hi;
-            Ok(lo.into_mut_slice())
+            Ok(lo)
         } else {
             Err(ParserError::new())
         }

@@ -47,11 +47,11 @@ use anyhow::bail;
 use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U32};
 
 /// The header of the TPI stream.
 #[allow(missing_docs)]
-#[derive(Clone, Eq, PartialEq, AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(Clone, Eq, PartialEq, IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 #[repr(C)]
 pub struct TypeStreamHeader {
     pub version: U32<LE>,
@@ -149,7 +149,7 @@ impl TypeStreamKind {
 
 /// Represents an entry in the Hash Index Offset Substream.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 pub struct HashIndexPair {
     /// The type index at the start of this range.
     pub type_index: TypeIndexLe,
@@ -165,8 +165,8 @@ where
     /// Gets a reference to the stream header
     pub fn header(&self) -> Option<&TypeStreamHeader> {
         let stream_data: &[u8] = self.stream_data.as_ref();
-        let (header, _) = zerocopy::Ref::<&[u8], TypeStreamHeader>::new_from_prefix(stream_data)?;
-        Some(header.into_ref())
+        let (header, _) = TypeStreamHeader::ref_from_prefix(stream_data).ok()?;
+        Some(header)
     }
 
     /// Returns the version of the stream, or `TYPE_STREAM_VERSION_2004` if this is an empty stream.
@@ -193,10 +193,8 @@ where
     where
         StreamData: AsMut<[u8]>,
     {
-        let (header, _) = zerocopy::Ref::<&mut [u8], TypeStreamHeader>::new_from_prefix(
-            self.stream_data.as_mut(),
-        )?;
-        Some(header.into_mut())
+        let (header, _) = TypeStreamHeader::mut_from_prefix(self.stream_data.as_mut()).ok()?;
+        Some(header)
     }
 
     /// The type index of the first type record.

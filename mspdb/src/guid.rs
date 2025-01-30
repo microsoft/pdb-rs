@@ -2,11 +2,11 @@
 
 use std::fmt::Debug;
 use uuid::Uuid;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 /// Standard Windows type
 #[repr(C)]
-#[derive(Clone, Eq, PartialEq, AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(Clone, Eq, PartialEq, IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct GuidLe {
     pub data1: U32<LE>,

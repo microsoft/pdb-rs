@@ -4,7 +4,17 @@ use super::*;
 
 /// The hash algorithm used for the checksum.
 #[derive(
-    AsBytes, FromBytes, FromZeroes, Unaligned, Copy, Clone, Eq, PartialEq, Ord, PartialOrd,
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    IntoBytes,
+    FromBytes,
+    Unaligned,
+    KnownLayout,
+    Immutable,
 )]
 #[repr(transparent)]
 pub struct ChecksumKind(pub u8);
@@ -141,7 +151,7 @@ impl<'a> FileChecksum<'a> {
 /// checksum bytes.
 ///
 /// The checksum record is variable-length.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Clone, Debug)]
 #[repr(C)]
 pub struct FileChecksumHeader {
     /// Offset into the global string table (the `/names` stream) of the PDB.

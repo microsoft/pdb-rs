@@ -19,7 +19,7 @@ use bstr::BStr;
 use dump_utils::HexStr;
 use std::fmt::Debug;
 use std::mem::size_of;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
 
 /// Identifies the kind of symbol streams. Some behaviors of symbol streams are different,
 /// depending on which one is being processed.
@@ -43,7 +43,7 @@ impl SymbolStreamKind {
 }
 
 /// This header is shared by many records that can start a symbol scope.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Default, Clone, Debug)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Default, Clone, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct BlockHeader {
@@ -61,7 +61,7 @@ pub struct BlockHeader {
 /// Used for the header of S_LPROC32 and S_GPROC32.
 ///
 /// See `PROCSYM32` in `cvinfo.h`.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct ProcFixed {
@@ -147,7 +147,7 @@ fn test_parse_proc() {
 /// `S_GMANPROC`, `S_LMANPROC` - Managed Procedure Start
 ///
 /// See `MANPROCSYM` in `cvinfo.h`.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct ManagedProcFixed {
@@ -181,7 +181,7 @@ impl<'a> Parse<'a> for ManagedProc<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Default)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Default)]
 #[allow(missing_docs)]
 pub struct ThunkFixed {
     pub block: BlockHeader,
@@ -212,7 +212,7 @@ impl<'a> Parse<'a> for Thunk<'a> {
 
 /// Describes the start of every symbol record.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Default)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Default)]
 pub struct SymHeader {
     /// The length in bytes of the record.
     ///
@@ -283,7 +283,7 @@ impl<'a> Pub<'a> {
 
 #[allow(missing_docs)]
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct PubFixed {
     pub flags: U32<LE>,
     pub offset_segment: OffsetSegment,
@@ -364,7 +364,7 @@ pub struct RefSym2<'a> {
 
 #[allow(missing_docs)]
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct RefSym2Fixed {
     /// Checksum of the name (called `SUC` in C++ code)
     ///
@@ -395,7 +395,7 @@ impl<'a> Parse<'a> for RefSym2<'a> {
 
 #[allow(missing_docs)]
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct ThreadStorageFixed {
     pub type_: TypeIndexLe,
     pub offset_segment: OffsetSegment,
@@ -423,7 +423,7 @@ impl<'a> Parse<'a> for ThreadStorageData<'a> {
 
 #[allow(missing_docs)]
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct DataFixed {
     pub type_: TypeIndexLe,
     pub offset_segment: OffsetSegment,
@@ -496,7 +496,7 @@ impl<'a> Parse<'a> for ObjectName<'a> {
 }
 
 /// `S_COMPILE3`
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct Compile3Fixed {
@@ -534,7 +534,7 @@ impl<'a> Parse<'a> for Compile3<'a> {
 /// procedure and its stack frame. If any of the flags are non-zero, this record should be added
 /// to the symbols for that procedure.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct FrameProc {
     /// Count of bytes in the whole stack frame.
@@ -552,7 +552,7 @@ pub struct FrameProc {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct RegRelFixed {
     pub offset: U32<LE>,
@@ -594,7 +594,7 @@ pub struct Block<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct BlockFixed {
     /// Header of the block
@@ -627,7 +627,7 @@ pub struct Local<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct LocalFixed {
     pub ty: TypeIndexLe,
@@ -649,7 +649,7 @@ impl<'a> Parse<'a> for Local<'a> {
 ///
 /// See `CV_LVAR_ADDR_RANGE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct LVarAddrRange {
     /// Start of the address range
     pub start: OffsetSegment,
@@ -662,7 +662,7 @@ pub struct LVarAddrRange {
 ///
 /// See `CV_LVAR_ADDR_GAP`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct LVarAddrGap {
     /// relative offset from the beginning of the live range.
     pub gap_start_offset: U16<LE>,
@@ -672,7 +672,7 @@ pub struct LVarAddrGap {
 
 /// `S_DEFRANGE_FRAMEPOINTER_REL`: A live range of frame variable
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct DefRangeSymFramePointerRelFixed {
     pub offset_to_frame_pointer: U32<LE>,
@@ -702,7 +702,7 @@ impl<'a> Parse<'a> for DefRangeSymFramePointerRel<'a> {
 ///
 /// See `CV_RANGEATTR`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct RangeAttrLe {
     // unsigned short  maybe : 1;    // May have no user name on one of control flow path.
@@ -714,7 +714,7 @@ pub struct RangeAttrLe {
 ///
 /// See `DEFRANGESYMREGISTER`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct DefRangeRegisterFixed {
     /// Register to hold the value of the symbol
@@ -754,7 +754,7 @@ pub struct DefRangeRegisterRel<'a> {
 
 /// `S_DEFRANGE_REGISTER_REL`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 pub struct DefRangeRegisterRelFixed {
     /// Register to hold the base pointer of the symbol
     pub base_reg: U16<LE>,
@@ -785,7 +785,7 @@ impl<'a> Parse<'a> for DefRangeRegisterRel<'a> {
 /// `S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE`
 ///
 /// A frame variable valid in all function scope.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 #[repr(C)]
 pub struct DefRangeFramePointerRelFullScope {
     /// offset to frame pointer
@@ -803,7 +803,7 @@ pub struct DefRangeSubFieldRegister<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct DefRangeSubFieldRegisterFixed {
     pub reg: U16<LE>,
@@ -835,7 +835,7 @@ pub struct ManProcSym<'a> {
 pub type TokenIdLe = U32<LE>;
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct ManProcSymFixed {
     pub block: BlockHeader,
@@ -879,7 +879,7 @@ pub struct Trampoline<'a> {
 
 /// `S_TRAMPOLINE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Clone, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 pub struct TrampolineFixed {
     /// trampoline sym subtype
     pub tramp_type: U16<LE>,
@@ -944,7 +944,7 @@ pub struct Label<'a> {
 
 /// `S_LABEL32`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct LabelFixed {
     pub offset_segment: OffsetSegment,
@@ -993,7 +993,7 @@ pub struct InlineSite<'a> {
 
 /// `S_INLINESITE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct InlineSiteFixed {
     pub block: BlockHeader,
@@ -1020,7 +1020,7 @@ pub struct InlineSite2<'a> {
 
 /// `S_INLINESITE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct InlineSite2Fixed {
     pub block: BlockHeader,
@@ -1040,7 +1040,7 @@ impl<'a> Parse<'a> for InlineSite2<'a> {
 /// `S_FRAMECOOKIE`: Symbol for describing security cookie's position and type
 // (raw, xor'd with esp, xor'd with ebp).
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct FrameCookie {
     /// Frame relative offset
@@ -1072,7 +1072,7 @@ pub struct FrameCookie {
 ///  (*pfn)(arg list);
 /// ```
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct CallSiteInfo {
     pub offset: OffsetSegment,
@@ -1082,7 +1082,7 @@ pub struct CallSiteInfo {
 
 /// `S_HEAPALLOCSITE`
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct HeapAllocSite {
     pub offset: OffsetSegment,
@@ -1100,7 +1100,7 @@ pub struct Annotation<'a> {
 }
 
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
 #[allow(missing_docs)]
 pub struct AnnotationFixed {
     pub offset: OffsetSegment,

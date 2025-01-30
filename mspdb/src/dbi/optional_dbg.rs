@@ -18,14 +18,12 @@ pub struct OptionalDebugHeader<'a> {
 impl<'a> OptionalDebugHeader<'a> {
     /// Parses the Optional Debug Header Substream.
     pub fn parse(bytes: &'a [u8]) -> anyhow::Result<Self> {
-        let Some(lv) = zerocopy::Ref::new_slice_unaligned(bytes) else {
+        let Ok(stream_indexes) = <[StreamIndexU16]>::ref_from_bytes(bytes) else {
             bail!("The OptionalDebugHeader has an invalid size. The size is required to be a multiple of 2. Size: {}",
                 bytes.len());
         };
 
-        Ok(Self {
-            stream_indexes: lv.into_slice(),
-        })
+        Ok(Self { stream_indexes })
     }
 
     /// Gets a stream index, given an index into the Optional Debug Header.

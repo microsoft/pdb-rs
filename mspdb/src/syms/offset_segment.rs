@@ -3,7 +3,7 @@ use super::*;
 /// Stores an `offset` and `segment` pair, in that order. This structure is directly embedded in
 /// on-disk structures.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Default, Clone, Eq)]
+#[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned, Default, Clone, Eq)]
 pub struct OffsetSegment {
     /// The offset in bytes of a symbol within a segment.
     pub offset: U32<LE>,

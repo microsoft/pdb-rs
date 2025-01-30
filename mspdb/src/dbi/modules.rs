@@ -5,11 +5,12 @@ use crate::utils::iter::HasRestLen;
 use crate::StreamIndexU16;
 use bstr::BStr;
 use std::mem::take;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 /// The header of a Module Info record. Module Info records are stored in the DBI stream.
 ///
 /// See `dbi.h`, `MODI_60_Persist`
-#[derive(Unaligned, AsBytes, FromBytes, FromZeroes, Clone, Debug)]
+#[derive(Unaligned, IntoBytes, FromBytes, Immutable, KnownLayout, Clone, Debug)]
 #[repr(C)]
 pub struct ModuleInfoFixed {
     /// This appears to be a module index field, but it is not always set.

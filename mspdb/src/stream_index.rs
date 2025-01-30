@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use zerocopy::{LE, U16};
-use zerocopy_derive::{AsBytes, FromBytes, FromZeroes, Unaligned};
+use zerocopy_derive::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 /// Identifies a stream in a PDB/MSF file.
 ///
@@ -103,7 +103,9 @@ impl TryFrom<u16> for Stream {
 }
 
 /// This structure can be embedded directly in structure definitions.
-#[derive(Copy, Clone, Eq, PartialEq, Debug, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Debug, IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned,
+)]
 #[repr(transparent)]
 pub struct StreamIndexU16(pub U16<LE>);
 

@@ -27,7 +27,7 @@ use crate::parser::{Number, Parse, Parser, ParserError};
 use bitfield::bitfield;
 use bstr::BStr;
 use std::fmt::Debug;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 /// A type index refers to another type record, or to a primitive type.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -53,7 +53,9 @@ impl std::fmt::Debug for TypeIndex {
 
 /// The serialized form of [`TypeIndex`]. This can be embedded directly in data structures
 /// stored on disk.
-#[derive(Copy, Clone, Eq, PartialEq, Hash, FromBytes, FromZeroes, AsBytes, Unaligned)]
+#[derive(
+    Copy, Clone, Eq, PartialEq, Hash, FromBytes, IntoBytes, Immutable, KnownLayout, Unaligned,
+)]
 #[repr(transparent)]
 pub struct TypeIndexLe(pub U32<LE>);
 

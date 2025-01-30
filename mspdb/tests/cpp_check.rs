@@ -1,6 +1,7 @@
 //! This integration test runs the MSVC compiler and linker to generate complete executables and
 //! and PDBs, and then reads the PDBs and verifies that they contain the expected information.
 
+#![cfg(windows)]
 #![allow(clippy::single_match)]
 #![allow(clippy::useless_vec)]
 

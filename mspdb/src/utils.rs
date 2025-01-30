@@ -8,14 +8,14 @@ pub mod swizzle;
 pub mod vec;
 
 use std::ops::Range;
-use zerocopy::{AsBytes, FromBytes};
+use zerocopy::{FromBytes, Immutable, IntoBytes};
 
 /// Copies a value that implements `FromBytes`, by simply copying its byte representation.
 pub fn copy_from_bytes<T>(t: &T) -> T
 where
-    T: AsBytes + FromBytes,
+    T: IntoBytes + FromBytes + Immutable,
 {
-    FromBytes::read_from(t.as_bytes()).unwrap()
+    FromBytes::read_from_bytes(t.as_bytes()).unwrap()
 }
 
 /// Helps decode records that are indexed using "starts" arrays.

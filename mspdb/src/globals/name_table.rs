@@ -11,7 +11,7 @@ use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::BStr;
 use std::mem::size_of;
 use tracing::{debug, debug_span, error, info, trace, warn};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U32};
 
 /// This is the size used for calculating hash indices. It was the size of the in-memory form
 /// of the hash records, on 32-bit machines. It is not the same as the length of the hash records
@@ -35,7 +35,7 @@ pub const GSI_HASH_HEADER_VERSION: u32 = GSI_HASH_SC_IMPV_V70;
 /// Immediately after the hash records is the hash buckets, whose length is given by `cb_buckets`.
 ///
 /// Called `GSIHashHdr` in C++.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug)]
+#[derive(IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable, Debug)]
 #[repr(C)]
 pub struct NameTableHeader {
     /// Constant which identifies this as a `NameTableHeader`. This value (0xffff_ffff) was chosen
@@ -55,7 +55,7 @@ pub struct NameTableHeader {
 }
 
 /// An entry in the GSI hash table. This is in the `cb_hash_records` region.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug, Clone)]
+#[derive(IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable, Debug, Clone)]
 #[repr(C)]
 pub struct HashRecord {
     /// The byte offset of a symbol record within the Global Symbol Stream, plus 1.

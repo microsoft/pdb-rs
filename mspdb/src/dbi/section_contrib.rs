@@ -9,10 +9,11 @@
 //! * [`SC2` in `dbicommon.h`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/PDB/include/dbicommon.h#L107)
 
 use super::*;
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 
 /// Describes one section contribution.
 #[allow(missing_docs)]
-#[derive(Unaligned, AsBytes, FromBytes, FromZeroes, Clone, Debug)]
+#[derive(Unaligned, IntoBytes, FromBytes, Immutable, KnownLayout, Clone, Debug)]
 #[repr(C)]
 pub struct SectionContribEntry {
     /// The section index
@@ -32,7 +33,7 @@ pub struct SectionContribEntry {
 
 /// Describes one section contribution.
 #[allow(missing_docs)]
-#[derive(Unaligned, AsBytes, FromBytes, FromZeroes, Clone, Debug)]
+#[derive(Unaligned, IntoBytes, FromBytes, Immutable, KnownLayout, Clone, Debug)]
 #[repr(C)]
 pub struct SectionContribEntry2 {
     pub base: SectionContribEntry,
@@ -85,11 +86,10 @@ impl<'a> SectionContributionsSubstream<'a> {
         }
 
         let records_bytes = p.into_rest();
-        let Some(lv) = zerocopy::Ref::new_slice_unaligned(records_bytes) else {
+        let Ok(contribs) = <[SectionContribEntry]>::ref_from_bytes(records_bytes) else {
             bail!("The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
                 bytes.len());
         };
-        let contribs: &[SectionContribEntry] = lv.into_slice();
         Ok(SectionContributionsSubstream { contribs })
     }
 
@@ -173,13 +173,10 @@ impl<'a> SectionContributionsSubstreamMut<'a> {
 
         let records_bytes = p.into_rest();
 
-        let Some(lv) = zerocopy::Ref::new_slice_unaligned(records_bytes) else {
+        let Ok(contribs) = <[SectionContribEntry]>::mut_from_bytes(records_bytes) else {
             bail!("The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
                 bytes_len);
         };
-
-        let contribs: &mut [SectionContribEntry] = lv.into_mut_slice();
-
         Ok(Self { contribs })
     }
 

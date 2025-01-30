@@ -35,7 +35,9 @@ use std::mem::size_of;
 use std::ops::Range;
 use sync_file::ReadAt;
 use tracing::{error, warn};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, I32, LE, U16, U32};
+use zerocopy::{
+    FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32,
+};
 
 #[cfg(doc)]
 use crate::Pdb;
@@ -54,7 +56,7 @@ pub use sources::*;
 
 /// The header of the DBI (Debug Information) stream.
 #[repr(C)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, Debug, Clone)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned, Debug, Clone)]
 #[allow(missing_docs)]
 pub struct DbiStreamHeader {
     /// Always -1
@@ -129,7 +131,7 @@ pub static EMPTY_DBI_STREAM_HEADER: [u8; DBI_STREAM_HEADER_LEN] = [
 
 #[test]
 fn test_parse_empty_dbi_stream_header() {
-    let h = <DbiStreamHeader as FromBytes>::read_from(EMPTY_DBI_STREAM_HEADER.as_slice()).unwrap();
+    let h = DbiStreamHeader::read_from_bytes(EMPTY_DBI_STREAM_HEADER.as_slice()).unwrap();
     assert!(h.global_symbol_index_stream.get().is_none());
 }
 
@@ -291,10 +293,9 @@ dbi_substreams! {
 impl<StreamData: AsRef<[u8]>> DbiStream<StreamData> {
     /// Returns the DBI stream header.
     pub fn header(&self) -> &DbiStreamHeader {
-        zerocopy::Ref::<&[u8], DbiStreamHeader>::new_from_prefix(self.stream_data.as_ref())
+        DbiStreamHeader::ref_from_prefix(self.stream_data.as_ref())
             .unwrap()
             .0
-            .into_ref()
     }
 
     /// Provides mutable access to the DBI stream header.
@@ -302,10 +303,9 @@ impl<StreamData: AsRef<[u8]>> DbiStream<StreamData> {
     where
         StreamData: AsMut<[u8]>,
     {
-        zerocopy::Ref::<&mut [u8], DbiStreamHeader>::new_from_prefix(self.stream_data.as_mut())
+        DbiStreamHeader::mut_from_prefix(self.stream_data.as_mut())
             .unwrap()
             .0
-            .into_mut()
     }
 
     fn substream_data(&self, range: Range<usize>) -> &[u8] {
@@ -409,8 +409,9 @@ impl<StreamData: AsRef<[u8]>> DbiStream<StreamData> {
         } else {
             let substream_bytes =
                 &mut self.stream_data.as_mut()[self.substreams.optional_debug_header_bytes.clone()];
-            if let Some(lv) = zerocopy::Ref::<&mut [u8], _>::new_slice_unaligned(substream_bytes) {
-                Ok(lv.into_mut_slice())
+
+            if let Ok(slice) = <[U16<LE>]>::mut_from_bytes(substream_bytes) {
+                Ok(slice)
             } else {
                 bail!("The Optional Debug Header substream within the DBI stream is malformed (length is not valid).");
             }
@@ -425,10 +426,10 @@ pub fn read_dbi_stream_header<F: ReadAt>(msf: &Container<F>) -> anyhow::Result<D
     let stream_reader = msf.get_stream_reader(Stream::DBI.into())?;
     if !stream_reader.is_empty() {
         let mut dbi_header = DbiStreamHeader::new_zeroed();
-        stream_reader.read_exact_at(dbi_header.as_bytes_mut(), 0)?;
+        stream_reader.read_exact_at(dbi_header.as_mut_bytes(), 0)?;
         Ok(dbi_header)
     } else {
-        Ok(DbiStreamHeader::read_from(EMPTY_DBI_STREAM_HEADER.as_slice()).unwrap())
+        Ok(DbiStreamHeader::read_from_bytes(EMPTY_DBI_STREAM_HEADER.as_slice()).unwrap())
     }
 }
 

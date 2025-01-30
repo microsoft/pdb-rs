@@ -4,7 +4,7 @@ use pow2::Pow2;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use tracing::{debug, debug_span, trace, trace_span};
-use zerocopy::{AsBytes, FromZeroes};
+use zerocopy::IntoBytes;
 
 /// The default threshold for compressing a chunk of data.
 pub const DEFAULT_CHUNK_THRESHOLD: u32 = 0x40_0000; // 16 MiB

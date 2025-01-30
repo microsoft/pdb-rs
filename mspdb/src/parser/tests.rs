@@ -3,7 +3,7 @@
 use super::*;
 use bstr::ByteSlice;
 use std::borrow::Cow;
-use zerocopy::FromZeroes;
+use zerocopy::{Immutable, KnownLayout};
 
 #[test]
 fn empty() {
@@ -131,7 +131,7 @@ fn skip() {
     assert_eq!(p.u16().unwrap(), 0x403);
 }
 
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned, PartialEq, Eq, Debug)]
+#[derive(IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable, PartialEq, Eq, Debug)]
 #[repr(C)]
 struct Bar {
     b: u8,

@@ -31,7 +31,6 @@ pub mod parser;
 pub mod pdbi;
 mod stream_index;
 pub mod syms;
-pub mod tmcache;
 pub mod tpi;
 pub mod types;
 pub mod utils;
@@ -53,7 +52,7 @@ use std::fmt::Debug;
 use std::fs::File;
 use std::path::Path;
 use syms::{Pub, Sym};
-use zerocopy::{AsBytes, FromZeroes};
+use zerocopy::{FromZeros, IntoBytes};
 
 #[cfg(test)]
 #[static_init::dynamic]
@@ -221,8 +220,8 @@ impl<F: ReadAt> Pdb<F> {
     ) -> anyhow::Result<&'s tpi::CachedTypeStreamHeader> {
         get_or_init_err(cell, || {
             let r = self.get_stream_reader(stream.into())?;
-            let mut header: tpi::TypeStreamHeader = FromZeroes::new_zeroed();
-            let header_bytes = header.as_bytes_mut();
+            let mut header = tpi::TypeStreamHeader::new_zeroed();
+            let header_bytes = header.as_mut_bytes();
             let bytes_read = r.read_at(header_bytes, 0)?;
             if bytes_read == 0 {
                 // This stream is zero-length.
@@ -267,17 +266,6 @@ impl<F: ReadAt> Pdb<F> {
     pub fn binding_key(&self) -> BindingKey {
         let pdbi = self.pdbi();
         pdbi.binding_key()
-    }
-
-    /// Read the TMCache.
-    pub fn read_tmcache(&self) -> anyhow::Result<Option<tmcache::TMCacheTable>> {
-        if let Some(stream) = self.named_stream(tmcache::TMCACHE_STREAM_NAME) {
-            let mut sr = self.get_stream_reader(stream)?;
-            let tmcache = tmcache::TMCacheTable::read(&mut sr)?;
-            Ok(Some(tmcache))
-        } else {
-            Ok(None)
-        }
     }
 
     /// Checks whether this PDB has a given feature enabled.

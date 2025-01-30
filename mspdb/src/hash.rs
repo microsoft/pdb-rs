@@ -1,6 +1,6 @@
 //! MSVC hash algorithms
 
-use zerocopy::{LE, U32};
+use zerocopy::{FromBytes, LE, U16, U32};
 
 #[cfg(test)]
 use pretty_hex::PrettyHex;
@@ -9,6 +9,11 @@ use pretty_hex::PrettyHex;
 /// MSVC PDB reader library.
 ///
 /// This is a port of the `LHashPbCb` function.
+///
+/// # WARNING! WARNING! WARNING!
+///
+/// This is a **VERY POOR HASH FUNCTION** and it should not be used for *ANY* new code. This
+/// function should only be used for compatibility with PDB data structures.
 ///
 /// # References
 ///
@@ -21,8 +26,7 @@ pub fn hash_mod_u32(pb: &[u8], m: u32) -> u32 {
 #[inline(never)]
 pub fn hash_u32(pb: &[u8]) -> u32 {
     let num_u32 = pb.len() / 4;
-    let (lv, mut hi) = zerocopy::Ref::new_slice_unaligned_from_prefix(pb, num_u32).unwrap();
-    let u32s: &[U32<LE>] = lv.into_slice();
+    let (u32s, mut tail) = <[U32<LE>]>::ref_from_prefix_with_elems(pb, num_u32).unwrap();
 
     let mut h: u32 = 0;
     for u in u32s.iter() {
@@ -30,14 +34,14 @@ pub fn hash_u32(pb: &[u8]) -> u32 {
     }
 
     // The tail is handled differently.
-    if hi.len() >= 2 {
-        let u = u16::from_ne_bytes(*<&[u8; 2]>::try_from(&hi[0..2]).unwrap());
-        h ^= u as u32;
-        hi = &hi[2..];
+
+    if let Ok((tail_u16, rest)) = <U16<LE>>::read_from_prefix(tail) {
+        h ^= tail_u16.get() as u32;
+        tail = rest;
     }
 
-    if !hi.is_empty() {
-        h ^= hi[0] as u32;
+    if !tail.is_empty() {
+        h ^= tail[0] as u32;
     }
 
     h |= 0x20202020;

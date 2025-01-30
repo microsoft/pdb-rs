@@ -3,6 +3,7 @@
 use super::*;
 use sync_file::RandomAccessFile;
 use tracing::{trace, trace_span, warn};
+use zerocopy::IntoBytes;
 
 /// Options for creating a new PDB/MSF file.
 #[derive(Clone, Debug)]
@@ -106,11 +107,7 @@ impl<F: ReadAt> Msf<F> {
         let stream_dir_size: u32;
 
         if page0.starts_with(&MSF_BIG_MAGIC) {
-            let msf_header: &MsfHeader =
-                zerocopy::Ref::<&[u8], MsfHeader>::new_from_prefix(page0.as_slice())
-                    .unwrap()
-                    .0
-                    .into_ref();
+            let (msf_header, _) = MsfHeader::ref_from_prefix(page0.as_slice()).unwrap();
             page_size = msf_header.page_size.get();
             active_fpm = msf_header.active_fpm.get();
             num_pages = msf_header.num_pages.get();
@@ -123,11 +120,7 @@ impl<F: ReadAt> Msf<F> {
             }
         } else if page0.starts_with(&MSF_SMALL_MAGIC) {
             // Found an "old" MSF header.
-            let msf_header: &SmallMsfHeader =
-                zerocopy::Ref::<&[u8], SmallMsfHeader>::new_from_prefix(page0.as_slice())
-                    .unwrap()
-                    .0
-                    .into_ref();
+            let (msf_header, _) = SmallMsfHeader::ref_from_prefix(page0.as_slice()).unwrap();
             page_size = msf_header.page_size.get();
             active_fpm = msf_header.active_fpm.get() as u32;
             num_pages = msf_header.num_pages.get() as u32;
@@ -188,17 +181,14 @@ impl<F: ReadAt> Msf<F> {
                 // Read the page map for the stream directory.
                 let stream_dir_l1_num_pages =
                     num_pages_for_stream_size(4 * stream_dir_num_pages, page_size_pow2) as usize;
-                let page_map_l1_ptrs: &[U32<LE>] = if let Some((ptrs, _)) =
-                    zerocopy::Ref::new_slice_unaligned_from_prefix(
-                        &page0[STREAM_DIR_PAGE_MAP_FILE_OFFSET as usize..],
-                        stream_dir_l1_num_pages,
-                    ) {
-                    ptrs.into_slice()
-                } else {
+                let Ok((page_map_l1_ptrs, _)) = <[U32<LE>]>::ref_from_prefix_with_elems(
+                    &page0[STREAM_DIR_PAGE_MAP_FILE_OFFSET as usize..],
+                    stream_dir_l1_num_pages,
+                ) else {
                     bail!("Stream dir size is invalid (exceeds design limits)");
                 };
 
-                let stream_dir_bytes: &mut [u8] = stream_dir.as_bytes_mut();
+                let stream_dir_bytes: &mut [u8] = stream_dir.as_mut_bytes();
                 let mut stream_dir_chunks = stream_dir_bytes.chunks_mut(page_size as usize);
                 // Now read the stream pages for the stream dir.
                 let mut l1_page: Vec<u8> = vec![0; page_size as usize];
@@ -218,10 +208,7 @@ impl<F: ReadAt> Msf<F> {
                     file.read_exact_at(l1_page.as_mut_slice(), file_offset)?;
 
                     // Now read the individual pages, as long as we have more.
-                    let l2_page_u32: &[U32<LE>] =
-                        zerocopy::Ref::<&[u8], [U32<LE>]>::new_slice(l1_page.as_slice())
-                            .unwrap()
-                            .into_slice();
+                    let l2_page_u32 = <[U32<LE>]>::ref_from_bytes(l1_page.as_slice()).unwrap();
 
                     for &l2_page in l2_page_u32.iter() {
                         let l2_page: u32 = l2_page.get();
@@ -308,7 +295,7 @@ impl<F: ReadAt> Msf<F> {
                     );
                 }
 
-                file.read_exact_at(pages_u16.as_bytes_mut(), size_of::<SmallMsfHeader>() as u64)?;
+                file.read_exact_at(pages_u16.as_mut_bytes(), size_of::<SmallMsfHeader>() as u64)?;
 
                 // Read the pages of the stream directory. Be careful with the last page.
                 let mut page_iter = pages_u16.iter();
@@ -321,22 +308,17 @@ impl<F: ReadAt> Msf<F> {
                     file.read_exact_at(stream_dir_chunk, page_to_offset(page, page_size_pow2))?;
                 }
 
-                let Some((header, rest)) =
-                    zerocopy::Ref::<&[u8], OldMsfStreamDirHeader>::new_unaligned_from_prefix(
-                        &old_stream_dir_bytes,
-                    )
+                let Ok((header, rest)) =
+                    OldMsfStreamDirHeader::read_from_prefix(old_stream_dir_bytes.as_slice())
                 else {
-                    bail!("Invalid stream directory: too small")
+                    bail!("Invalid stream directory: too small");
                 };
 
                 let num_streams = header.num_streams.get() as usize;
                 stream_sizes = Vec::with_capacity(num_streams);
 
-                let Some((entries, mut rest)) =
-                    zerocopy::Ref::<&[u8], [OldMsfStreamEntry]>::new_slice_unaligned_from_prefix(
-                        rest,
-                        num_streams,
-                    )
+                let Ok((entries, mut rest)) =
+                    <[OldMsfStreamEntry]>::ref_from_prefix_with_elems(rest, num_streams)
                 else {
                     bail!("Invalid stream directory: too small")
                 };
@@ -354,20 +336,16 @@ impl<F: ReadAt> Msf<F> {
                     if stream_size != NIL_STREAM_SIZE {
                         let num_pages = stream_size.div_round_up(page_size_pow2);
 
-                        if let Some((pages, r)) =
-                            zerocopy::Ref::<&[u8], [U16<LE>]>::new_slice_unaligned_from_prefix(
-                                rest,
-                                num_pages as usize,
-                            )
-                        {
-                            rest = r; // update iterator state
-                            let pages: &[U16<LE>] = pages.into_slice();
-                            for page in pages.iter() {
-                                committed_stream_pages.push(page.get() as u32);
-                            }
-                        } else {
+                        let Ok((pages, r)) =
+                            <[U16<LE>]>::ref_from_prefix_with_elems(rest, num_pages as usize)
+                        else {
                             bail!("Invalid stream directory: too small");
                         };
+
+                        rest = r; // update iterator state
+                        for page in pages.iter() {
+                            committed_stream_pages.push(page.get() as u32);
+                        }
                     }
                 }
 
@@ -507,7 +485,7 @@ fn read_fpm_big_msf<F: ReadAt>(
 
     let mut free_page_map: BitVec<u32, Lsb0> = BitVec::new();
     free_page_map.resize(num_pages as usize, false);
-    let fpm_bytes: &mut [u8] = free_page_map.as_raw_mut_slice().as_bytes_mut();
+    let fpm_bytes: &mut [u8] = free_page_map.as_raw_mut_slice().as_mut_bytes();
     let page_size_usize = usize::from(page_size);
 
     for (interval, fpm_page_bytes) in fpm_bytes.chunks_mut(page_size_usize).enumerate() {
@@ -576,7 +554,7 @@ fn is_special_page_big_msf(page_size: PageSize, page: u32) -> bool {
 }
 
 /// Describes the "old" MSF Stream Directory Header.
-#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(Clone, IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable)]
 #[repr(C)]
 struct OldMsfStreamDirHeader {
     num_streams: U16<LE>,
@@ -584,7 +562,7 @@ struct OldMsfStreamDirHeader {
 }
 
 /// An entry in the "old" MSF Stream Directory.
-#[derive(Clone, AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(Clone, IntoBytes, FromBytes, Unaligned, KnownLayout, Immutable)]
 #[repr(C)]
 struct OldMsfStreamEntry {
     stream_size: U32<LE>,

@@ -57,7 +57,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::path::Path;
 use sync_file::{RandomAccessFile, ReadAt, WriteAt};
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 use self::pages::{num_pages_for_stream_size, PageAllocator};
 
@@ -91,7 +91,7 @@ fn show_magics() {
 /// The header of the PDB/MSF file, before the transition to "big" MSF files.
 /// This is at file offset 0.
 #[allow(missing_docs)]
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout)]
 #[repr(C)]
 struct SmallMsfHeader {
     /// Identifies this file as a PDB. Value must be [`MSF_SMALL_MAGIC`].
@@ -107,7 +107,7 @@ struct SmallMsfHeader {
 }
 
 /// The header of the PDB/MSF file. This is at file offset 0.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout)]
 #[repr(C)]
 struct MsfHeader {
     /// Identifies this file as a PDB.

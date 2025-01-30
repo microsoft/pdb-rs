@@ -18,7 +18,7 @@ pub mod spec {
 }
 
 use anyhow::Result;
-use zerocopy::{AsBytes, FromBytes, FromZeroes, Unaligned, LE, U32, U64};
+use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32, U64};
 
 mod compress_utils;
 mod reader;
@@ -33,7 +33,7 @@ pub use writer::*;
 ///
 /// This describes the on-disk layout of the file header. It is stored at the beginning of the
 /// MSFZ file.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout)]
 #[repr(C)]
 pub struct MsfzFileHeader {
     /// Identifies this as an MSFZ file. The value must always be [`MSFZ_FILE_SIGNATURE`].
@@ -68,7 +68,7 @@ pub struct MsfzFileHeader {
 }
 
 /// Describes one compressed chunk.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout)]
 #[repr(C)]
 pub struct ChunkEntry {
     /// File offset (within the MSFZ file) the compressed chunk.

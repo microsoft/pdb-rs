@@ -8,7 +8,7 @@ use crate::hash::hash_u32;
 use crate::parser::ParserError;
 use crate::types::{Leaf, TypeData, UdtProperties};
 use bstr::BStr;
-use zerocopy::AsBytes;
+use zerocopy::IntoBytes;
 
 /// Hash a type record, using the same rules as `TPI1::hashPrec`.
 pub fn hash_type_record(

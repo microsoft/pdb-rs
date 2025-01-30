@@ -68,7 +68,7 @@ pub struct SubsectionMut<'a> {
 }
 
 /// The header of a subsection.
-#[derive(AsBytes, FromBytes, FromZeroes, Unaligned)]
+#[derive(IntoBytes, FromBytes, KnownLayout, Immutable, Unaligned)]
 #[repr(C)]
 pub struct SubsectionHeader {
     /// The kind of data in this subsection.
