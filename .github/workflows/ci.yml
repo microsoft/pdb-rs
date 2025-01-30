@@ -4,22 +4,19 @@ on:
   push:
   pull_request:
 
-env: 
-  CARGO_TERM_COLOR: always
-
 jobs:
   build_and_test:
-    name: Rust project - latest
-    runs-on: ubuntu-latest
+    name: pdb-rs
+    runs-on: [ubuntu-latest, windows-latest]
     strategy:
       matrix:
         toolchain:
           - stable
           - beta
-          - nightly
     steps:
       - uses: actions/checkout@v4
-      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-      - run: cargo build --verbose
-      - run: cargo test --verbose
-  
+      - run: rustup update ${{ matrix.toolchain }}
+      - run: rustup default ${{ matrix.toolchain }}
+      - run: cargo build --locked
+      - run: cargo test --locked
+      - run: cargo clippy --locked
