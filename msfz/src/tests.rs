@@ -1,3 +1,5 @@
+#![allow(clippy::format_collect)]
+
 use super::*;
 use bstr::BStr;
 use pow2::Pow2;
@@ -8,21 +10,18 @@ use tracing::{debug_span, info, info_span, instrument};
 #[static_init::dynamic(drop)]
 static mut INIT_LOGGER: Option<tracy_client::Client> = {
     use tracing_subscriber::fmt::format::FmtSpan;
+    use tracing_subscriber::layer::SubscriberExt;
 
     if let Ok(s) = std::env::var("ENABLE_TRACY") {
         if s == "1" {
-            use tracing_subscriber::layer::SubscriberExt;
+            let client = tracy_client::Client::start();
 
-            if let Ok(_) = std::env::var("ENABLE_TRACY") {
-                let client = tracy_client::Client::start();
-
-                eprintln!("Enabling Tracy");
-                tracing::subscriber::set_global_default(
-                    tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
-                )
-                .expect("setup tracy layer");
-                return Some(client);
-            }
+            eprintln!("Enabling Tracy");
+            tracing::subscriber::set_global_default(
+                tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
+            )
+            .expect("setup tracy layer");
+            return Some(client);
         }
     }
 

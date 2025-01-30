@@ -16,7 +16,7 @@ static INIT_LOGGER: () = {
         if s == "1" {
             use tracing_subscriber::layer::SubscriberExt;
 
-            if let Ok(_) = std::env::var("ENABLE_TRACY") {
+            if std::env::var("ENABLE_TRACY").is_ok() {
                 tracing::subscriber::set_global_default(
                     tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
                 )
@@ -676,7 +676,7 @@ fn commit_on_read_only() -> Result<()> {
     let mut w = writer();
 
     let (_si, mut sw) = w.new_stream().unwrap();
-    sw.write(b"Hello!").unwrap();
+    sw.write_all(b"Hello!").unwrap();
 
     let mut r = finish_and_read(w);
 
@@ -698,7 +698,7 @@ fn commit_no_writes() {
 fn single_commit() {
     let mut w = writer();
     let (si1, mut sw1) = w.new_stream().unwrap();
-    sw1.write(b"Alpha").unwrap();
+    sw1.write_all(b"Alpha").unwrap();
 
     {
         let r = commit_and_read(&mut w);
@@ -713,7 +713,7 @@ fn multiple_commit() {
 
     trace!("multi_commit: writing first stream");
     let (si1, mut sw1) = w.new_stream().unwrap();
-    sw1.write(b"Alpha").unwrap();
+    sw1.write_all(b"Alpha").unwrap();
 
     {
         trace!("multi_commit: first commit");
@@ -724,7 +724,7 @@ fn multiple_commit() {
 
     trace!("multi_commit: writing second stream");
     let (si2, mut sw2) = w.new_stream().unwrap();
-    sw2.write(b"Bravo").unwrap();
+    sw2.write_all(b"Bravo").unwrap();
 
     {
         trace!("multi_commit: second commit");
@@ -756,12 +756,12 @@ fn many_commits() {
         let buf = text.as_bytes();
 
         // Write the buffer to expected_stream_contents.
-        let text_end = pos as usize + text.len();
+        let text_end = pos + text.len();
         if expected_stream_contents.len() < text_end {
             // Extend, if necessary.
             expected_stream_contents.resize(text_end, 0);
         }
-        expected_stream_contents[pos as usize..][..buf.len()].copy_from_slice(buf);
+        expected_stream_contents[pos..][..buf.len()].copy_from_slice(buf);
 
         sw.into_random().write_at(buf, pos as u64).unwrap();
 

@@ -55,7 +55,7 @@ fn ints() {
 #[test]
 fn strz() {
     assert!(Parser::new(&[]).strz().is_err());
-    assert!(Parser::new(&[b'x']).strz().is_err());
+    assert!(Parser::new(&b"x").strz().is_err());
 
     assert_eq!(
         Parser::new(&[b'f', b'o', b'o', 0])

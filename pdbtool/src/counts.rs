@@ -156,22 +156,22 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
             }
 
             // counts.module_infos.push(module);
-            counts.sc.modules += pdb.stream_len(module_stream) as u64;
+            counts.sc.modules += pdb.stream_len(module_stream);
             counts.sc.modules_c13_lines += module.header().c13_byte_size.get() as u64;
             counts.sc.modules_syms += module.header().sym_byte_size.get() as u64;
         }
     }
 
-    counts.sc.dbi += pdb.stream_len(Stream::DBI.into()) as u64;
+    counts.sc.dbi += pdb.stream_len(Stream::DBI.into());
     counts.sc.dbi_contribs += pdb.dbi_header().section_contribution_size.get() as u64;
     counts.sc.dbi_modules += pdb.dbi_header().mod_info_size.get() as u64;
     counts.sc.dbi_sources += pdb.dbi_header().source_info_size.get() as u64;
 
-    counts.sc.pdbi += pdb.stream_len(Stream::PDB.into()) as u64;
+    counts.sc.pdbi += pdb.stream_len(Stream::PDB.into());
 
     // TPI
     {
-        let tpi_len = pdb.stream_len(Stream::TPI.into()) as u64;
+        let tpi_len = pdb.stream_len(Stream::TPI.into());
         counts.sc.tpi += tpi_len;
         if tpi_len as usize >= size_of::<TypeStreamHeader>() {
             let mut header: TypeStreamHeader = TypeStreamHeader::new_zeroed();
@@ -180,18 +180,18 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
 
             if let Some(s) = header.hash_aux_stream_index.get() {
                 // TODO: yes, yes, I know, it's the wrong stream count
-                counts.sc.tpi_hash += pdb.stream_len(s) as u64;
+                counts.sc.tpi_hash += pdb.stream_len(s);
             }
 
             if let Some(s) = header.hash_stream_index.get() {
-                counts.sc.tpi_hash += pdb.stream_len(s) as u64;
+                counts.sc.tpi_hash += pdb.stream_len(s);
             }
         }
     }
 
     // IPI
     {
-        let ipi_len = pdb.stream_len(Stream::IPI.into()) as u64;
+        let ipi_len = pdb.stream_len(Stream::IPI.into());
         counts.sc.ipi += ipi_len;
         if ipi_len as usize >= size_of::<TypeStreamHeader>() {
             let mut header: TypeStreamHeader = TypeStreamHeader::new_zeroed();
@@ -200,25 +200,25 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
 
             if let Some(s) = header.hash_aux_stream_index.get() {
                 // TODO: yes, yes, I know, it's the wrong stream count
-                counts.sc.ipi_hash += pdb.stream_len(s) as u64;
+                counts.sc.ipi_hash += pdb.stream_len(s);
             }
 
             if let Some(s) = header.hash_stream_index.get() {
-                counts.sc.ipi_hash += pdb.stream_len(s) as u64;
+                counts.sc.ipi_hash += pdb.stream_len(s);
             }
         }
     }
 
     if let Ok(gss) = pdb.dbi_header().sym_record_stream() {
-        counts.sc.gss += pdb.stream_len(gss) as u64;
+        counts.sc.gss += pdb.stream_len(gss);
     }
 
     if let Ok(gsi) = pdb.dbi_header().global_stream_index() {
-        counts.sc.gsi += pdb.stream_len(gsi) as u64;
+        counts.sc.gsi += pdb.stream_len(gsi);
     }
 
     if let Ok(psi) = pdb.dbi_header().public_stream_index() {
-        counts.sc.psi += pdb.stream_len(psi) as u64;
+        counts.sc.psi += pdb.stream_len(psi);
     }
 
     if options.global_symbols {
@@ -226,7 +226,7 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
     }
 
     for (name, stream) in pdb.named_streams().iter() {
-        let stream_len = pdb.stream_len(*stream) as u64;
+        let stream_len = pdb.stream_len(*stream);
 
         let name = name.to_ascii_lowercase();
 
@@ -249,7 +249,7 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
         }
     }
 
-    counts.sc.old_stream_dir += pdb.stream_len(Stream::OLD_STREAM_DIR.into()) as u64;
+    counts.sc.old_stream_dir += pdb.stream_len(Stream::OLD_STREAM_DIR.into());
 
     // Count the space wasted due to fragmentation in the final page of streams.
     if let Some(msf) = pdb.msf() {

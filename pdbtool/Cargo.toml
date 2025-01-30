@@ -21,7 +21,7 @@ static_init.workspace = true
 clap = { workspace = true, features = ["derive"] }
 tracing-subscriber = { workspace = true }
 tracing-tracy = { workspace = true, optional = true, features = ["enable", "flush-on-exit"] }
-tracing = { workspace = true, feature = ["release_max_level_debug"] }
+tracing = { workspace = true, features = ["release_max_level_debug"] }
 zerocopy-derive.workspace = true
 zerocopy.workspace = true
 zstd.workspace = true

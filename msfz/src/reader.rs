@@ -7,7 +7,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use sync_file::{RandomAccessFile, ReadAt};
-use tracing::{debug, debug_span, info, info_span};
+use tracing::{debug, debug_span, info, info_span, trace, trace_span};
 use zerocopy::{AsBytes, FromZeroes};
 
 /// Reads MSFZ files.
@@ -156,6 +156,9 @@ impl<F: ReadAt> Msfz<F> {
     }
 
     fn get_chunk_data(&self, chunk_index: u32) -> std::io::Result<&Arc<Vec<u8>>> {
+        let _span = trace_span!("get_chunk_data").entered();
+        trace!(chunk_index);
+
         debug_assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
 
         let Some(slot) = self.chunk_cache.get(chunk_index as usize) else {
@@ -166,6 +169,7 @@ impl<F: ReadAt> Msfz<F> {
         };
 
         if let Some(arc) = slot.get() {
+            trace!(chunk_index, "found chunk in cache");
             return Ok(arc);
         }
 
@@ -176,7 +180,7 @@ impl<F: ReadAt> Msfz<F> {
     /// This is the slow path for `get_chunk_data`, which loads the chunk data from disk and
     /// decompresses it.
     #[inline(never)]
-    fn load_chunk_data<'a>(&self, chunk_index: u32) -> std::io::Result<Arc<Vec<u8>>> {
+    fn load_chunk_data(&self, chunk_index: u32) -> std::io::Result<Arc<Vec<u8>>> {
         assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
 
         let _span = debug_span!("load_chunk_data").entered();
@@ -223,6 +227,9 @@ impl<F: ReadAt> Msfz<F> {
     /// If the stream data fits entirely within a single decompressed chunk, then this function
     /// returns a slice to the data, without copying it.
     pub fn read_stream_to_cow(&self, stream: u32) -> anyhow::Result<Cow<'_, [u8]>> {
+        let _span = trace_span!("read_stream_to_cow").entered();
+        trace!(stream);
+
         let stream = match self.stream_dir.get(stream as usize) {
             // Stream index is out of range.
             None => bail!("Invalid stream index"),
@@ -271,7 +278,11 @@ impl<F: ReadAt> Msfz<F> {
 
         let mut output_slice: &mut [u8] = output_buffer.as_mut_slice();
 
+        trace!(num_fragments = stream.fragments.len());
+
         for fragment in stream.fragments.iter() {
+            let stream_offset = stream_usize - output_slice.len();
+
             // Because we computed stream_usize by summing the fragment sizes, this
             // split_at_mut() call should not fail.
             let (fragment_output_slice, rest) = output_slice.split_at_mut(fragment.size as usize);
@@ -295,6 +306,12 @@ impl<F: ReadAt> Msfz<F> {
 
                 FragmentLocation::Uncompressed { file_offset } => {
                     // Read an uncompressed fragment.
+                    trace!(
+                        file_offset,
+                        stream_offset,
+                        fragment_len = fragment_output_slice.len(),
+                        "reading uncompressed fragment"
+                    );
                     self.file
                         .read_exact_at(fragment_output_slice, file_offset)?;
                 }
