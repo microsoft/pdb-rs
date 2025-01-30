@@ -378,7 +378,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
     dump_symbol_stream(
         &tpi,
         &ipi,
-        module_stream.sym_data(),
+        module_stream.sym_data()?,
         options.skip,
         options.max,
         4,
@@ -392,7 +392,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
         println!("-----------");
         println!();
 
-        let module_global_refs = module_stream.global_refs();
+        let module_global_refs = module_stream.global_refs()?;
         if !module_global_refs.is_empty() {
             let gss = pdb.gss()?;
 

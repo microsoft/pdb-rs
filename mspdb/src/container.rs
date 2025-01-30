@@ -1,7 +1,6 @@
 //! Provides an abstraction over MSF and MSFZ files.
 
 use super::*;
-use std::borrow::Cow;
 use std::io::{Read, Seek, SeekFrom};
 
 /// An abstraction over MSF and MSFZ files. Both types of files contain a set of streams.
@@ -63,7 +62,7 @@ impl<F: ReadAt> Container<F> {
     pub fn read_stream_to_vec(&self, stream: u32) -> anyhow::Result<Vec<u8>> {
         match self {
             Self::Msf(m) => m.read_stream_to_vec(stream),
-            Self::Msfz(m) => Ok(m.read_stream_to_cow(stream)?.into_owned()),
+            Self::Msfz(m) => Ok(m.read_stream(stream)?.into_vec()),
         }
     }
 
@@ -71,10 +70,10 @@ impl<F: ReadAt> Container<F> {
     ///
     /// If the stream data is stored within a single compressed chunk, then this function returns
     /// a reference to the decompressed stream data.
-    pub fn read_stream_to_cow(&self, stream: u32) -> anyhow::Result<Cow<'_, [u8]>> {
+    pub fn read_stream(&self, stream: u32) -> anyhow::Result<StreamData> {
         match self {
-            Self::Msf(m) => Ok(Cow::Owned(m.read_stream_to_vec(stream)?)),
-            Self::Msfz(m) => m.read_stream_to_cow(stream),
+            Self::Msf(m) => Ok(StreamData::Box(m.read_stream_to_box(stream)?)),
+            Self::Msfz(m) => m.read_stream(stream),
         }
     }
 
@@ -87,7 +86,7 @@ impl<F: ReadAt> Container<F> {
         match self {
             Self::Msf(m) => m.read_stream_to_vec_mut(stream, stream_data),
             Self::Msfz(m) => {
-                let src = m.read_stream_to_cow(stream)?;
+                let src = m.read_stream(stream)?;
                 stream_data.clear();
                 stream_data.extend_from_slice(&src);
                 Ok(())

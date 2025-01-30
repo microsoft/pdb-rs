@@ -292,20 +292,24 @@ dbi_substreams! {
 
 impl<StreamData: AsRef<[u8]>> DbiStream<StreamData> {
     /// Returns the DBI stream header.
-    pub fn header(&self) -> &DbiStreamHeader {
-        DbiStreamHeader::ref_from_prefix(self.stream_data.as_ref())
-            .unwrap()
-            .0
+    pub fn header(&self) -> Result<&DbiStreamHeader> {
+        if let Ok((header, _)) = DbiStreamHeader::ref_from_prefix(self.stream_data.as_ref()) {
+            Ok(header)
+        } else {
+            bail!("The DBI stream is too small to contain a valid header.")
+        }
     }
 
     /// Provides mutable access to the DBI stream header.
-    pub fn header_mut(&mut self) -> &mut DbiStreamHeader
+    pub fn header_mut(&mut self) -> Result<&mut DbiStreamHeader>
     where
         StreamData: AsMut<[u8]>,
     {
-        DbiStreamHeader::mut_from_prefix(self.stream_data.as_mut())
-            .unwrap()
-            .0
+        if let Ok((header, _)) = DbiStreamHeader::mut_from_prefix(self.stream_data.as_mut()) {
+            Ok(header)
+        } else {
+            bail!("The DBI stream is too small to contain a valid header.")
+        }
     }
 
     fn substream_data(&self, range: Range<usize>) -> &[u8] {

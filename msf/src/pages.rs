@@ -303,11 +303,13 @@ impl PageAllocator {
             next_free_page_hint: 0,
             num_pages: num_pages as u32,
             page_size,
+            // unwrap() is for OOM handling
             page_buffer: FromZeros::new_box_zeroed_with_elems(usize::from(page_size)).unwrap(),
         }
     }
 
     pub(crate) fn alloc_page_buffer(&self) -> Box<[u8]> {
+        // unwrap() is for OOM handling
         FromZeros::new_box_zeroed_with_elems(usize::from(self.page_size)).unwrap()
     }
 

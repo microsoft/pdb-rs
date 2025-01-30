@@ -38,7 +38,7 @@ pub mod writer;
 
 pub use bstr::BStr;
 pub use container::{Container, StreamReader};
-pub use msf::Msf;
+pub use msfz::StreamData;
 pub use stream_index::{Stream, StreamIndexIsNilError, StreamIndexU16, NIL_STREAM_INDEX};
 pub use sync_file::{RandomAccessFile, ReadAt, WriteAt};
 

@@ -57,7 +57,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::path::Path;
 use sync_file::{RandomAccessFile, ReadAt, WriteAt};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 use self::pages::{num_pages_for_stream_size, PageAllocator};
 
@@ -391,11 +391,22 @@ impl<F: ReadAt> Msf<F> {
         Ok(buffer)
     }
 
+    /// Reads the entire stream into a `Box<[u8]>`.
+    pub fn read_stream_to_box(&self, stream: u32) -> anyhow::Result<Box<[u8]>> {
+        let reader = self.get_stream_reader(stream)?;
+        let mut stream_data: Box<[u8]> =
+            FromZeros::new_box_zeroed_with_elems(reader.len() as usize)
+                .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
+        reader.read_exact_at(&mut stream_data, 0)?;
+        Ok(stream_data)
+    }
+
     /// Reads an entire stream to a vector.
     pub fn read_stream_to_vec(&self, stream: u32) -> anyhow::Result<Vec<u8>> {
-        let mut stream_data = Vec::new();
-        self.read_stream_to_vec_mut(stream, &mut stream_data)?;
-        Ok(stream_data)
+        let stream_data = self.read_stream_to_box(stream)?;
+
+        // This conversion does not reallocate data. It just adds a 'capacity' field.
+        Ok(stream_data.into_vec())
     }
 
     /// Reads an entire stream into an existing vector.
@@ -405,28 +416,14 @@ impl<F: ReadAt> Msf<F> {
         stream: u32,
         stream_data: &mut Vec<u8>,
     ) -> anyhow::Result<()> {
-        let mut reader = self.get_stream_reader(stream)?;
-
-        let stream_len = reader.len() as usize;
+        let reader = self.get_stream_reader(stream)?;
 
         // Do not clear and resize. Doing so requires zeroing all the data in the vector.
         // Since we are going to read into the vector, that means we would modify every byte twice.
         // That's expensive when you're working with a lot of data.
-        stream_data.resize(stream_len, 0);
+        stream_data.resize(reader.len() as usize, 0);
 
-        let mut total_bytes_read: usize = 0;
-
-        while total_bytes_read < stream_len {
-            let bytes_requested = stream_len - total_bytes_read;
-            let bytes_read = reader
-                .read(&mut stream_data[total_bytes_read..total_bytes_read + bytes_requested])?;
-            if bytes_read == 0 {
-                break;
-            }
-            total_bytes_read += bytes_read;
-        }
-
-        stream_data.truncate(total_bytes_read);
+        reader.read_exact_at(stream_data, 0)?;
         Ok(())
     }
 

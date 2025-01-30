@@ -107,6 +107,7 @@ impl<F: ReadAt> Msf<F> {
         let stream_dir_size: u32;
 
         if page0.starts_with(&MSF_BIG_MAGIC) {
+            // unwrap() cannot fail because page0 has a fixed size that is larger than MsfHeader
             let (msf_header, _) = MsfHeader::ref_from_prefix(page0.as_slice()).unwrap();
             page_size = msf_header.page_size.get();
             active_fpm = msf_header.active_fpm.get();
@@ -120,6 +121,7 @@ impl<F: ReadAt> Msf<F> {
             }
         } else if page0.starts_with(&MSF_SMALL_MAGIC) {
             // Found an "old" MSF header.
+            // unwrap() cannot fail because page0 has a fixed size that is larger than SmallMsfHeader
             let (msf_header, _) = SmallMsfHeader::ref_from_prefix(page0.as_slice()).unwrap();
             page_size = msf_header.page_size.get();
             active_fpm = msf_header.active_fpm.get() as u32;

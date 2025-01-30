@@ -22,11 +22,13 @@ use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligne
 
 mod compress_utils;
 mod reader;
+mod stream_data;
 #[cfg(test)]
 mod tests;
 mod writer;
 
 pub use reader::*;
+pub use stream_data::StreamData;
 pub use writer::*;
 
 /// Describes the header at the start of the MSFZ file.

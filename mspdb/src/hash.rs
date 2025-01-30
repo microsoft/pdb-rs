@@ -24,24 +24,25 @@ pub fn hash_mod_u32(pb: &[u8], m: u32) -> u32 {
 
 /// Computes a 32-bit hash, but does not compute a remainder (modulus).
 #[inline(never)]
-pub fn hash_u32(pb: &[u8]) -> u32 {
-    let num_u32 = pb.len() / 4;
-    let (u32s, mut tail) = <[U32<LE>]>::ref_from_prefix_with_elems(pb, num_u32).unwrap();
-
+pub fn hash_u32(mut pb: &[u8]) -> u32 {
     let mut h: u32 = 0;
-    for u in u32s.iter() {
-        h ^= u.get();
+    if let Ok((u32s, tail)) = <[U32<LE>]>::ref_from_prefix(pb) {
+        for u in u32s.iter() {
+            h ^= u.get();
+        }
+        pb = tail;
     }
 
     // The tail is handled differently.
-
-    if let Ok((tail_u16, rest)) = <U16<LE>>::read_from_prefix(tail) {
+    if let Ok((tail_u16, rest)) = <U16<LE>>::read_from_prefix(pb) {
         h ^= tail_u16.get() as u32;
-        tail = rest;
+        pb = rest;
     }
 
-    if !tail.is_empty() {
-        h ^= tail[0] as u32;
+    debug_assert!(pb.len() == 0 || pb.len() == 1);
+
+    if !pb.is_empty() {
+        h ^= pb[0] as u32;
     }
 
     h |= 0x20202020;

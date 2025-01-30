@@ -125,7 +125,7 @@ fn basic_compressed() {
     assert_eq!(r.stream_size(0), 0); // stream dir stream should always be zero-length
 
     {
-        let stream1 = r.read_stream_to_cow(1).unwrap();
+        let stream1 = r.read_stream(1).unwrap();
         assert_eq!(
             BStr::new(&stream1),
             BStr::new(b"Friends, Romans, yadda yadda")
@@ -133,7 +133,7 @@ fn basic_compressed() {
     }
 
     {
-        let stream4 = r.read_stream_to_cow(4).unwrap();
+        let stream4 = r.read_stream(4).unwrap();
         assert_eq!(BStr::new(&stream4), BStr::new(b"Hello, world!"));
     }
 
@@ -155,7 +155,7 @@ fn basic_compressed() {
 
     // Verify that reading a nil stream works.
     assert_eq!(r.stream_size(3), 0); // check that nil stream is zero-length
-    assert!(r.read_stream_to_cow(3).unwrap().is_empty());
+    assert!(r.read_stream(3).unwrap().is_empty());
     let mut sr = r.get_stream_reader(3).unwrap();
     assert_eq!(seek_read_span(&mut sr, 0, 0).unwrap(), &[]);
     assert_eq!(read_span_at(&sr, 0, 0).unwrap(), &[]);
@@ -183,7 +183,7 @@ fn multi_chunks() {
 
     // Verify that reading the entire stream works correctly.
     assert_eq!(
-        BStr::new(&r.read_stream_to_cow(1).unwrap()),
+        BStr::new(&r.read_stream(1).unwrap()),
         BStr::new(b"alpha bravo charlie")
     );
 
@@ -335,7 +335,7 @@ another gallery, identical to the first -- identical in fact to all.",
             .unwrap();
         });
 
-        let s1 = r.read_stream_to_cow(1).unwrap();
+        let s1 = r.read_stream(1).unwrap();
         assert_eq!(
             std::str::from_utf8(&s1).unwrap(),
             "Hello, world!\n\
@@ -343,7 +343,7 @@ another gallery, identical to the first -- identical in fact to all.",
              Hello, again!\n"
         );
 
-        let s2 = r.read_stream_to_cow(2).unwrap();
+        let s2 = r.read_stream(2).unwrap();
         assert_eq!(
             std::str::from_utf8(&s2).unwrap(),
             "

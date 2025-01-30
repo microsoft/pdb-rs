@@ -1,7 +1,6 @@
 use crate::*;
 use anyhow::{bail, Result};
 use core::mem::size_of;
-use std::borrow::Cow;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -15,7 +14,7 @@ pub struct Msfz<F = RandomAccessFile> {
     file: F,
     stream_dir: Vec<Option<Stream>>,
     chunk_table: Box<[ChunkEntry]>,
-    chunk_cache: Vec<OnceLock<Arc<Vec<u8>>>>,
+    chunk_cache: Vec<OnceLock<Arc<[u8]>>>,
 }
 
 impl Msfz<RandomAccessFile> {
@@ -91,6 +90,7 @@ impl<F: ReadAt> Msfz<F> {
         }
 
         let chunk_table_offset = header.chunk_table_offset.get();
+        // unwrap() is for OOM handling.
         let mut chunk_table: Box<[ChunkEntry]> =
             FromZeros::new_box_zeroed_with_elems(num_chunks).unwrap();
         if num_chunks != 0 {
@@ -133,7 +133,10 @@ impl<F: ReadAt> Msfz<F> {
         }
     }
 
-    /// Indicates that a stream index is valid, and that its length is valid.
+    /// Returns `true` if `stream` is a valid stream index and the stream is non-nil.
+    ///
+    /// Stream index 0 is reserved; this function always returns `true` for stream index 0,
+    /// but the stream cannot be used to store data.
     pub fn is_stream_valid(&self, stream: u32) -> bool {
         if let Some(s) = self.stream_dir.get(stream as usize) {
             s.is_some()
@@ -156,7 +159,7 @@ impl<F: ReadAt> Msfz<F> {
         }
     }
 
-    fn get_chunk_data(&self, chunk_index: u32) -> std::io::Result<&Arc<Vec<u8>>> {
+    fn get_chunk_data(&self, chunk_index: u32) -> std::io::Result<&Arc<[u8]>> {
         let _span = trace_span!("get_chunk_data").entered();
         trace!(chunk_index);
 
@@ -181,7 +184,7 @@ impl<F: ReadAt> Msfz<F> {
     /// This is the slow path for `get_chunk_data`, which loads the chunk data from disk and
     /// decompresses it.
     #[inline(never)]
-    fn load_chunk_data(&self, chunk_index: u32) -> std::io::Result<Arc<Vec<u8>>> {
+    fn load_chunk_data(&self, chunk_index: u32) -> std::io::Result<Arc<[u8]>> {
         assert_eq!(self.chunk_cache.len(), self.chunk_table.len());
 
         let _span = debug_span!("load_chunk_data").entered();
@@ -202,12 +205,16 @@ impl<F: ReadAt> Msfz<F> {
             })?;
 
         // Read the data from disk.
-        let mut compressed_data: Vec<u8> = vec![0; entry.compressed_size.get() as usize];
+        let mut compressed_data: Box<[u8]> =
+            FromZeros::new_box_zeroed_with_elems(entry.compressed_size.get() as usize)
+                .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
         self.file
-            .read_exact_at(compressed_data.as_mut_slice(), entry.file_offset.get())?;
+            .read_exact_at(&mut compressed_data, entry.file_offset.get())?;
 
-        let uncompressed_data: Vec<u8> = if let Some(compression) = compression_opt {
-            let mut uncompressed_data: Vec<u8> = vec![0; entry.uncompressed_size.get() as usize];
+        let uncompressed_data: Box<[u8]> = if let Some(compression) = compression_opt {
+            let mut uncompressed_data: Box<[u8]> =
+                FromZeros::new_box_zeroed_with_elems(entry.uncompressed_size.get() as usize)
+                    .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
 
             self::compress_utils::decompress_to_slice(
                 compression,
@@ -220,14 +227,17 @@ impl<F: ReadAt> Msfz<F> {
             compressed_data
         };
 
-        Ok(Arc::new(uncompressed_data))
+        // This conversion should not need to allocate memory for the buffer.  The conversion from
+        // Box to Arc should allocate a new Arc object, but the backing allocation for the buffer
+        // should simply be transferred.
+        Ok(Arc::from(uncompressed_data))
     }
 
     /// Reads an entire stream to a vector.
     ///
     /// If the stream data fits entirely within a single decompressed chunk, then this function
     /// returns a slice to the data, without copying it.
-    pub fn read_stream_to_cow(&self, stream: u32) -> anyhow::Result<Cow<'_, [u8]>> {
+    pub fn read_stream(&self, stream: u32) -> anyhow::Result<StreamData> {
         let _span = trace_span!("read_stream_to_cow").entered();
         trace!(stream);
 
@@ -236,14 +246,14 @@ impl<F: ReadAt> Msfz<F> {
             None => bail!("Invalid stream index"),
 
             // Nil stream case.
-            Some(None) => return Ok(Cow::Borrowed(&[])),
+            Some(None) => return Ok(StreamData::empty()),
 
             Some(Some(entry)) => entry,
         };
 
         // If the stream is zero-length, then things are really simple.
         if stream.fragments.is_empty() {
-            return Ok(Cow::Borrowed(&[]));
+            return Ok(StreamData::empty());
         }
 
         // If this stream fits in a single fragment and the fragment is compressed, then we can
@@ -260,14 +270,15 @@ impl<F: ReadAt> Msfz<F> {
             } = &stream.fragments[0]
             {
                 let chunk_data = self.get_chunk_data(*chunk_index)?;
+                let fragment_range =
+                    *offset_within_chunk as usize..*offset_within_chunk as usize + *size as usize;
 
-                if let Some(slice) = chunk_data.get(
-                    *offset_within_chunk as usize..*offset_within_chunk as usize + *size as usize,
-                ) {
-                    return Ok(Cow::Borrowed(slice));
-                } else {
+                // Validate the fragment range.
+                if chunk_data.get(fragment_range.clone()).is_none() {
                     bail!("PDZ data is invalid. Stream fragment byte range is out of range.");
                 }
+
+                return Ok(StreamData::ArcSlice(Arc::clone(chunk_data), fragment_range));
             }
         }
 
@@ -275,9 +286,9 @@ impl<F: ReadAt> Msfz<F> {
         let stream_usize = stream_size as usize;
 
         // Allocate a buffer and copy data from each chunk.
-        let mut output_buffer: Vec<u8> = vec![0; stream_usize];
-
-        let mut output_slice: &mut [u8] = output_buffer.as_mut_slice();
+        let mut output_buffer: Box<[u8]> = FromZeros::new_box_zeroed_with_elems(stream_usize)
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
+        let mut output_slice: &mut [u8] = &mut output_buffer;
 
         trace!(num_fragments = stream.fragments.len());
 
@@ -321,7 +332,7 @@ impl<F: ReadAt> Msfz<F> {
 
         assert!(output_slice.is_empty());
 
-        Ok(Cow::Owned(output_buffer))
+        Ok(StreamData::Box(output_buffer))
     }
 
     /// Returns an object which can read from a given stream.  The returned object implements
@@ -540,6 +551,8 @@ impl<'a> Decoder<'a> {
 
         let (lo, hi) = self.bytes.split_at(N);
         self.bytes = hi;
+        // This unwrap() should never fail because we just tested the length, above.
+        // The optimizer should eliminate the unwrap() call.
         Ok(<&[u8; N]>::try_from(lo).unwrap())
     }
 

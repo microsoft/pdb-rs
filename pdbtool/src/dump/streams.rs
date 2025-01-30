@@ -76,17 +76,18 @@ pub fn dump_streams(p: &Pdb, options: StreamsOptions) -> anyhow::Result<()> {
     };
 
     let dbi = p.read_dbi_stream()?;
+    let dbi_header = dbi.header()?;
 
     add_stream_usage(
-        dbi.header().global_stream_index().ok(),
+        dbi_header.global_stream_index().ok(),
         StreamUsage::GlobalSymbolIndex,
     );
     add_stream_usage(
-        dbi.header().sym_record_stream().ok(),
+        dbi_header.sym_record_stream().ok(),
         StreamUsage::GlobalSymbolStream,
     );
     add_stream_usage(
-        dbi.header().public_stream_index().ok(),
+        dbi_header.public_stream_index().ok(),
         StreamUsage::PublicSymbolStream,
     );
 

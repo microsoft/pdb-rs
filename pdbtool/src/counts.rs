@@ -145,7 +145,7 @@ fn count_one_pdb(options: &CountsOptions, pdb: &Pdb, counts: &mut Counts) -> Res
             if options.module_symbols {
                 let module_sym_size: u64;
                 if let Some(modi) = pdb.read_module_stream(&module)? {
-                    count_sym_records(modi.sym_data(), &mut counts.module_sym_counts);
+                    count_sym_records(modi.sym_data()?, &mut counts.module_sym_counts);
                     module_sym_size = modi.sym_byte_size as u64;
                 } else {
                     module_sym_size = 0;
