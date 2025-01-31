@@ -7,11 +7,53 @@ use tracing::{debug, debug_span, info, info_span, trace, trace_span};
 impl<F: ReadAt + WriteAt> Msf<F> {
     /// Commits all changes to the MSF file to disk.
     ///
+    /// The MSF file format is designed to support a very limited form of transactional commits.
+    /// A single block write to the first page (located at the start of the file) can atomically
+    /// commit all outstanding modifications to the MSF file.
+    ///
+    /// This commit design does require that the underlying operating system handle the write to
+    /// page 0 in a single operation.  Operating systems generally don't _contractually_
+    /// guarantee atomicity of such writes, but in practice it's true enough to be reasonably
+    /// reliable. The commit functionality of MSF is really designed to guard against application
+    /// failures, not failures of the operating system or its storage stack. So don't rely on
+    /// `commit()` for anything more than best-effort service.
+    ///
+    /// This `commit()` implementation _does not_ permit multiple concurrent writers (or concurrent
+    /// readers and writers) to the underlying MSF/PDB file. If you manage to circumvent this,
+    /// you may damage the underlying MSF/PDB file.
+    ///
+    /// This `commit()` implementation does not buffer modifications to stream contents. All
+    /// writes to stream contents are handled by immediately writing the data to the underlying
+    /// MSF file. However, these writes do not _overwrite_ the data stored in the stream; instead,
+    /// new pages are allocated in the file for the new or modified stream contents. If an
+    /// application deletes a range of a stream (by resizing it), then the existing pages are
+    /// protected and cannot be overwritten until `commit()` is called.
+    ///
+    /// Commit operations are moderately expensive. Applications that modify PDBs should generally
+    /// perform a single commit operation, not a series of commit operations. Each call to
+    /// `commit()` writes a new copy of the Stream Directory (the list of streams and their page
+    /// numbers) to disk. Because the existing Stream Directory cannot be overwritten (until
+    /// _after_ the `commit()` operation completes), this means that all `commit()` operations
+    /// require that two complete copies of the Stream Directory persist on disk.
+    ///
+    /// While it would be possible to reduce the size of an MSF file (after a commit completes) by
+    /// trimming the unused pages at the end of the MSF file, in practice this does not help much
+    /// because of page fragmentation. For this reason, `commit()` never reduces the size of the
+    /// underlying MSF file.
+    ///
     /// Returns `Ok(true)` if this `Msf` contained uncommitted changes and these changes have now
     /// been committed.
     ///
     /// Returns `Ok(false)` if this `Msf` did not contain any uncomitted changes. In this case,
     /// no `write()` calls are issued to the underlying storage.
+    ///
+    /// If this function returns `Err`, then the underlying MSF file may have had new pages written,
+    /// but the existing Stream Directory and header page should be intact. However, if the
+    /// underlying operating system did not write Page 0 atomically, then the underlying MSF
+    /// file may be irrecoverably damaged.
+    ///
+    /// Also, if this function returns `Err`, the in-memory data structures that represent the
+    /// state of the `MSf` editor are not guaranteed to be in a consistent state.
     pub fn commit(&mut self) -> Result<bool> {
         let _span = info_span!("Msf::commit").entered();
 
@@ -46,6 +88,9 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
         let stream_dir_info = self.write_new_stream_dir()?;
 
+        // NOTE: The call to merge_freed_into_free irreversibly alters state. If we fail after
+        // this point, then Msf will be left in an inconsistent state. This could be improved by
+        // building a new FPM vector in-memory without modifying any state.
         self.pages.merge_freed_into_free();
         fill_last_word_of_fpm(&mut self.pages.fpm);
 
@@ -66,10 +111,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
             stream_dir_small_page_map: U32::new(0),
             // The stream directory page map pointers follows the MsfHeader.
         };
-
-        let msf_header_bytes = msf_header.as_bytes();
-
-        page0.as_mut_slice()[..msf_header_bytes.len()].copy_from_slice(msf_header_bytes.as_bytes());
+        msf_header.write_to_prefix(page0.as_mut_slice()).unwrap();
 
         // Copy the stream dir page map into Page 0.
         let page_map_pages_bytes = stream_dir_info.map_pages.as_bytes();
@@ -199,7 +241,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
 
         for (stream, &stream_size) in self.stream_sizes.iter().enumerate() {
             if stream_size == NIL_STREAM_SIZE {
-                debug!("stream {stream} : NIL");
+                debug!(stream, "stream is nil");
                 continue;
             }
 

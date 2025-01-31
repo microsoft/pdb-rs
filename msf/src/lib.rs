@@ -21,9 +21,9 @@
 //! developers should use `mspdb` instead of using `msf` directly.
 //!
 //! # References
-//! * <https://llvm.org/docs/PDB/index.html>
-//! * <https://llvm.org/docs/PDB/MsfFile.html>
-//! * <https://github.com/microsoft/microsoft-pdb>
+//! * [The MSF File Format](https://llvm.org/docs/PDB/MsfFile.html)
+//! * [The PDB File Format](https://llvm.org/docs/PDB/index.html)
+//! * [microsoft-pdb repository](https://github.com/microsoft/microsoft-pdb)
 
 #![forbid(unused_must_use)]
 #![forbid(unsafe_code)]
@@ -243,9 +243,11 @@ pub struct Msf<F = RandomAccessFile> {
 /// Specifies the versions used for the MSF.
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub enum MsfKind {
-    /// The obsolete, pre-Big MSF encoding
+    /// The obsolete, pre-Big MSF encoding. This library does not support creating or modifying
+    /// MSF files that use this encoding, but it does support reading them.
     Small,
-    /// The fancy new modern Big MSF encoding
+    /// The Big MSF encoding, which is the encoding currently used by most tools that target
+    /// Windows.
     Big,
 }
 
@@ -375,28 +377,27 @@ impl<F> Msf<F> {
 
 impl<F: ReadAt> Msf<F> {
     /// Reads a portion of a stream to a vector.
-    pub fn read_stream_section_to_vec(
+    pub fn read_stream_section_to_box(
         &self,
         stream: u32,
         start: u32,
         size: u32,
-    ) -> anyhow::Result<Vec<u8>>
+    ) -> anyhow::Result<Box<[u8]>>
     where
         F: ReadAt,
     {
-        let mut reader = self.get_stream_reader(stream)?;
-        let mut buffer: Vec<u8> = vec![0; size as usize];
-        reader.seek(SeekFrom::Start(start as u64))?;
-        reader.read_exact(&mut buffer)?;
-        Ok(buffer)
+        let reader = self.get_stream_reader(stream)?;
+        let mut stream_data = FromZeros::new_box_zeroed_with_elems(size as usize)
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
+        reader.read_exact_at(&mut stream_data, u64::from(start))?;
+        Ok(stream_data)
     }
 
     /// Reads the entire stream into a `Box<[u8]>`.
     pub fn read_stream_to_box(&self, stream: u32) -> anyhow::Result<Box<[u8]>> {
         let reader = self.get_stream_reader(stream)?;
-        let mut stream_data: Box<[u8]> =
-            FromZeros::new_box_zeroed_with_elems(reader.len() as usize)
-                .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
+        let mut stream_data = FromZeros::new_box_zeroed_with_elems(reader.len() as usize)
+            .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
         reader.read_exact_at(&mut stream_data, 0)?;
         Ok(stream_data)
     }
@@ -410,7 +411,6 @@ impl<F: ReadAt> Msf<F> {
     }
 
     /// Reads an entire stream into an existing vector.
-    #[inline(never)]
     pub fn read_stream_to_vec_mut(
         &self,
         stream: u32,

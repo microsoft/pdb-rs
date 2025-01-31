@@ -12,20 +12,6 @@ use tracing::{debug, debug_span, trace, trace_span};
 static INIT_LOGGER: () = {
     use tracing_subscriber::fmt::format::FmtSpan;
 
-    if let Ok(s) = std::env::var("ENABLE_TRACY") {
-        if s == "1" {
-            use tracing_subscriber::layer::SubscriberExt;
-
-            if std::env::var("ENABLE_TRACY").is_ok() {
-                tracing::subscriber::set_global_default(
-                    tracing_subscriber::registry().with(tracing_tracy::TracyLayer::default()),
-                )
-                .expect("setup tracy layer");
-                return;
-            }
-        }
-    }
-
     tracing_subscriber::fmt::fmt()
         .compact()
         .with_max_level(tracing_subscriber::filter::LevelFilter::TRACE)
@@ -922,4 +908,32 @@ fn stream_writer_extend_large() {
     let data = r.read_stream_to_vec(si).unwrap();
 
     assert_bytes_eq!(large_data, data);
+}
+
+#[test]
+fn read_stream_to_vec_mut_modified() {
+    let mut w = writer();
+    let si = w.new_stream_data(b"Hello!").unwrap();
+    let mut read_back = Vec::new();
+    w.read_stream_to_vec_mut(si, &mut read_back).unwrap();
+    assert_bytes_eq!(read_back, b"Hello!");
+}
+
+#[test]
+fn read_stream_to_vec_mut_committed() {
+    let mut w = writer();
+    let si = w.new_stream_data(b"Hello!").unwrap();
+    let r = commit_and_read(&mut w);
+    let mut read_back = Vec::new();
+    r.read_stream_to_vec_mut(si, &mut read_back).unwrap();
+    assert_bytes_eq!(read_back, b"Hello!");
+}
+
+#[test]
+fn read_stream_to_box() {
+    let mut w = writer();
+    let si = w.new_stream_data(b"Hello!").unwrap();
+    let r = commit_and_read(&mut w);
+    let read_back = r.read_stream_to_box(si).unwrap();
+    assert_bytes_eq!(read_back, b"Hello!");
 }

@@ -25,4 +25,3 @@ dbg-ranges = "0.1.0"
 pretty-hex = "0.4.1"
 static_init.workspace = true
 tracing-subscriber = { workspace = true, features = ["fmt"] }
-tracing-tracy = { workspace = true, features = ["flush-on-exit"] }
