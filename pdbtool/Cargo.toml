@@ -5,6 +5,7 @@ edition = "2021"
 description = "A tool for reading Program Database (PDB) files and displaying information about them."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
 
 [bins]
 test = false

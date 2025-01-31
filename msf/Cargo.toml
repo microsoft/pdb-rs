@@ -5,6 +5,7 @@ edition = "2021"
 description = "Reads Multi-Stream Files, which is part of the Microsoft PDB file format"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
 
 [lib]
 doctest = false
