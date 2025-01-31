@@ -12,6 +12,7 @@ mod addsrc;
 mod copy;
 mod counts;
 mod dump;
+mod dump_utils;
 mod find;
 mod glob_pdbs;
 mod hexdump;

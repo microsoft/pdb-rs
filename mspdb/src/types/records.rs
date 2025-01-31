@@ -3,7 +3,6 @@
 use super::*;
 use crate::names::NameIndexLe;
 use bstr::BStr;
-use dump_utils::HexStr;
 use zerocopy::U64;
 
 bitfield::bitfield! {
@@ -353,7 +352,6 @@ impl<'a> Debug for Pointer<'a> {
         write!(fmt, "ty: {:?}", self.fixed.ty.get())?;
         write!(fmt, " attr: 0x{:08x} {:?}", attr.0, attr)?;
         write!(fmt, " mode: {}", attr.mode())?;
-        write!(fmt, " variant: {:?}", HexStr::new(self.variant))?;
         Ok(())
     }
 }
@@ -464,7 +462,6 @@ pub struct UdtModSrcLine {
     pub line: U32<LE>,
 
     /// Module that contributes this UDT definition
-    /// TODO: Is this module index 1-based or 0-based?
     pub imod: U16<LE>,
 }
 

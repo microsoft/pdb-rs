@@ -1,5 +1,5 @@
 [package]
-name = "msf"
+name = "ms-pdb-msf"
 version = "0.1.0"
 edition = "2021"
 description = "Reads Multi-Stream Files, which is part of the Microsoft PDB file format"

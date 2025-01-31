@@ -1,9 +1,9 @@
 use anyhow::Result;
-use mspdb::msf::offset_within_page;
-use mspdb::syms::{SymIter, SymKind};
-use mspdb::tpi::TypeStreamHeader;
-use mspdb::types::{Leaf, TypesIter};
-use mspdb::{Pdb, Stream};
+use ms_pdb::msf::offset_within_page;
+use ms_pdb::syms::{SymIter, SymKind};
+use ms_pdb::tpi::TypeStreamHeader;
+use ms_pdb::types::{Leaf, TypesIter};
+use ms_pdb::{Pdb, Stream};
 use std::collections::{BTreeMap, HashMap};
 use std::io::Read;
 use std::mem::size_of;
@@ -94,7 +94,7 @@ pub fn counts_command(options: CountsOptions) -> Result<()> {
     let mut counts = Counts::default();
 
     for file_name in options.pdbs.get_paths()? {
-        match mspdb::Pdb::open(&file_name) {
+        match ms_pdb::Pdb::open(&file_name) {
             Ok(pdb) => match count_one_pdb(&options, &pdb, &mut counts) {
                 Ok(()) => {}
                 Err(e) => {

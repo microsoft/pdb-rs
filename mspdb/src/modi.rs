@@ -7,12 +7,12 @@
 use crate::dbi::ModuleInfoFixed;
 use crate::parser::Parser;
 use crate::utils::vec::replace_range_copy;
-use crate::ReadAt;
+use crate::StreamData;
 use crate::{dbi::ModuleInfo, syms::SymIter};
 use anyhow::{anyhow, bail, Result};
-use msfz::StreamData;
 use std::mem::size_of;
 use std::ops::Range;
+use sync_file::ReadAt;
 use tracing::{debug, warn};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
 

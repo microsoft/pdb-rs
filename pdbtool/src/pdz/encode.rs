@@ -1,7 +1,7 @@
 use crate::pdz::util::*;
 use anyhow::{Context, Result};
-use mspdb::msfz::MsfzWriter;
-use mspdb::{Pdb, Stream};
+use ms_pdb::msfz::MsfzWriter;
+use ms_pdb::{Pdb, Stream};
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;

@@ -1,8 +1,8 @@
 use super::*;
-use mspdb::tpi::TypeStreamKind;
-use mspdb::types::fields::Field;
-use mspdb::types::primitive::dump_primitive_type_index;
-use mspdb::types::{ItemId, Leaf, TypeData, TypeIndex, UdtProperties, BUILD_INFO_ARG_NAMES};
+use ms_pdb::tpi::TypeStreamKind;
+use ms_pdb::types::fields::Field;
+use ms_pdb::types::primitive::dump_primitive_type_index;
+use ms_pdb::types::{ItemId, Leaf, TypeData, TypeIndex, UdtProperties, BUILD_INFO_ARG_NAMES};
 
 #[derive(clap::Parser)]
 pub struct DumpTypeStreamOptions {
@@ -25,7 +25,7 @@ pub struct DumpTypeStreamOptions {
 
 pub fn dump_type_stream(
     type_stream_kind: TypeStreamKind,
-    type_stream: &mspdb::tpi::TypeStream<Vec<u8>>, // records to decode and display
+    type_stream: &ms_pdb::tpi::TypeStream<Vec<u8>>, // records to decode and display
     dump_type_index: &mut dyn FnMut(&mut dyn std::fmt::Write, TypeIndex) -> anyhow::Result<()>,
     dump_item: &mut dyn FnMut(&mut dyn std::fmt::Write, ItemId) -> anyhow::Result<()>,
     names: Option<&NamesStream<Vec<u8>>>,

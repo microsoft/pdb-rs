@@ -2,6 +2,13 @@
 name = "pdbtool"
 version = "0.1.0"
 edition = "2021"
+description = "A tool for reading Program Database (PDB) files and displaying information about them."
+authors = ["Arlie Davis <ardavis@microsoft.com>"]
+license = "MIT OR Apache-2.0"
+
+[bins]
+test = false
+doctest = false
 
 [features]
 tracy = ["dep:tracing-tracy"]
@@ -12,10 +19,9 @@ bitvec.workspace = true
 bstr.workspace = true
 bumpalo.workspace = true
 dbg-ranges = "0.1.1"
-dump_utils = { path = "../dump_utils" }
 friendly = "0.2"
 glob = "0.3.2"
-mspdb = { path = "../mspdb" }
+ms-pdb = { path = "../mspdb" }
 regex = "1.0"
 static_init.workspace = true
 clap = { workspace = true, features = ["derive"] }

@@ -1,5 +1,5 @@
 [package]
-name = "mspdb"
+name = "ms-pdb"
 version = "0.1.0"
 edition = "2021"
 description = "Reads Microsoft Program Database (PDB) files"
@@ -14,9 +14,8 @@ anyhow.workspace = true
 bitfield.workspace = true
 bitflags.workspace = true
 bitvec.workspace = true
-dump_utils = { path = "../dump_utils" }
-msf = { path = "../msf" }
-msfz = { path = "../msfz" }
+ms-pdb-msf = { path = "../msf" }
+ms-pdb-msfz = { path = "../msfz" }
 pow2.workspace = true
 bstr.workspace = true
 pretty-hex.workspace = true

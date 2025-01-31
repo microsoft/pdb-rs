@@ -9,23 +9,11 @@ use std::fmt::{Debug, Formatter, Write};
 
 /// Dumps a byte slice. The bytes are formatted into rows, with a byte offset displayed on the
 /// left, the byte values in hex in the center, and ASCII characters on the right.
-pub struct HexDump<'a> {
+pub(crate) struct HexDump<'a> {
     bytes: &'a [u8],
     start: usize,
-    show_chars: bool,
     show_header: bool,
     row_len: usize,
-    style: HexDumpStyle,
-}
-
-/// Specifies the style to use for `HexDump`
-#[derive(Copy, Clone, Eq, PartialEq, Default, Ord, PartialOrd, Debug)]
-pub enum HexDumpStyle {
-    /// No `0x` prefix, no comma
-    #[default]
-    Normal,
-    /// Close to compilable Rust syntax
-    Rust,
 }
 
 impl<'a> HexDump<'a> {
@@ -34,10 +22,8 @@ impl<'a> HexDump<'a> {
         Self {
             bytes,
             start: 0,
-            show_chars: true,
             show_header: false,
             row_len: 16,
-            style: HexDumpStyle::Normal,
         }
     }
 
@@ -49,36 +35,9 @@ impl<'a> HexDump<'a> {
         }
     }
 
-    /// Sets the number of values to show per row.
-    pub fn row_len(self, row_len: usize) -> Self {
-        assert!(row_len > 0);
-        Self { row_len, ..self }
-    }
-
-    /// Sets the style to [`HexDumpStyle::Rust`].
-    pub fn rust_style(self) -> Self {
-        Self {
-            style: HexDumpStyle::Rust,
-            ..self
-        }
-    }
-
     /// Sets the displayed byte offset to a value.
     pub fn at(self, start: usize) -> Self {
         Self { start, ..self }
-    }
-
-    /// Specifies whether characters should be displayed or not.
-    pub fn chars(self, show_chars: bool) -> Self {
-        Self { show_chars, ..self }
-    }
-
-    /// Suppresses displaying ASCII characters.
-    pub fn no_chars(self) -> Self {
-        Self {
-            show_chars: false,
-            ..self
-        }
     }
 
     /// Specifies whether to display the header line.
@@ -104,9 +63,7 @@ impl<'a> Debug for HexDump<'a> {
         let mut repeat_len: usize = 0;
         let mut repeat_byte: u8 = 0;
 
-        let rust_style = matches!(self.style, HexDumpStyle::Rust);
-
-        if self.show_header && !rust_style {
+        if self.show_header {
             writeln!(
                 f,
                 "________ : 00 01 02 03 04 05 06 07-08 09 0a 0b 0c 0d 0e 0f"
@@ -115,17 +72,10 @@ impl<'a> Debug for HexDump<'a> {
 
         let row_len = self.row_len;
 
-        let write_offset = |f: &mut Formatter, offset: usize| -> std::fmt::Result {
-            match self.style {
-                HexDumpStyle::Normal => write!(f, "{offset:08x} : "),
-                HexDumpStyle::Rust => write!(f, "/* {offset:08x} */ "),
-            }
-        };
+        let write_offset =
+            |f: &mut Formatter, offset: usize| -> std::fmt::Result { write!(f, "{offset:08x} : ") };
 
-        let empty_col_size = match self.style {
-            HexDumpStyle::Normal => 3, // two hex values and a space
-            HexDumpStyle::Rust => 6,   // 0x, two hex values, comma, space
-        };
+        let empty_col_size = 3; // two hex values and a space
 
         for row in self.bytes.chunks(row_len) {
             if row.len() == row_len {
@@ -159,20 +109,14 @@ impl<'a> Debug for HexDump<'a> {
 
             write_offset(f, pos)?;
             for &b in row.iter() {
-                match self.style {
-                    HexDumpStyle::Normal => write!(f, " {:02x}", b)?,
-                    HexDumpStyle::Rust => write!(f, " 0x{:02x},", b)?,
-                }
+                write!(f, " {:02x}", b)?;
             }
             for _ in 0..(row_len - row.len()) * empty_col_size {
                 f.write_char(' ')?;
             }
 
-            if self.show_chars {
-                match self.style {
-                    HexDumpStyle::Normal => write!(f, " : ")?,
-                    HexDumpStyle::Rust => write!(f, " // ")?,
-                }
+            {
+                write!(f, " : ")?;
                 for &b in row.iter() {
                     let c = if matches!(b, 0x20..=0x7e) {
                         char::from(b)
@@ -214,14 +158,6 @@ impl<'a> HexStr<'a> {
         }
     }
 
-    /// Limits the input to a maximum length.
-    pub fn max(self, max: usize) -> Self {
-        Self {
-            bytes: &self.bytes[..self.bytes.len().min(max)],
-            packed: false,
-        }
-    }
-
     /// Specifies that the hex string should be displayed without spaces between the bytes.
     pub fn packed(self) -> Self {
         Self {
@@ -242,14 +178,6 @@ impl<'a> Debug for HexStr<'a> {
 
         Ok(())
     }
-}
-
-/// Formats a byte slice using `HexDump` and writes it to a file.
-pub fn save_hex_dump(filename: &str, data: &[u8]) -> std::io::Result<()> {
-    use std::io::Write;
-    let mut f = std::io::BufWriter::new(std::fs::File::create(filename)?);
-    write!(f, "{:?}", HexDump::new(data))?;
-    Ok(())
 }
 
 /// Helps display indentation in debug output

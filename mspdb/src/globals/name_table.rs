@@ -691,7 +691,7 @@ impl<'a> Iterator for IterNonEmptyBuckets<'a> {
 /// Example:
 ///
 /// ```
-/// # use mspdb::globals::name_table::NameTableBuilder;
+/// # use ms_pdb::globals::name_table::NameTableBuilder;
 /// # use bstr::BStr;
 /// let mut builder = NameTableBuilder::new(0x1000);
 /// builder.push("hello".into(), 1);

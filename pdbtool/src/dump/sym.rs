@@ -1,8 +1,8 @@
 use super::*;
+use crate::dump_utils::indent;
 use anyhow::bail;
-use dump_utils::indent;
-use mspdb::syms::SymData;
-use mspdb::tpi::TypeStream;
+use ms_pdb::syms::SymData;
+use ms_pdb::tpi::TypeStream;
 use tracing::warn;
 
 pub fn dump_sym(

@@ -6,10 +6,10 @@
 #![allow(clippy::useless_vec)]
 
 use bstr::BStr;
-use mspdb::syms::{Data, SymData, SymKind, Udt};
-use mspdb::types::fields::Field;
-use mspdb::types::{TypeData, TypeIndex};
-use mspdb::Pdb;
+use ms_pdb::syms::{Data, SymData, SymKind, Udt};
+use ms_pdb::types::fields::Field;
+use ms_pdb::types::{TypeData, TypeIndex};
+use ms_pdb::Pdb;
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
@@ -97,7 +97,7 @@ fn run_test(id: &str) -> Box<Pdb> {
         assert!(child_exit.success(), "link.exe failed");
     }
 
-    mspdb::Pdb::open(&pdb_path).unwrap()
+    Pdb::open(&pdb_path).unwrap()
 }
 
 // TODO: Re-enable this in OneBranch pipelines. It needs VS build tools for this to work.

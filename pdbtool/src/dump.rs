@@ -1,14 +1,14 @@
+use crate::dump_utils::{HexDump, HexStr};
 use anyhow::Result;
-use dump_utils::{HexDump, HexStr};
-use mspdb::dbi::optional_dbg::OptionalDebugHeaderStream;
-use mspdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
-use mspdb::names::NamesStream;
-use mspdb::parser::Parser;
-use mspdb::syms::{SymIter, SymKind};
-use mspdb::tpi::TypeStreamKind;
-use mspdb::types::TypeIndex;
-use mspdb::utils::iter::IteratorWithRangesExt;
-use mspdb::{Pdb, Stream};
+use ms_pdb::dbi::optional_dbg::OptionalDebugHeaderStream;
+use ms_pdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
+use ms_pdb::names::NamesStream;
+use ms_pdb::parser::Parser;
+use ms_pdb::syms::{SymIter, SymKind};
+use ms_pdb::tpi::TypeStreamKind;
+use ms_pdb::types::TypeIndex;
+use ms_pdb::utils::iter::IteratorWithRangesExt;
+use ms_pdb::{Pdb, Stream};
 use std::fmt::Write;
 use std::ops::Range;
 use std::path::Path;
@@ -91,9 +91,6 @@ pub enum Subcommand {
         offset: Option<String>,
         #[arg(long)]
         len: Option<String>,
-
-        #[arg(long)]
-        no_chars: bool,
     },
 }
 
@@ -108,7 +105,7 @@ pub struct ModulesOptions {
 }
 
 pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
-    let p = mspdb::Pdb::open(Path::new(&options.pdb))?;
+    let p = ms_pdb::Pdb::open(Path::new(&options.pdb))?;
 
     let dbi_stream = p.read_dbi_stream()?;
 
@@ -199,7 +196,6 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
             stream,
             offset,
             len,
-            no_chars,
         } => {
             let mut offset = if let Some(offset_str) = &offset {
                 str_to_u32(offset_str)? as usize
@@ -223,14 +219,7 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
             };
 
             if let Some(bytes) = stream_data.get(offset..) {
-                println!(
-                    "{:?}",
-                    HexDump::new(bytes)
-                        .max(len)
-                        .at(offset)
-                        .chars(!no_chars)
-                        .header(true)
-                );
+                println!("{:?}", HexDump::new(bytes).max(len).at(offset).header(true));
             } else {
                 println!("Offset 0x{offset:x} ({offset}) is out of range for the stream size.");
                 println!("Stream length: 0x{len:x} ({len}).", len = stream_data.len());
@@ -371,7 +360,7 @@ fn dump_modules(pdb: &Pdb, dbi: &DbiStream, args: ModulesOptions) -> Result<()> 
 }
 
 fn dump_section_map(_p: &Pdb, dbi_stream: &DbiStream) -> Result<()> {
-    use mspdb::dbi::section_map::SectionMapEntryFlags;
+    use ms_pdb::dbi::section_map::SectionMapEntryFlags;
 
     let section_map = dbi_stream.section_map()?;
 

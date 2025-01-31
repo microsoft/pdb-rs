@@ -1,6 +1,6 @@
 use super::*;
-use dump_utils::HexStr;
-use mspdb::lines::{FileChecksum, FileChecksumsSubsection, LinesSubsection, SubsectionKind};
+use crate::dump_utils::HexStr;
+use ms_pdb::lines::{FileChecksum, FileChecksumsSubsection, LinesSubsection, SubsectionKind};
 use std::collections::HashMap;
 
 /// Dumps C13 Line Data for a given module.
@@ -15,8 +15,8 @@ fn dump_module_lines(
     pdb: &Pdb,
     module_index: usize,
     module: &ModuleInfo,
-    names: &mspdb::names::NamesStream<Vec<u8>>,
-    sources: &mspdb::dbi::sources::DbiSourcesSubstream,
+    names: &ms_pdb::names::NamesStream<Vec<u8>>,
+    sources: &ms_pdb::dbi::sources::DbiSourcesSubstream,
 ) -> Result<()> {
     println!("Module: {}", module.module_name());
     println!("    Obj file: {}", module.obj_file());
@@ -64,7 +64,7 @@ fn dump_module_lines(
 
         match subsection.kind {
             SubsectionKind::LINES => {
-                let contribution = mspdb::lines::LinesSubsection::parse(subsection.data)?;
+                let contribution = ms_pdb::lines::LinesSubsection::parse(subsection.data)?;
                 println!(
                     "    contribution: offset 0x{:x}, segment {}, size {}",
                     contribution.contribution.contribution_offset,
@@ -94,7 +94,7 @@ fn dump_module_lines(
                         }
 
                         let line_num_start = line.line_num_start();
-                        if mspdb::lines::is_jmc_line(line_num_start) {
+                        if ms_pdb::lines::is_jmc_line(line_num_start) {
                             print!("<no-step>");
                         } else {
                             print!("{}", line_num_start);
@@ -111,7 +111,7 @@ fn dump_module_lines(
                     &[]
                 };
 
-                let checksums = mspdb::lines::FileChecksumsSubsection {
+                let checksums = ms_pdb::lines::FileChecksumsSubsection {
                     bytes: subsection.data,
                 };
 

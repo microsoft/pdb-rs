@@ -1,8 +1,8 @@
 use crate::dump::sym::dump_sym;
 use anyhow::Result;
 use bstr::BStr;
-use mspdb::syms::SymData;
-use mspdb::utils::iter::IteratorWithRangesExt;
+use ms_pdb::syms::SymData;
+use ms_pdb::utils::iter::IteratorWithRangesExt;
 use std::path::Path;
 
 /// Searches the DBI Section Contributions table.
@@ -19,7 +19,7 @@ pub struct FindOptions {
 }
 
 pub fn find_command(options: &FindOptions) -> Result<()> {
-    let pdb = mspdb::Pdb::open(Path::new(&options.pdb))?;
+    let pdb = ms_pdb::Pdb::open(Path::new(&options.pdb))?;
 
     let dbi = pdb.read_dbi_stream()?;
     let contribs = dbi.section_contributions()?;
@@ -57,7 +57,7 @@ pub struct FindNameOptions {
 pub fn find_name_command(options: &FindNameOptions) -> Result<()> {
     use crate::dump::sym::DumpSymsContext;
 
-    let pdb = mspdb::Pdb::open(Path::new(&options.pdb))?;
+    let pdb = ms_pdb::Pdb::open(Path::new(&options.pdb))?;
 
     let tpi = pdb.read_type_stream()?;
     let ipi = pdb.read_ipi_stream()?;

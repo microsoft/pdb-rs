@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use bstr::ByteSlice;
-use mspdb::{BStr, Pdb};
+use ms_pdb::{BStr, Pdb};
 
 #[derive(clap::Parser)]
 pub struct AddSrcOptions {
@@ -25,7 +25,7 @@ pub fn command(options: AddSrcOptions) -> Result<()> {
         bail!("You must specify at least one source file to add to the PDB.");
     }
 
-    let mut pdb = mspdb::Pdb::modify(options.pdb.as_ref())?;
+    let mut pdb = ms_pdb::Pdb::modify(options.pdb.as_ref())?;
 
     for source_file in options.source_files.iter() {
         let (fake_source_file, real_source_file): (&str, &str) =

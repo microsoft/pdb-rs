@@ -1,4 +1,4 @@
-use mspdb::Pdb;
+use ms_pdb::Pdb;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -13,7 +13,7 @@ pub struct Options {
 
 pub fn copy_command(options: &Options) -> anyhow::Result<()> {
     let src = Pdb::open(&options.source_pdb)?;
-    let mut dst = mspdb::msf::Msf::create(&options.dest_pdb, Default::default())?;
+    let mut dst = ms_pdb::msf::Msf::create(&options.dest_pdb, Default::default())?;
 
     for stream_index in 1..src.num_streams() {
         if src.is_stream_valid(stream_index) {

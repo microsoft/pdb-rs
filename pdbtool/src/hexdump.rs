@@ -1,5 +1,5 @@
+use crate::dump_utils::HexDump;
 use anyhow::Result;
-use dump_utils::HexDump;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
 

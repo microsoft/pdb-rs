@@ -16,7 +16,6 @@ pub use self::{iter::*, kind::SymKind, offset_segment::*};
 use crate::parser::{Number, Parse, Parser, ParserError, ParserMut};
 use crate::types::{ItemId, ItemIdLe, TypeIndex, TypeIndexLe};
 use bstr::BStr;
-use dump_utils::HexStr;
 use std::fmt::Debug;
 use std::mem::size_of;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
@@ -242,7 +241,7 @@ impl<'a> Sym<'a> {
 
 impl<'a> Debug for Sym<'a> {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(fmt, "{:?} : {:?}", self.kind, HexStr::new(self.data))
+        write!(fmt, "{:?}", self.kind)
     }
 }
 

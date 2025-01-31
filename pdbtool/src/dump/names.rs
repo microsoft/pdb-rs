@@ -1,7 +1,7 @@
 use super::*;
-use mspdb::hash;
-use mspdb::names::NameIndex;
-use mspdb::utils::iter::IteratorWithRangesExt;
+use ms_pdb::hash;
+use ms_pdb::names::NameIndex;
+use ms_pdb::utils::iter::IteratorWithRangesExt;
 
 #[derive(clap::Parser)]
 pub struct DumpNamesOptions {
@@ -19,7 +19,7 @@ pub struct DumpNamesOptions {
 
 pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
     let names_stream = pdb.names()?;
-    let names_stream_index = pdb.named_stream_err(mspdb::names::NAMES_STREAM_NAME)?;
+    let names_stream_index = pdb.named_stream_err(ms_pdb::names::NAMES_STREAM_NAME)?;
     println!("Names Stream Index: {names_stream_index}");
 
     println!(
