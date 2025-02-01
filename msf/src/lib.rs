@@ -107,7 +107,6 @@ struct SmallMsfHeader {
     /// This field contains a pointer to an in-memory data structure, and hence is meaningless.
     /// Decoders should ignore this field. Encoders should set this field to 0.
     stream_dir_ptr: U32<LE>,
-    // mpspnpm: [U32<LE>]
 }
 
 /// The header of the PDB/MSF file. This is at file offset 0.
