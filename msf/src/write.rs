@@ -899,16 +899,32 @@ impl<F> Msf<F> {
     }
 
     /// Given the stream index for a stream, returns a `StreamWriter` that allows read/write
-    /// for the stream. `stream` must already be a valid stream index.
+    /// for the stream.
     ///
-    /// The stream may be a nil stream. Calling this function does not change the nil stream to
-    /// a non-nil stream. However, writing data to the stream will change it to a non-nil stream.
+    /// If `stream` is out of range for the current set of streams, then the set of streams is
+    /// increased until `stream` is in range. For example, if a new MSF file is created, then
+    /// it is legal to immediately call `msf.write_stream(10)` on it. This will expand the Stream
+    /// Directory so that `num_streams()` returns 11 (because it must include the new stream index).
+    /// All streams lower than `stream` will be allocated as nil streams.
+    ///
+    /// If `stream` is currently a nil stream, then this function promotes the stream to a
+    /// non-nil stream.
     pub fn write_stream(&mut self, stream: u32) -> anyhow::Result<StreamWriter<'_, F>> {
+        assert!(stream <= MAX_STREAM);
         self.requires_writeable()?;
+
+        while (self.stream_sizes.len() as u32) <= stream {
+            _ = self.nil_stream()?;
+        }
 
         let Some(size) = self.stream_sizes.get_mut(stream as usize) else {
             bail!("Stream index is out of range");
         };
+
+        // If the stream is currently a nil stream, then promote it to a zero-length stream.
+        if *size == NIL_STREAM_SIZE {
+            *size = 0;
+        }
 
         let pages = match self.modified_streams.entry(stream) {
             Entry::Occupied(occ) => occ.into_mut(),
