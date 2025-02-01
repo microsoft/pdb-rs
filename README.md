@@ -3,30 +3,30 @@
 This repository contains libraries and tools for working with Microsoft Program
 Database (PDB) files. All of the code is in Rust.
 
-* The `msf` crate contains code for reading, creating, and modifying PDB files
-  that use the MSF container format. Currently, all PDBs produced by Microsoft
-  tools use the MSF container format.
+* The `ms-pdb-msf` crate contains code for reading, creating, and modifying PDB
+  files that use the MSF container format. Currently, all PDBs produced by
+  Microsoft tools use the MSF container format.
   
   This is a lower-level building block for PDBs, and most developers will never
-  need to directly use the `msf` crate. Instead, they should use the `mspdb`
-  crate.
+  need to directly use the `ms-pdb-msf` crate. Instead, they should use the
+  `ms-pdb` crate.
 
-* The `msfz` crate contains code for reading and writing PDB files that use the
-  MSFZ container format. MSFZ is a new container format that is optimized for
-  "cold storage"; PDB/MSFZ files cannot be modified in-place in the way PDB/MSF
-  files can, but MSFZ files use an efficient form of compression that allows
-  data to be accessed without decompressing the entire file. MSFZ is intended to
-  be a format for storing PDBs, not for local development.
+* The `ms-pdb-msfz` crate contains code for reading and writing PDB files that
+  use the MSFZ container format. MSFZ is a new container format that is
+  optimized for "cold storage"; PDB/MSFZ files cannot be modified in-place in
+  the way PDB/MSF files can, but MSFZ files use an efficient form of compression
+  that allows data to be accessed without decompressing the entire file. MSFZ is
+  intended to be a format for storing PDBs, not for local development.
 
-  Most developers will not need to use the `msfz` crate directly. Instead, they
-  should use the `mspdb` crate.
+  Most developers will not need to use the `ms-pdb-msfz` crate directly.
+  Instead, they should use the `ms-pdb` crate.
 
-* The `mspdb` crate supports reading, creating, and modifying PDB files. It
-  builds on the `msf` and `msfz` crate. The `msf` and `msfz` crates provide the
-  container format for PDB, but they do not contain any code for working with
-  the contents of PDBs. That is the job of the `mspdb` crate -- it provides
-  methods for reading specific PDB data structures, such as debug symbols, line
-  mappings, module records, etc.
+* The `ms-pdb` crate supports reading, creating, and modifying PDB files. It
+  builds on the `ms-pdb-msf` and `ms-pdb-msfz` crate. The `ms-pdb-msf` and
+  `ms-pdb-msfz` crates provide the container format for PDB, but they do not
+  contain any code for working with the contents of PDBs. That is the job of the
+  `ms-pdb` crate -- it provides methods for reading specific PDB data
+  structures, such as debug symbols, line mappings, module records, etc.
 
 ## All information in this implementation is based on publicly-available information
 
