@@ -1,0 +1,24 @@
+name: Cargo Build & Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build_and_test:
+    name: pdb-rs
+    runs-on: [ubuntu-latest, windows-latest]
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
+    env:
+      RUSTFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup update ${{ matrix.toolchain }}
+      - run: rustup default ${{ matrix.toolchain }}
+      - run: cargo build --locked
+      - run: cargo test --locked
+      - run: cargo clippy --locked

@@ -1,0 +1,36 @@
+[package]
+name = "ms-pdb-msfz"
+version = "0.1.0"
+edition = "2021"
+description = "Reads Compressed Multi-Stream Files, which is part of the Microsoft PDB file format"
+authors = ["Arlie Davis <ardavis@microsoft.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
+categories = ["parsing", "development-tools", "development-tools::debugging"]
+
+[lib]
+doctest = false
+
+[dependencies]
+anyhow.workspace = true
+flate2.workspace = true
+static_assertions.workspace = true
+sync_file.workspace = true
+tracing.workspace = true
+zerocopy = { workspace = true, features = ["alloc", "derive"] }
+zerocopy-derive.workspace = true
+zstd.workspace = true
+pow2.workspace = true
+
+[dev-dependencies]
+bstr.workspace = true
+pretty-hex.workspace = true
+static_init.workspace = true
+tracing-subscriber = { workspace = true, features = ["fmt"] }
+
+[dev-dependencies.tracing-tracy]
+workspace = true
+
+[dev-dependencies.tracy-client]
+version = "0.18.0"
+features = ["manual-lifetime", "only-localhost"]
