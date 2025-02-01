@@ -69,7 +69,8 @@ fn test_hash() {
         (0x00019fe2, b"HELLO"),
         (0x0003c00b, b"Hello, World"),
         (0x0003c00b, b"hello, world"),
-        (0x00018c96, b"truetype::fs::CallSeqHolder<truetype::transformed_font::TransformedFont>::none<truetype::transformed_font::TransformedFont>"),
+        (0x000068e2, b"hello_world::main"),
+        (0x0000b441, b"std::vector<std::basic_string<wchar_t>>"),
         (0x000372ae, b"__chkstk"),
         (0x0001143b, b"WelsEmms"),
         (0x00000c0a, &[1]),
@@ -86,7 +87,6 @@ fn test_hash() {
         (0x000313ed, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]),
         (0x000313f8, &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]),
         (0x000214eb, &[5, 6, 7, 8]),
-        (0x00023af3, b"shaping_interop::c::IShapingFontVtable"),
     ];
 
     for &(expected_output, input) in INPUTS.iter() {
@@ -94,7 +94,7 @@ fn test_hash() {
         let actual_output = hash_mod_u32(input, m);
         assert_eq!(
             expected_output, actual_output,
-            "expected: {expected_output:08x}, actual: {actual_output:08x}, input: {input:02x?}"
+            "expected: 0x{expected_output:08x}, actual: 0x{actual_output:08x}, input: {input:02x?}"
         );
     }
 }
