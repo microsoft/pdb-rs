@@ -4,8 +4,8 @@
 //! information in the Global Symbol Stream. The PSI indexes only `S_PUB32` symbols in the GSS; all
 //! other symbol kinds are indexed in the GSI.
 //!
-//! The PSS does not have a fixed stream number. The stream number is found in the DBI Stream
-//! Header.
+//! The PSI does not have a fixed stream number. The DBI Stream Header contains the stream number
+//! of the PSI.
 
 use super::gss::*;
 use super::name_table::*;
@@ -194,18 +194,15 @@ impl PublicSymbolIndex {
             // Same segment. Compare the offsets.
 
             if offset < mid_offset {
-                // info!("offset is less, moving low");
                 items = &items[..mid_index];
                 continue;
             }
 
             if offset == mid_offset {
                 // Bullseye!
-                // info!("found it");
                 return Ok(Some((mid_rec, 0)));
             }
 
-            // info!("offset is greater, moving high");
             // The address we are looking for is higher than the address of the symbol that we are
             // currently looking at.
             // TODO: Implement best-so-far search.
