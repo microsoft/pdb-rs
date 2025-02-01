@@ -385,7 +385,6 @@ impl<F: ReadAt> Msf<F> {
         assert_eq!(fpm_on_disk.len(), page_allocator.fpm.len()); // because num_pages defines both
 
         if page_allocator.fpm != fpm_on_disk {
-            // #[cfg(test)]
             {
                 use tracing::warn;
 

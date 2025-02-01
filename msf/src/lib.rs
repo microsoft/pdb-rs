@@ -21,9 +21,13 @@
 //! developers should use `mspdb` instead of using `msf` directly.
 //!
 //! # References
+//!
 //! * [The MSF File Format](https://llvm.org/docs/PDB/MsfFile.html)
 //! * [The PDB File Format](https://llvm.org/docs/PDB/index.html)
-//! * [microsoft-pdb repository](https://github.com/microsoft/microsoft-pdb)
+//! * [`microsoft-pdb` repository](https://github.com/microsoft/microsoft-pdb): Many of the comments
+//!   in this Rust crate reference C++ source files and header files from this `microsoft-pdb`
+//!   repository. If a C++ file is referenced in a comment without more context, such as `dbi.h`,
+//!   then check for it in the `microsoft-pdb` repository.
 
 #![forbid(unused_must_use)]
 #![forbid(unsafe_code)]
@@ -116,8 +120,8 @@ struct MsfHeader {
     /// The size of each page, in bytes.
     page_size: U32<LE>,
 
-    /// Page number of the active FPM. This can only be 1 or 2. In the C++ implementation, this is
-    /// `pnFpm`.
+    /// Page number of the active FPM. This can only be 1 or 2. In the C++ implementation (in the
+    /// `microsoft-pdb` repository), this is `pnFpm`.
     active_fpm: U32<LE>,
 
     /// The number of pages in this MSF file. In the C++ implementation, this is `pnMac`.

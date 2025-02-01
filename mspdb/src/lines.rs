@@ -282,8 +282,6 @@ impl<'a> Iterator for IterBlocks<'a> {
             return None;
         }
 
-        // debug!("IterBlocks: len = 0x{:x}", self.bytes.len());
-
         let mut p = Parser::new(self.bytes);
         let Ok(header) = p.get::<BlockHeader>() else {
             warn!("failed to read BlockHeader");
@@ -341,8 +339,6 @@ impl<'a> Iterator for IterBlocksMut<'a> {
         if self.bytes.is_empty() {
             return None;
         }
-
-        // debug!("IterBlocks: len = 0x{:x}", self.bytes.len());
 
         let mut p = ParserMut::new(take(&mut self.bytes));
         let Ok(header) = p.get_mut::<BlockHeader>() else {

@@ -53,7 +53,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
     /// file may be irrecoverably damaged.
     ///
     /// Also, if this function returns `Err`, the in-memory data structures that represent the
-    /// state of the `MSf` editor are not guaranteed to be in a consistent state.
+    /// state of the `Msf` editor are not guaranteed to be in a consistent state.
     pub fn commit(&mut self) -> Result<bool> {
         let _span = info_span!("Msf::commit").entered();
 

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 /// The "Sources" substream of the DBI stream. This stream describes the merged set of source
 /// files that were the inputs (compilands) of all modules.
 ///
-/// See: <https://llvm.org/docs/PDB/DbiStream.html#id7>
+/// See: <https://llvm.org/docs/PDB/DbiStream.html#file-info-substream>
 pub struct DbiSourcesSubstream<'a> {
     /// The `module_file_starts` array gives the index within `file_name_offsets` where the file
     /// names for each module begin. That is, `file_name_offsets[module_file_starts[m]]` is the file

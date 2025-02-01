@@ -1,6 +1,5 @@
 //! Utilities for `Vec`
 
-// use std::ops::Range;
 use std::cmp::Ordering;
 
 /// Replace a range of values in a vector with a new range. The old and new ranges can be

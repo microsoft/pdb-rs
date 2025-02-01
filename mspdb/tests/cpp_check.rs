@@ -100,8 +100,6 @@ fn run_test(id: &str) -> Box<Pdb> {
     Pdb::open(&pdb_path).unwrap()
 }
 
-// TODO: Re-enable this in OneBranch pipelines. It needs VS build tools for this to work.
-// #[ignore]
 #[test]
 fn types() -> anyhow::Result<()> {
     let pdb = run_test("types");
@@ -326,30 +324,6 @@ fn types() -> anyhow::Result<()> {
         };
         let value: i32 = c.value.try_into().unwrap();
         assert_eq!(value, -333);
-    }
-
-    // TODO: It appears MSVC does not emit an S_UDT for enums, even when they are used. Why?
-    // The LF_ENUM record exists, but there's no S_UDT for it.
-    if false {
-        let udt = get_global_udt("EnumSimple");
-        let e = match type_stream.record(udt.type_)?.parse()? {
-            TypeData::Enum(e) => e,
-            unknown => panic!("expected LF_ENUM, got: {unknown:?}"),
-        };
-
-        let mut values = HashMap::new();
-        for f in type_stream.iter_fields(e.fixed.fields.get()) {
-            match f {
-                Field::Enumerate(f) => {
-                    values.insert(f.name, f.value);
-                }
-                _ => {}
-            }
-        }
-        assert_eq!(
-            u32::try_from(*values.get(BStr::new("Simple_A")).unwrap()).unwrap(),
-            100u32
-        );
     }
 
     Ok(())
