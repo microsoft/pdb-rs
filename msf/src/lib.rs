@@ -176,6 +176,13 @@ pub type PageSize = Pow2;
 /// applications.
 pub const STREAM_DIR_STREAM: u32 = 0;
 
+/// The maximum valid stream index.
+///
+/// Although this library uses `u32` for stream indices, many MSF and PDB data structures assume
+/// that stream numbers cab be stored in `u16`. Also, `0xffff` is used as a sentinel value in
+/// some data structures, so that value cannot be a valid stream index.
+pub const MAX_STREAM: u32 = 0xfffe;
+
 /// Converts a page number to a file offset.
 fn page_to_offset(page: u32, page_size: PageSize) -> u64 {
     (page as u64) << page_size.exponent()

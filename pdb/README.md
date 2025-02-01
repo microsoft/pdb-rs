@@ -1,48 +1,14 @@
-# PDB tools
+# Rust support for reading and writing Program Database (PDB) files
 
-This repository contains libraries and tools for working with Microsoft Program
-Database (PDB) files. All of the code is in Rust.
-
-* The `ms-pdb-msf` crate contains code for reading, creating, and modifying PDB
-  files that use the MSF container format. Currently, all PDBs produced by
-  Microsoft tools use the MSF container format.
-  
-  This is a lower-level building block for PDBs, and most developers will never
-  need to directly use the `ms-pdb-msf` crate. Instead, they should use the
-  `ms-pdb` crate.
-
-* The `ms-pdb-msfz` crate contains code for reading and writing PDB files that
-  use the MSFZ container format. MSFZ is a new container format that is
-  optimized for "cold storage"; PDB/MSFZ files cannot be modified in-place in
-  the way PDB/MSF files can, but MSFZ files use an efficient form of compression
-  that allows data to be accessed without decompressing the entire file. MSFZ is
-  intended to be a format for storing PDBs, not for local development.
-
-  Most developers will not need to use the `ms-pdb-msfz` crate directly.
-  Instead, they should use the `ms-pdb` crate.
-
-* The `ms-pdb` crate supports reading, creating, and modifying PDB files. It
-  builds on the `ms-pdb-msf` and `ms-pdb-msfz` crate. The `ms-pdb-msf` and
-  `ms-pdb-msfz` crates provide the container format for PDB, but they do not
-  contain any code for working with the contents of PDBs. That is the job of the
-  `ms-pdb` crate -- it provides methods for reading specific PDB data
-  structures, such as debug symbols, line mappings, module records, etc.
+This crate provides the ability to read and write Program Database (PDB) files. PDB files
+contain debugging symbols and other information used by debuggers and development tools,
+when targeting the Windows operating system.
 
 ## All information in this implementation is based on publicly-available information
 
 With the exception of MSFZ, this implementation is based solely on public
 sources that describe the PDB and MSF data structures. This repository does not
 contain any confidential Microsoft intellectual property.
-
-## MSFZ describes an **experimental** data format and is subject to change without notice
-
-The MSFZ specification in this repository describes an experimental container
-format for PDBs. **Microsoft makes no commitment to the stability or support for
-MSFZ.** The MSFZ format may be changed or discontinued at any time, without any
-notice or obligation for Microsoft to take any action. At some future point,
-Microsoft _may_ make a support commitment to MSFZ (possibly with incompatible
-changes made to it), but this repository does not imply any commitment or
-agreement to do so.
 
 ## **THIS IMPLEMENTATION IS NOT AUTHORITATIVE AND IS NOT A REFERENCE IMPLEMENTATION**
 
