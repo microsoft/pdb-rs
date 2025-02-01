@@ -6,7 +6,7 @@
 #![allow(clippy::useless_vec)]
 
 use bstr::BStr;
-use ms_pdb::syms::{Data, SymData, SymKind, Udt};
+use ms_pdb::syms::{Data, SymData, SymKind};
 use ms_pdb::types::fields::Field;
 use ms_pdb::types::{TypeData, TypeIndex};
 use ms_pdb::Pdb;
@@ -117,13 +117,6 @@ fn types() -> anyhow::Result<()> {
             .parse()
             .unwrap_or_else(|e| panic!("expected symbol parse to succeed: {name} : {e:?}"));
         sym_data
-    };
-
-    let get_global_udt = |name: &str| -> Udt {
-        match get_global(SymKind::S_UDT, name) {
-            SymData::Udt(udt) => udt,
-            unknown => panic!("expected UDT for {name}, got: {unknown:?}"),
-        }
     };
 
     let get_global_data = |kind: SymKind, name: &str| -> Data {

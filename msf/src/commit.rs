@@ -175,7 +175,7 @@ impl<F: ReadAt + WriteAt> Msf<F> {
                     };
                 assert_eq!(num_stream_pages, pages.len());
 
-                trace!(stream, stream_size, num_stream_pages, is_modified,);
+                trace!(stream, stream_size, num_stream_pages, is_modified);
 
                 stream_pages.extend_from_slice(pages);
             }
