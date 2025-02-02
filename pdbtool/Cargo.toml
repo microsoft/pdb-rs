@@ -1,6 +1,6 @@
 [package]
 name = "pdbtool"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "A tool for reading Program Database (PDB) files and displaying information about them."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -34,6 +34,6 @@ zerocopy.workspace = true
 zstd.workspace = true
 
 [dependencies.ms-pdb]
-version = "0.1.0"
+version = "0.1.2"
 path = "../pdb"
 
