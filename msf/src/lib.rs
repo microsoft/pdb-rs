@@ -338,7 +338,7 @@ impl<F> Msf<F> {
 
     /// Indicates that a stream index is valid, and that its length is valid.
     pub fn is_stream_valid(&self, stream: u32) -> bool {
-        if (stream as usize) < self.stream_sizes.len() {
+        if stream != 0 && (stream as usize) < self.stream_sizes.len() {
             self.stream_sizes[stream as usize] != NIL_STREAM_SIZE
         } else {
             false

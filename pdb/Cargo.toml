@@ -1,6 +1,6 @@
 [package]
 name = "ms-pdb"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 description = "Reads Microsoft Program Database (PDB) files"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -27,11 +27,11 @@ zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
 
 [dependencies.ms-pdb-msf]
-version = "0.1.1"
+version = "0.1.2"
 path = "../msf"
 
 [dependencies.ms-pdb-msfz]
-version = "0.1.1"
+version = "0.1.2"
 path = "../msfz"
 
 [dev-dependencies]

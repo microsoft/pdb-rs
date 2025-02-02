@@ -165,62 +165,9 @@ fn print_file_signature() {
 /// The current version of the PDZ specification being developed.
 pub const MSFZ_FILE_VERSION_V0: u64 = 0;
 
-/// Handles packing and unpacking the `file_offset` for compressed streams.
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-struct ChunkAndOffset {
-    chunk: u32,
-    offset: u32,
-}
-
 /// Checks whether the header of a file appears to be a valid MSFZ/PDZ file.
 ///
 /// This only looks at the signature; it doens't read anything else in the file.
 pub fn is_header_msfz(header: &[u8]) -> bool {
     header.starts_with(&MSFZ_FILE_SIGNATURE)
-}
-
-#[derive(Default)]
-struct Stream {
-    fragments: Vec<Fragment>,
-}
-
-// Describes a region within a stream.
-#[derive(Clone)]
-struct Fragment {
-    size: u32,
-    location: FragmentLocation,
-}
-
-impl std::fmt::Debug for Fragment {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "size 0x{:05x} at {:?}", self.size, self.location)
-    }
-}
-
-impl std::fmt::Debug for FragmentLocation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Uncompressed { file_offset } => {
-                write!(f, "uncompressed at 0x{:06x}", file_offset)
-            }
-            Self::Compressed {
-                chunk_index,
-                offset_within_chunk,
-            } => write!(f, "chunk {} : 0x{:04x}", chunk_index, offset_within_chunk),
-        }
-    }
-}
-
-const FRAGMENT_LOCATION_CHUNK_BIT: u32 = 63;
-const FRAGMENT_LOCATION_CHUNK_MASK: u64 = 1 << FRAGMENT_LOCATION_CHUNK_BIT;
-
-#[derive(Clone)]
-enum FragmentLocation {
-    Uncompressed {
-        file_offset: u64,
-    },
-    Compressed {
-        chunk_index: u32,
-        offset_within_chunk: u32,
-    },
 }

@@ -102,11 +102,11 @@ impl<F: ReadAt> Container<F> {
     pub fn stream_len(&self, stream: u32) -> u64 {
         match self {
             Self::Msf(m) => m.stream_size(stream) as u64,
-            Self::Msfz(m) => m.stream_size(stream),
+            Self::Msfz(m) => m.stream_size(stream).unwrap_or_default(),
         }
     }
 
-    /// Indicates that a stream index is valid, and that its length is valid.
+    /// Returns `true` if `stream` is a valid stream index and is not a nil stream.
     pub fn is_stream_valid(&self, stream: u32) -> bool {
         match self {
             Self::Msf(m) => m.is_stream_valid(stream),

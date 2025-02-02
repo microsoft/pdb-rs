@@ -12,9 +12,104 @@ use zerocopy::IntoBytes;
 /// Reads MSFZ files.
 pub struct Msfz<F = RandomAccessFile> {
     file: F,
-    stream_dir: Vec<Option<Stream>>,
+    /// The list of all fragments in all streams.
+    ///
+    /// `fragments` is sorted by stream index, then by the order of the fragments in each stream.
+    /// Each stream has zero or more fragments associated with it. The set of fragments for a stream `s` is
+    /// `&fragments[stream_fragments[s] .. stream_fragments[s + 1]]`.
+    fragments: Vec<Fragment>,
+
+    /// Contains the index of the first entry in `fragments` for a given stream.
+    ///
+    /// The last entry in this list does not point to a stream. It simply points to the end of
+    /// the `fragments` list.
+    ///
+    /// Invariant: `stream_fragments.len() > 0`
+    /// Invariant: `stream_fragments.len() == num_streams() + 1`.
+    stream_fragments: Vec<u32>,
+
     chunk_table: Box<[ChunkEntry]>,
     chunk_cache: Vec<OnceLock<Arc<[u8]>>>,
+}
+
+// Describes a region within a stream.
+#[derive(Clone)]
+struct Fragment {
+    size: u32,
+    location: FragmentLocation,
+}
+
+impl std::fmt::Debug for Fragment {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "size 0x{:05x} at {:?}", self.size, self.location)
+    }
+}
+
+impl std::fmt::Debug for FragmentLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_nil() {
+            f.write_str("nil")
+        } else if self.is_compressed() {
+            write!(
+                f,
+                "uncompressed at 0x{:06x}",
+                self.uncompressed_file_offset()
+            )
+        } else {
+            write!(
+                f,
+                "chunk {} : 0x{:04x}",
+                self.compressed_first_chunk(),
+                self.compressed_offset_within_chunk()
+            )
+        }
+    }
+}
+
+const FRAGMENT_LOCATION_32BIT_IS_COMPRESSED_MASK: u32 = 1u32 << 31;
+
+/// Represents the location of a fragment, either compressed or uncompressed.
+#[derive(Copy, Clone)]
+struct FragmentLocation {
+    /// bits 0-31
+    lo: u32,
+    /// bits 32-63
+    hi: u32,
+}
+
+impl FragmentLocation {
+    /// This is a sentinel value for `FragmentLocation` that means "this stream is a nil stream".
+    /// It is not an actual fragment.
+    const NIL: Self = Self {
+        lo: u32::MAX,
+        hi: u32::MAX,
+    };
+
+    fn is_nil(&self) -> bool {
+        self.lo == u32::MAX && self.hi == u32::MAX
+    }
+
+    fn is_compressed(&self) -> bool {
+        (self.hi & FRAGMENT_LOCATION_32BIT_IS_COMPRESSED_MASK) != 0
+    }
+
+    fn compressed_first_chunk(&self) -> u32 {
+        debug_assert!(!self.is_nil());
+        debug_assert!(self.is_compressed());
+        self.hi & !FRAGMENT_LOCATION_32BIT_IS_COMPRESSED_MASK
+    }
+
+    fn compressed_offset_within_chunk(&self) -> u32 {
+        debug_assert!(!self.is_nil());
+        debug_assert!(self.is_compressed());
+        self.lo
+    }
+
+    fn uncompressed_file_offset(&self) -> u64 {
+        debug_assert!(!self.is_nil());
+        debug_assert!(!self.is_compressed());
+        ((self.hi as u64) << 32) | (self.lo as u64)
+    }
 }
 
 impl Msfz<RandomAccessFile> {
@@ -61,9 +156,11 @@ impl<F: ReadAt> Msfz<F> {
             "reading stream directory"
         );
 
-        let mut stream_dir_bytes: Vec<u8> = vec![0; stream_dir_size_uncompressed];
+        let mut stream_dir_bytes: Vec<u8> =
+            map_alloc_error(FromZeros::new_vec_zeroed(stream_dir_size_uncompressed))?;
         if let Some(compression) = Compression::try_from_code_opt(stream_dir_compression)? {
-            let mut compressed_stream_dir: Vec<u8> = vec![0; stream_dir_size_compressed];
+            let mut compressed_stream_dir: Vec<u8> =
+                map_alloc_error(FromZeros::new_vec_zeroed(stream_dir_size_compressed))?;
             file.read_exact_at(
                 compressed_stream_dir.as_mut_bytes(),
                 header.stream_dir_offset.get(),
@@ -80,8 +177,6 @@ impl<F: ReadAt> Msfz<F> {
             file.read_exact_at(stream_dir_bytes.as_mut_bytes(), stream_dir_file_offset)?;
         }
 
-        let stream_dir = decode_stream_dir(&stream_dir_bytes, num_streams)?;
-
         // Load the chunk table.
         let num_chunks = header.num_chunks.get() as usize;
         let chunk_index_size = header.chunk_table_size.get() as usize;
@@ -90,9 +185,8 @@ impl<F: ReadAt> Msfz<F> {
         }
 
         let chunk_table_offset = header.chunk_table_offset.get();
-        // unwrap() is for OOM handling.
         let mut chunk_table: Box<[ChunkEntry]> =
-            FromZeros::new_box_zeroed_with_elems(num_chunks).unwrap();
+            map_alloc_error(FromZeros::new_box_zeroed_with_elems(num_chunks))?;
         if num_chunks != 0 {
             info!(
                 num_chunks,
@@ -106,9 +200,14 @@ impl<F: ReadAt> Msfz<F> {
         let mut chunk_cache = Vec::with_capacity(num_chunks);
         chunk_cache.resize_with(num_chunks, Default::default);
 
+        // Decode the Stream Directory. We do this after loading the chunk table so that we can
+        // validate fragment records within the Stream Directory now.
+        let stream_dir = decode_stream_dir(&stream_dir_bytes, num_streams, &chunk_table)?;
+
         Ok(Self {
             file,
-            stream_dir,
+            fragments: stream_dir.fragments,
+            stream_fragments: stream_dir.stream_fragments,
             chunk_table,
             chunk_cache,
         })
@@ -116,7 +215,30 @@ impl<F: ReadAt> Msfz<F> {
 
     /// The total number of streams in this MSFZ file. This count includes nil streams.
     pub fn num_streams(&self) -> u32 {
-        self.stream_dir.len() as u32
+        (self.stream_fragments.len() - 1) as u32
+    }
+
+    fn stream_fragments_result(&self, stream: u32) -> Result<&[Fragment]> {
+        self.stream_fragments(stream)
+            .ok_or_else(|| anyhow::anyhow!("Stream index is out of range"))
+    }
+
+    /// Gets the fragments for a given stream.
+    ///
+    /// If `stream` is out of range, returns `None`.
+    fn stream_fragments(&self, stream: u32) -> Option<&[Fragment]> {
+        let i = stream as usize;
+        if i < self.stream_fragments.len() - 1 {
+            let start = self.stream_fragments[i] as usize;
+            let end = self.stream_fragments[i + 1] as usize;
+            let fragments = &self.fragments[start..end];
+            match fragments {
+                [f, ..] if f.location.is_nil() => Some(&[]),
+                _ => Some(fragments),
+            }
+        } else {
+            None
+        }
     }
 
     /// Gets the size of a given stream, in bytes.
@@ -124,22 +246,33 @@ impl<F: ReadAt> Msfz<F> {
     /// The `stream` value must be in a valid range of `0..num_streams()`.
     ///
     /// If `stream` is a NIL stream, this function returns 0.
-    pub fn stream_size(&self, stream: u32) -> u64 {
-        assert!((stream as usize) < self.stream_dir.len());
-        if let Some(stream) = &self.stream_dir[stream as usize] {
-            stream.fragments.iter().map(|f| f.size as u64).sum()
-        } else {
-            0
-        }
+    pub fn stream_size(&self, stream: u32) -> Result<u64> {
+        let fragments = self.stream_fragments_result(stream)?;
+        Ok(fragments.iter().map(|f| f.size as u64).sum())
     }
 
     /// Returns `true` if `stream` is a valid stream index and the stream is non-nil.
     ///
-    /// Stream index 0 is reserved; this function always returns `true` for stream index 0,
-    /// but the stream cannot be used to store data.
+    /// * If `stream` is 0, returns `false`.
+    /// * if `stream` is greater than `num_streams()`, returns false.
+    /// * If `stream` is a nil stream, this returns `false`.
+    /// * Else returns `true`.
     pub fn is_stream_valid(&self, stream: u32) -> bool {
-        if let Some(s) = self.stream_dir.get(stream as usize) {
-            s.is_some()
+        assert!(!self.stream_fragments.is_empty());
+
+        if stream == 0 {
+            return false;
+        }
+
+        let i = stream as usize;
+        if i < self.stream_fragments.len() - 1 {
+            let start = self.stream_fragments[i] as usize;
+            let end = self.stream_fragments[i + 1] as usize;
+            let fragments = &self.fragments[start..end];
+            match fragments {
+                [f, ..] if f.location.is_nil() => false,
+                _ => true,
+            }
         } else {
             false
         }
@@ -241,48 +374,38 @@ impl<F: ReadAt> Msfz<F> {
         let _span = trace_span!("read_stream_to_cow").entered();
         trace!(stream);
 
-        let stream = match self.stream_dir.get(stream as usize) {
-            // Stream index is out of range.
-            None => bail!("Invalid stream index"),
+        let mut fragments = self.stream_fragments_result(stream)?;
 
-            // Nil stream case.
-            Some(None) => return Ok(StreamData::empty()),
-
-            Some(Some(entry)) => entry,
-        };
+        match fragments.first() {
+            Some(f) if f.location.is_nil() => fragments = &[],
+            _ => {}
+        }
 
         // If the stream is zero-length, then things are really simple.
-        if stream.fragments.is_empty() {
+        if fragments.is_empty() {
             return Ok(StreamData::empty());
         }
 
         // If this stream fits in a single fragment and the fragment is compressed, then we can
         // return a single borrowed reference to it. This is common, and is one of the most
         // important optimizations.
-        if stream.fragments.len() == 1 {
-            if let Fragment {
-                size,
-                location:
-                    FragmentLocation::Compressed {
-                        chunk_index,
-                        offset_within_chunk,
-                    },
-            } = &stream.fragments[0]
-            {
-                let chunk_data = self.get_chunk_data(*chunk_index)?;
-                let fragment_range =
-                    *offset_within_chunk as usize..*offset_within_chunk as usize + *size as usize;
+        if fragments.len() == 1 && fragments[0].location.is_compressed() {
+            let chunk_index = fragments[0].location.compressed_first_chunk();
+            let offset_within_chunk = fragments[0].location.compressed_offset_within_chunk();
 
-                // Validate the fragment range.
-                if chunk_data.get(fragment_range.clone()).is_none() {
-                    bail!("PDZ data is invalid. Stream fragment byte range is out of range.");
-                }
+            let chunk_data = self.get_chunk_data(chunk_index)?;
+            let fragment_range = offset_within_chunk as usize
+                ..offset_within_chunk as usize + fragments[0].size as usize;
 
-                return Ok(StreamData::ArcSlice(Arc::clone(chunk_data), fragment_range));
+            // Validate the fragment range.
+            if chunk_data.get(fragment_range.clone()).is_none() {
+                bail!("PDZ data is invalid. Stream fragment byte range is out of range.");
             }
+
+            return Ok(StreamData::ArcSlice(Arc::clone(chunk_data), fragment_range));
         }
 
-        let stream_size: u32 = stream.fragments.iter().map(|f| f.size).sum();
+        let stream_size: u32 = fragments.iter().map(|f| f.size).sum();
         let stream_usize = stream_size as usize;
 
         // Allocate a buffer and copy data from each chunk.
@@ -290,9 +413,7 @@ impl<F: ReadAt> Msfz<F> {
             .map_err(|_| std::io::Error::from(std::io::ErrorKind::OutOfMemory))?;
         let mut output_slice: &mut [u8] = &mut output_buffer;
 
-        trace!(num_fragments = stream.fragments.len());
-
-        for fragment in stream.fragments.iter() {
+        for fragment in fragments.iter() {
             let stream_offset = stream_usize - output_slice.len();
 
             // Because we computed stream_usize by summing the fragment sizes, this
@@ -300,33 +421,30 @@ impl<F: ReadAt> Msfz<F> {
             let (fragment_output_slice, rest) = output_slice.split_at_mut(fragment.size as usize);
             output_slice = rest;
 
-            match fragment.location {
-                FragmentLocation::Compressed {
-                    chunk_index,
-                    offset_within_chunk,
-                } => {
-                    let chunk_data = self.get_chunk_data(chunk_index)?;
-                    if let Some(chunk_slice) = chunk_data.get(
-                        offset_within_chunk as usize
-                            ..offset_within_chunk as usize + fragment.size as usize,
-                    ) {
-                        fragment_output_slice.copy_from_slice(chunk_slice);
-                    } else {
-                        bail!("PDZ data is invalid. Stream fragment byte range is out of range.");
-                    };
-                }
+            if fragment.location.is_compressed() {
+                let chunk_index = fragment.location.compressed_first_chunk();
+                let offset_within_chunk = fragment.location.compressed_offset_within_chunk();
 
-                FragmentLocation::Uncompressed { file_offset } => {
-                    // Read an uncompressed fragment.
-                    trace!(
-                        file_offset,
-                        stream_offset,
-                        fragment_len = fragment_output_slice.len(),
-                        "reading uncompressed fragment"
-                    );
-                    self.file
-                        .read_exact_at(fragment_output_slice, file_offset)?;
+                let chunk_data = self.get_chunk_data(chunk_index)?;
+                if let Some(chunk_slice) = chunk_data.get(
+                    offset_within_chunk as usize
+                        ..offset_within_chunk as usize + fragment.size as usize,
+                ) {
+                    fragment_output_slice.copy_from_slice(chunk_slice);
+                } else {
+                    bail!("PDZ data is invalid. Stream fragment byte range is out of range.");
                 }
+            } else {
+                let file_offset = fragment.location.uncompressed_file_offset();
+                // Read an uncompressed fragment.
+                trace!(
+                    file_offset,
+                    stream_offset,
+                    fragment_len = fragment_output_slice.len(),
+                    "reading uncompressed fragment"
+                );
+                self.file
+                    .read_exact_at(fragment_output_slice, file_offset)?;
             }
         }
 
@@ -337,24 +455,19 @@ impl<F: ReadAt> Msfz<F> {
 
     /// Returns an object which can read from a given stream.  The returned object implements
     /// the [`Read`], [`Seek`], and [`ReadAt`] traits.
+    ///
+    /// If `stream` is out of range (greater than or equal to `num_streams()`) then this function
+    /// returns an error.
+    ///
+    /// If `stream` is a nil stream then this function returns a `StreamReader` whose size is 0.
     pub fn get_stream_reader(&self, stream: u32) -> Result<StreamReader<'_, F>> {
-        match self.stream_dir.get(stream as usize) {
-            None => bail!("Invalid stream index"),
-
-            Some(None) => Ok(StreamReader {
-                msfz: self,
-                fragments: &[],
-                size: 0,
-                pos: 0,
-            }),
-
-            Some(Some(entry)) => Ok(StreamReader {
-                msfz: self,
-                fragments: &entry.fragments,
-                size: entry.fragments.iter().map(|f| f.size).sum(),
-                pos: 0,
-            }),
-        }
+        let fragments = self.stream_fragments_result(stream)?;
+        Ok(StreamReader {
+            msfz: self,
+            size: fragments.iter().map(|f| f.size).sum(),
+            fragments,
+            pos: 0,
+        })
     }
 }
 
@@ -404,25 +517,22 @@ impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {
             let (buf_xfer, buf_rest) = buf.split_at_mut(num_bytes_xfer);
             buf = buf_rest;
 
-            match fragment.location {
-                FragmentLocation::Compressed {
-                    chunk_index,
-                    offset_within_chunk,
-                } => {
-                    let chunk_slice = self.msfz.get_chunk_slice(
-                        chunk_index,
-                        offset_within_chunk + current_offset as u32,
-                        num_bytes_xfer as u32,
-                    )?;
-                    buf_xfer.copy_from_slice(chunk_slice);
-                }
+            if fragment.location.is_compressed() {
+                let chunk_index = fragment.location.compressed_first_chunk();
+                let offset_within_chunk = fragment.location.compressed_offset_within_chunk();
 
-                FragmentLocation::Uncompressed { file_offset } => {
-                    // Read the stream data directly from disk.
-                    self.msfz
-                        .file
-                        .read_exact_at(buf_xfer, file_offset + current_offset)?;
-                }
+                let chunk_slice = self.msfz.get_chunk_slice(
+                    chunk_index,
+                    offset_within_chunk + current_offset as u32,
+                    num_bytes_xfer as u32,
+                )?;
+                buf_xfer.copy_from_slice(chunk_slice);
+            } else {
+                // Read the stream data directly from disk.
+                let file_offset = fragment.location.uncompressed_file_offset();
+                self.msfz
+                    .file
+                    .read_exact_at(buf_xfer, file_offset + current_offset)?;
             }
 
             if buf.is_empty() {
@@ -471,48 +581,81 @@ impl<'a, F> Seek for StreamReader<'a, F> {
     }
 }
 
+struct DecodedStreamDir {
+    fragments: Vec<Fragment>,
+    stream_fragments: Vec<u32>,
+}
+
 fn decode_stream_dir(
     stream_dir_bytes: &[u8],
     num_streams: u32,
-) -> anyhow::Result<Vec<Option<Stream>>> {
+    chunk_table: &[ChunkEntry],
+) -> anyhow::Result<DecodedStreamDir> {
     let mut dec = Decoder {
         bytes: stream_dir_bytes,
     };
 
-    let mut streams: Vec<Option<Stream>> = Vec::with_capacity(num_streams as usize);
-
-    // Reusable buffer. We do this so that we can allocate exactly-sized fragments vectors for
-    // each stream.
-    let mut fragments: Vec<Fragment> = Vec::with_capacity(0x20);
+    let mut fragments: Vec<Fragment> = Vec::new();
+    let mut stream_fragments: Vec<u32> = Vec::with_capacity(num_streams as usize + 1);
 
     for _ in 0..num_streams {
-        assert!(fragments.is_empty());
+        stream_fragments.push(fragments.len() as u32);
 
         let mut fragment_size = dec.u32()?;
 
         if fragment_size == NIL_STREAM_SIZE {
-            // Nil stream.
-            streams.push(None);
+            // Nil stream. We synthesize a fake fragment record so that we can distinguish
+            // nil streams and non-nil streams, and yet optimize for the case where nearly all
+            // streams are non-nil.
+            fragments.push(Fragment {
+                size: 0,
+                location: FragmentLocation::NIL,
+            });
             continue;
         }
 
         while fragment_size != 0 {
             debug_assert_ne!(fragment_size, NIL_STREAM_SIZE);
 
-            let mut location_bits = dec.u64()?;
+            let location_lo = dec.u32()?;
+            let location_hi = dec.u32()?;
 
-            let location = if (location_bits & FRAGMENT_LOCATION_CHUNK_MASK) != 0 {
-                location_bits &= !FRAGMENT_LOCATION_CHUNK_MASK;
-                FragmentLocation::Compressed {
-                    chunk_index: (location_bits >> 32) as u32,
-                    offset_within_chunk: location_bits as u32,
-                }
-            } else {
-                // This is an uncompressed fragment. Location is a file offset.
-                FragmentLocation::Uncompressed {
-                    file_offset: location_bits,
-                }
+            if location_lo == u32::MAX && location_hi == u32::MAX {
+                bail!("The Stream Directory contains an invalid fragment record.");
+            }
+
+            let location = FragmentLocation {
+                lo: location_lo,
+                hi: location_hi,
             };
+
+            if location.is_compressed() {
+                let first_chunk = location.compressed_first_chunk();
+                let offset_within_chunk = location.compressed_offset_within_chunk();
+
+                let Some(chunk) = chunk_table.get(first_chunk as usize) else {
+                    bail!("The Stream Directory contains an invalid fragment record. Chunk index {first_chunk} exceeds the size of the chunk table.");
+                };
+
+                let uncompressed_chunk_size = chunk.uncompressed_size.get();
+
+                // Testing for greater-than-or-equal instead of greater-than is correct. Fragments
+                // always have a size that is non-zero, so at least one byte must come from the
+                // first chunk identified by a compressed fragment.
+                if offset_within_chunk >= uncompressed_chunk_size {
+                    bail!("The Stream Directory contains an invalid fragment record. offset_within_chunk {offset_within_chunk} exceeds the size of the chunk.");
+                };
+
+                // We could go further and validate that the current fragment extends beyond a
+                // valid number of chunks. The stream reader code handles that, though.
+            } else {
+                // We could validate that the uncompressed fragment lies entirely within the MSFZ
+                // file, if we knew the length of the file. Unfortunately, ReadAt does not provide
+                // the length of the file, so we will not validate the fragment here. If the
+                // fragment is invalid it will cause a read failure within the StreamReader,
+                // which will be propagated to the application.
+            }
+
             fragments.push(Fragment {
                 size: fragment_size,
                 location,
@@ -526,17 +669,16 @@ fn decode_stream_dir(
             }
             // continue for more
         }
-
-        // Move the fragments to a new buffer with exact size, now that we know how many fragments
-        // there are in this stream.
-        let mut taken_fragments = Vec::with_capacity(fragments.len());
-        taken_fragments.append(&mut fragments);
-        streams.push(Some(Stream {
-            fragments: taken_fragments,
-        }));
     }
 
-    Ok(streams)
+    stream_fragments.push(fragments.len() as u32);
+
+    fragments.shrink_to_fit();
+
+    Ok(DecodedStreamDir {
+        fragments,
+        stream_fragments,
+    })
 }
 
 struct Decoder<'a> {
@@ -559,8 +701,13 @@ impl<'a> Decoder<'a> {
     fn u32(&mut self) -> anyhow::Result<u32> {
         Ok(u32::from_le_bytes(*self.next_n()?))
     }
+}
 
-    fn u64(&mut self) -> anyhow::Result<u64> {
-        Ok(u64::from_le_bytes(*self.next_n()?))
+fn map_alloc_error<T>(result: Result<T, zerocopy::AllocError>) -> anyhow::Result<T> {
+    match result {
+        Ok(value) => Ok(value),
+        Err(zerocopy::AllocError) => {
+            Err(std::io::Error::from(std::io::ErrorKind::OutOfMemory).into())
+        }
     }
 }
