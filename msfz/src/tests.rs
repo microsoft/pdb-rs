@@ -111,7 +111,7 @@ fn basic_compressed() {
 
     assert_eq!(r.num_streams(), 10);
 
-    assert!(r.is_stream_valid(0)); // stream directory; reserved
+    assert!(!r.is_stream_valid(0)); // stream directory; reserved
     assert!(r.is_stream_valid(1)); // we wrote to it
     assert!(r.is_stream_valid(2)); // we wrote to it
     assert!(!r.is_stream_valid(3));
@@ -122,7 +122,7 @@ fn basic_compressed() {
     assert!(!r.is_stream_valid(8));
     assert!(!r.is_stream_valid(9));
 
-    assert_eq!(r.stream_size(0), 0); // stream dir stream should always be zero-length
+    assert_eq!(r.stream_size(0).unwrap(), 0); // stream dir stream should always be zero-length
 
     {
         let stream1 = r.read_stream(1).unwrap();
@@ -154,7 +154,7 @@ fn basic_compressed() {
     }
 
     // Verify that reading a nil stream works.
-    assert_eq!(r.stream_size(3), 0); // check that nil stream is zero-length
+    assert_eq!(r.stream_size(3).unwrap(), 0); // check that nil stream is zero-length
     assert!(r.read_stream(3).unwrap().is_empty());
     let mut sr = r.get_stream_reader(3).unwrap();
     assert_eq!(seek_read_span(&mut sr, 0, 0).unwrap(), &[]);
@@ -177,9 +177,9 @@ fn multi_chunks() {
     });
 
     assert_eq!(r.num_streams(), 2);
-    assert!(r.is_stream_valid(0)); // stream directory; reserved
+    assert!(!r.is_stream_valid(0)); // stream directory; reserved
     assert!(r.is_stream_valid(1)); // we wrote to it
-    assert_eq!(r.stream_size(1), 19);
+    assert_eq!(r.stream_size(1).unwrap(), 19);
 
     // Verify that reading the entire stream works correctly.
     assert_eq!(

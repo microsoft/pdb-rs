@@ -41,6 +41,46 @@ pub(crate) struct MsfzWriterFile<F: Write + Seek> {
     pub(crate) out: F,
 }
 
+impl std::fmt::Debug for FragmentLocation {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Uncompressed { file_offset } => {
+                write!(f, "uncompressed at 0x{:06x}", file_offset)
+            }
+            Self::Compressed {
+                chunk_index,
+                offset_within_chunk,
+            } => write!(f, "chunk {} : 0x{:04x}", chunk_index, offset_within_chunk),
+        }
+    }
+}
+
+// Describes a region within a stream.
+#[derive(Clone, Debug)]
+pub(crate) struct Fragment {
+    pub(crate) size: u32,
+    pub(crate) location: FragmentLocation,
+}
+
+#[derive(Default)]
+pub(crate) struct Stream {
+    pub(crate) fragments: Vec<Fragment>,
+}
+
+const FRAGMENT_LOCATION_CHUNK_BIT: u32 = 63;
+const FRAGMENT_LOCATION_CHUNK_MASK: u64 = 1 << FRAGMENT_LOCATION_CHUNK_BIT;
+
+#[derive(Clone)]
+pub(crate) enum FragmentLocation {
+    Uncompressed {
+        file_offset: u64,
+    },
+    Compressed {
+        chunk_index: u32,
+        offset_within_chunk: u32,
+    },
+}
+
 /// Describes the results of writing an MSFZ file.
 #[non_exhaustive]
 pub struct Summary {
@@ -219,6 +259,13 @@ impl<F: Write + Seek> MsfzWriter<F> {
 
         Ok((summary, self.file.out))
     }
+}
+
+/// Handles packing and unpacking the `file_offset` for compressed streams.
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+struct ChunkAndOffset {
+    chunk: u32,
+    offset: u32,
 }
 
 impl<F: Write + Seek> MsfzWriterFile<F> {
