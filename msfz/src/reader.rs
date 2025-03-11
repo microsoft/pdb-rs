@@ -469,6 +469,16 @@ impl<F: ReadAt> Msfz<F> {
             pos: 0,
         })
     }
+
+    /// The total number of fragments in the MSFZ file.
+    pub fn num_fragments(&self) -> usize {
+        self.fragments.len()
+    }
+
+    /// The total number of compressed chunks.
+    pub fn num_chunks(&self) -> usize {
+        self.chunk_table.len()
+    }
 }
 
 /// Allows reading a stream using the [`Read`], [`Seek`], and [`ReadAt`] traits.

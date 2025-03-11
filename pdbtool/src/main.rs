@@ -9,6 +9,7 @@
 use clap::Parser;
 
 mod addsrc;
+mod container;
 mod copy;
 mod counts;
 mod dump;
@@ -47,9 +48,14 @@ enum Command {
     /// Adds source file contents to the PDB. The contents are embedded directly within the PDB.
     /// WinDbg and Visual Studio can both extract the source files.
     AddSrc(addsrc::AddSrcOptions),
-    /// Copies a PDB from one file to another. All stream contents are preserved exactly, byte-for-byte.
-    /// The blocks within streams are laid out sequentially.
+    /// Copies a PDB file (or a PDZ) file to another PDB file. All stream contents are preserved
+    /// exactly, byte-for-byte. The blocks within streams are laid out sequentially. The output
+    /// file is always a PDB file, not a PDZ. The input can be either PDB or PDZ.
     Copy(copy::Options),
+    /// Show information about the file container. This indicates whether the file is using the
+    /// PDB (MSF) or PDBZ (MSFZ) container format. This also shows some container-specific
+    /// information.
+    Container(container::ContainerOptions),
     Test,
     Dump(dump::DumpOptions),
     Save(save::SaveStreamOptions),
@@ -77,6 +83,7 @@ fn main() -> anyhow::Result<()> {
         Command::Counts(args) => counts::counts_command(args)?,
         Command::Hexdump(args) => hexdump::command(args)?,
         Command::PdzEncode(args) => pdz::encode::pdz_encode(args)?,
+        Command::Container(args) => container::container_command(&args)?,
     }
 
     Ok(())

@@ -387,6 +387,11 @@ impl<F: ReadAt> Pdb<F> {
 
         Ok(any)
     }
+
+    /// Gets access to the underlying container.
+    pub fn container(&self) -> &Container<F> {
+        &self.container
+    }
 }
 
 fn get_or_init_err<T, E, F: FnOnce() -> Result<T, E>>(cell: &OnceCell<T>, f: F) -> Result<&T, E> {
