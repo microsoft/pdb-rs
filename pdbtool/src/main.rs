@@ -116,12 +116,12 @@ fn configure_tracing(args: &CommandWithFlags) {
     let builder = tracing_subscriber::fmt();
 
     let max_level = if args.quiet {
-        LevelFilter::WARN
+        LevelFilter::ERROR
     } else if args.verbose {
         LevelFilter::DEBUG
     } else {
         LevelFilter::INFO
     };
 
-    builder.with_max_level(max_level).finish();
+    builder.with_max_level(max_level).init();
 }
