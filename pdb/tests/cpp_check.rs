@@ -101,6 +101,7 @@ fn run_test(id: &str) -> Box<Pdb> {
 }
 
 #[test]
+#[ignore] // Ignored for now because MSVC is not installed in GitHub actions
 fn types() -> anyhow::Result<()> {
     let pdb = run_test("types");
 

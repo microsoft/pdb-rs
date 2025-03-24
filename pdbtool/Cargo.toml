@@ -8,10 +8,6 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/microsoft/pdb-rs/"
 categories = ["parsing", "development-tools", "development-tools::debugging"]
 
-[bins]
-test = false
-doctest = false
-
 [features]
 tracy = ["dep:tracing-tracy"]
 

@@ -497,7 +497,7 @@ pub fn count_nonempty_buckets(sorted_hash_records: &[HashEntry]) -> usize {
 
 /// Compute the size in bytes of the bitmap of non-empty buckets.
 pub fn nonempty_bitmap_size_bytes(num_buckets: usize) -> usize {
-    let compressed_bitvec_size_u32s = (num_buckets + 1 + 31) / 32;
+    let compressed_bitvec_size_u32s = (num_buckets + 1).div_ceil(32);
     compressed_bitvec_size_u32s * 4
 }
 

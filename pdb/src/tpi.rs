@@ -21,7 +21,7 @@
 //!   It should be assumed that there are either 0 hash values, or a number equal to the number of
 //!   type records in the TPI stream (`type_index_end - type_end_begin`). Thus, if
 //!   `hash_value_buffer_length` is not equal to `(type_index_end - type_end_begin) * hash_key_size`
-//!    we can consider the PDB malformed.
+//!   we can consider the PDB malformed.
 //!
 //! * Type Index Offset Buffer - A list of pairs of `u32` values where the first is a Type Index
 //!   and the second is the offset within Type Record Data of the type with this index.
@@ -35,7 +35,6 @@
 //!
 //!   The offset and size of the Type Index Offset BUffer is specified in the `TypeStreamHeader`,
 //!   in the `index_offset_buffer_offset` and `index_offset_buffer_length` fields, respectively.
-//!
 
 pub mod hash;
 

@@ -33,6 +33,7 @@ pub fn path_contains(container_path: &str, nested_path: &str) -> bool {
 }
 
 #[test]
+#[cfg(windows)]
 fn test_path_contains() {
     assert!(!path_contains(r"d:\src", r"foo.c"));
 
