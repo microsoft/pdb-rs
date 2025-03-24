@@ -7,18 +7,23 @@ on:
 jobs:
   build_and_test:
     name: pdb-rs
-    runs-on: [windows-latest]
     strategy:
       matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
         toolchain:
           - stable
           - beta
+    runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v4
       - run: rustup update ${{ matrix.toolchain }}
       - run: rustup default ${{ matrix.toolchain }}
-      - run: cargo build --locked
+      - run: cargo build --locked --release
       - run: cargo test --locked
+      - run: cargo test --locked --release
       - run: cargo clippy --locked
+      - run: cargo fmt --check
