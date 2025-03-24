@@ -39,7 +39,7 @@ pub fn hash_u32(mut pb: &[u8]) -> u32 {
         pb = rest;
     }
 
-    debug_assert!(pb.len() == 0 || pb.len() == 1);
+    debug_assert!(pb.is_empty() || pb.len() == 1);
 
     if !pb.is_empty() {
         h ^= pb[0] as u32;

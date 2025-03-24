@@ -257,6 +257,7 @@ impl<F: ReadAt> Msfz<F> {
     /// * if `stream` is greater than `num_streams()`, returns false.
     /// * If `stream` is a nil stream, this returns `false`.
     /// * Else returns `true`.
+    #[allow(clippy::match_like_matches_macro)]
     pub fn is_stream_valid(&self, stream: u32) -> bool {
         assert!(!self.stream_fragments.is_empty());
 

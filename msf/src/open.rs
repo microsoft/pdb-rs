@@ -331,8 +331,8 @@ impl<F: ReadAt> Msf<F> {
                     bail!("Invalid stream directory: too small")
                 };
 
-                for i in 0..num_streams {
-                    let stream_size = entries[i].stream_size.get();
+                for entry in entries.iter() {
+                    let stream_size = entry.stream_size.get();
                     stream_sizes.push(stream_size);
                 }
 
