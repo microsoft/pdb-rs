@@ -1,7 +1,7 @@
 //! Page management code
 
 use super::*;
-use tracing::{error, trace, trace_span};
+use tracing::{trace, trace_span};
 use zerocopy::FromZeros;
 
 /// Given the size of a stream in bytes, returns the number of pages needed to store it.
@@ -311,36 +311,6 @@ impl PageAllocator {
     pub(crate) fn alloc_page_buffer(&self) -> Box<[u8]> {
         // unwrap() is for OOM handling
         FromZeros::new_box_zeroed_with_elems(usize::from(self.page_size)).unwrap()
-    }
-
-    /// This marks a stream page as being busy. This is used only when loading the
-    /// Stream Directory. This should not be used for Stream 0, which is the Old Stream Directory.
-    ///
-    /// The `stream` and `stream_page` values are only for diagnostics.
-    pub(crate) fn init_mark_stream_page_busy(
-        &mut self,
-        page: Page,
-        stream: u32,
-        stream_page: StreamPage,
-    ) -> anyhow::Result<()> {
-        if let Some(mut b) = self.fpm.get_mut(page as usize) {
-            if !*b {
-                error!(page, stream, stream_page, "Page cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
-                bail!("Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
-            }
-
-            b.set(false);
-            Ok(())
-        } else {
-            error!(
-                page,
-                stream, stream_page, "Page is invalid; it is out of range (exceeds num_pages)"
-            );
-            bail!(
-                "Page {} is invalid; it is out of range (exceeds num_pages)",
-                page
-            );
-        }
     }
 
     /// This marks a page as "busy but freed". This is called for pages of the Stream Directory,

@@ -2,7 +2,7 @@
 
 use super::*;
 use sync_file::RandomAccessFile;
-use tracing::{trace, trace_span, warn};
+use tracing::{error, trace, trace_span, warn};
 use zerocopy::IntoBytes;
 
 /// Options for creating a new PDB/MSF file.
@@ -370,14 +370,14 @@ impl<F: ReadAt> Msf<F> {
 
         // Mark the pages in all streams (except for stream 0) as busy. This will also detect
         // page numbers that are invalid (0 or FPM).
-        {
-            // pages is the list of the page numbers for all streams (except stream 0).
-            let start = committed_stream_page_starts[1] as usize;
-            let pages = &committed_stream_pages[start..];
-            for &page in pages.iter() {
-                page_allocator.init_mark_stream_page_busy(page, 0, 0)?;
-            }
-        }
+        mark_stream_pages_busy(
+            &committed_stream_page_starts,
+            &committed_stream_pages,
+            &mut page_allocator.fpm,
+            page_size_pow2,
+            msf_kind,
+            access_mode,
+        )?;
 
         // We have finished building the in-memory FPM, including both the fpm and fpm_freed
         // vectors. We expect that every page is either FREE, BUSY, or DELETED. Check that now.
@@ -576,4 +576,90 @@ struct OldMsfStreamDirHeader {
 struct OldMsfStreamEntry {
     stream_size: U32<LE>,
     ignored: U32<LE>,
+}
+
+/// Mark all of the pages that are assigned to streams (except for Stream 0) as being "busy" in
+/// the Free Page Map.
+///
+/// This is used only when loading the Stream Directory.
+///
+/// `all_stream_pages` contains the list of pages assigned to all streams. The pages are listed
+/// in order by stream, then in order by page within stream. The `stream_page_starts` table
+/// gives the starting index within `all_stream_pages` for each stream. `stream_page_starts.len()`
+/// is equal to `num_streams + 1`.
+///
+/// `fpm` is the Free Page Map. `fpm.len()` is equal to `num_pages` from the MSF File Header.
+/// This function validates that all stream page indices are valid, where valid means:
+///
+/// * less than `num_pages`
+/// * not Page 0
+/// * not assigned to the Free Page Map (although this requirement is relaxed for read-only mode)
+/// * not already marked busy
+///
+/// This ignores pages in Stream 0, which is the Old Stream Directory. The corresponding bits
+/// in the Free Page Map are *not* modified.
+fn mark_stream_pages_busy(
+    stream_page_starts: &[u32],
+    all_stream_pages: &[u32],
+    fpm: &mut BitVec<u32, Lsb0>,
+    page_size: Pow2,
+    msf_kind: MsfKind,
+    access_mode: AccessMode,
+) -> anyhow::Result<()> {
+    let page_within_interval_mask = low_page_mask(page_size);
+    let strict_mode = access_mode == AccessMode::ReadWrite;
+
+    // The skip(1) skips the Old Stream Directory.
+    for (stream, range) in stream_page_starts.windows(2).enumerate().skip(1) {
+        let stream_pages = &all_stream_pages[range[0] as usize..range[1] as usize];
+
+        for (stream_page, &page) in stream_pages.iter().enumerate() {
+            if page == 0 {
+                bail!("Page cannot be marked busy because it points to the first page of the file. Stream {0} is invalid.", stream);
+            }
+
+            // Clang's PDB writer currently generates PDBs that assign stream pages to pages
+            // reserved for the FPM. That's illegal, but the MSVC implementation of PDB/MSF
+            // does not detect that problem. We check for it here and report an error (and
+            // refuse to open the PDB/MSF file) if the access mode is read/write. If the access
+            // mode is read-only then we report a warning but still open the file.
+
+            if msf_kind == MsfKind::Big {
+                let page_within_interval = page & page_within_interval_mask;
+                if page_within_interval == 1 || page_within_interval == 2 {
+                    warn!("Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.", stream);
+                    if strict_mode {
+                        bail!("Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.", stream);
+                    }
+                    // The page will already have been marked busy. Skip the code below which
+                    // marks the page as busy, so that don't report two warnings.
+                    continue;
+                }
+            }
+
+            if let Some(mut page_is_free) = fpm.get_mut(page as usize) {
+                if !*page_is_free {
+                    error!(page, stream, stream_page, "Page cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
+                    if strict_mode {
+                        bail!("Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream. Stream #{stream}");
+                    } else {
+                        continue;
+                    }
+                }
+
+                page_is_free.set(false);
+            } else {
+                error!(
+                    page,
+                    stream, stream_page, "Page is invalid; it is out of range (exceeds num_pages)"
+                );
+                bail!(
+                    "Page {} is invalid; it is out of range (exceeds num_pages)",
+                    page
+                );
+            }
+        }
+    }
+
+    Ok(())
 }
