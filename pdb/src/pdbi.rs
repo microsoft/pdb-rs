@@ -358,7 +358,7 @@ impl NamedStreams {
         };
 
         // Find the size of the "present" and "deleted" bitmaps. These bitmaps have the same size.
-        let bitmap_size_u32s = (hash_size + 31) / 32;
+        let bitmap_size_u32s = hash_size.div_ceil(32);
         let mut present_bitmap_bytes: Vec<u8> = vec![0; bitmap_size_u32s * 4];
         let present_bitmap: &mut BitSlice<u8, Lsb0> =
             BitSlice::from_slice_mut(present_bitmap_bytes.as_mut_slice());
