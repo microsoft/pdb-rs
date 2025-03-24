@@ -178,7 +178,7 @@ impl<F: ReadAt> Msf<F> {
                 }
 
                 // We are going to read the stream directory into this vector.
-                let mut stream_dir: Vec<U32<LE>> = vec![U32::new(0); stream_dir_size as usize / 4];
+                let mut stream_dir: Vec<u32> = vec![0; stream_dir_size as usize / 4];
 
                 // Read the page map for the stream directory.
                 let stream_dir_l1_num_pages =
@@ -236,7 +236,14 @@ impl<F: ReadAt> Msf<F> {
                     bail!("Stream directory is invalid (zero-length)");
                 }
 
-                let num_streams = stream_dir[0].get() as usize;
+                // Bulk-convert the stream directory to host endian, if necessary.
+                if !cfg!(target_endian = "little") {
+                    for x in stream_dir.iter_mut() {
+                        *x = u32::from_le(*x);
+                    }
+                }
+
+                let num_streams = stream_dir[0] as usize;
 
                 // Stream 0 is special and must exist.
                 if num_streams == 0 {
@@ -246,7 +253,7 @@ impl<F: ReadAt> Msf<F> {
                 let Some(stream_sizes_src) = stream_dir.get(1..1 + num_streams) else {
                     bail!("Stream directory is invalid (num_streams is not consistent with size)");
                 };
-                stream_sizes = stream_sizes_src.iter().map(|size| size.get()).collect();
+                stream_sizes = stream_sizes_src.to_vec();
 
                 let mut stream_pages_iter = &stream_dir[1 + num_streams..];
 
@@ -257,7 +264,6 @@ impl<F: ReadAt> Msf<F> {
                 for (stream, &stream_size) in stream_sizes_src.iter().enumerate() {
                     committed_stream_page_starts.push(committed_stream_pages.len() as u32);
 
-                    let stream_size = stream_size.get();
                     if stream_size != NIL_STREAM_SIZE {
                         let num_stream_pages =
                             num_pages_for_stream_size(stream_size, page_size_pow2) as usize;
@@ -270,7 +276,7 @@ impl<F: ReadAt> Msf<F> {
                         let (this_stream_pages, next) =
                             stream_pages_iter.split_at(num_stream_pages);
                         stream_pages_iter = next;
-                        committed_stream_pages.extend(this_stream_pages.iter().map(|p| p.get()));
+                        committed_stream_pages.extend_from_slice(this_stream_pages);
                     }
                 }
                 committed_stream_page_starts.push(committed_stream_pages.len() as u32);
@@ -385,26 +391,28 @@ impl<F: ReadAt> Msf<F> {
         assert_eq!(fpm_on_disk.len(), page_allocator.fpm.len()); // because num_pages defines both
 
         if page_allocator.fpm != fpm_on_disk {
-            {
-                use tracing::warn;
+            warn!("FPM computed from Stream Directory is not equal to FPM found on disk.");
+            warn!(
+                "Num pages = {num_pages} (0x{num_pages:x} bytes, bit offset: 0x{:x}:{})",
+                num_pages / 8,
+                num_pages % 8
+            );
 
-                warn!("FPM computed from Stream Directory is not equal to FPM found on disk.");
-                warn!(
-                    "Num pages = {num_pages} (0x{num_pages:x} bytes, bit offset: 0x{:x}:{})",
-                    num_pages / 8,
-                    num_pages % 8
-                );
-
-                for i in 0..num_pages as usize {
-                    if fpm_on_disk[i] != page_allocator.fpm[i] {
-                        warn!(
-                            "  bit 0x{:04x} is different. disk = {}, computed = {}",
-                            i, fpm_on_disk[i], page_allocator.fpm[i]
-                        );
-                    }
+            for i in 0..num_pages as usize {
+                if fpm_on_disk[i] != page_allocator.fpm[i] {
+                    warn!(
+                        "  bit 0x{:04x} is different. disk = {}, computed = {}",
+                        i, fpm_on_disk[i], page_allocator.fpm[i]
+                    );
                 }
             }
-            bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
+
+            // Clang's PDB writer sometimes places stream pages at illegal locations,
+            // such as in the pages reserved for the FPM. We tolerate this for reading
+            // but not for writing.
+            if access_mode == AccessMode::ReadWrite {
+                bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
+            }
         }
 
         // We have finished checking all the data that we have read from disk.
