@@ -123,5 +123,5 @@ fn configure_tracing(args: &CommandWithFlags) {
         LevelFilter::INFO
     };
 
-    builder.with_max_level(max_level).init();
+    builder.with_max_level(max_level).with_ansi(false).init();
 }

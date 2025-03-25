@@ -204,7 +204,18 @@ impl<F: Write + Seek> MsfzWriter<F> {
     /// This writes the Stream Directory, the Chunk Table, and then writes the MSFZ file header.
     /// It then returns the inner file object. However, the caller should not write more data to
     /// the returned file object.
-    pub fn finish(mut self) -> Result<(Summary, F)> {
+    pub fn finish(self) -> Result<(Summary, F)> {
+        self.finish_with_options(MsfzFinishOptions::default())
+    }
+
+    /// Finishes writing the MSFZ file.
+    ///
+    /// This writes the Stream Directory, the Chunk Table, and then writes the MSFZ file header.
+    /// It then returns the inner file object. However, the caller should not write more data to
+    /// the returned file object.
+    ///
+    /// This function also allows the caller to pass `MsfzFinishOptions`.
+    pub fn finish_with_options(mut self, options: MsfzFinishOptions) -> Result<(Summary, F)> {
         let _span = debug_span!("MsfzWriter::finish").entered();
 
         self.file.finish_current_chunk()?;
@@ -251,6 +262,22 @@ impl<F: Write + Seek> MsfzWriter<F> {
         };
         self.file.out.seek(SeekFrom::Start(0))?;
         self.file.out.write_all(file_header.as_bytes())?;
+
+        if options.min_file_size != 0 {
+            let file_length = self.file.out.seek(SeekFrom::End(0))?;
+            if file_length < options.min_file_size {
+                debug!(
+                    file_length,
+                    options.min_file_size, "Extending file to meet minimum length requirement"
+                );
+                // Write a single byte at the end of the file. We do this because there is no
+                // way to set the stream length without writing some bytes.
+                self.file
+                    .out
+                    .seek(SeekFrom::Start(options.min_file_size - 1))?;
+                self.file.out.write_all(&[0u8])?;
+            }
+        }
 
         let summary = Summary {
             num_chunks: self.file.chunks.len() as u32,
@@ -612,3 +639,15 @@ impl<'a> Encoder<'a> {
         self.vec.extend_from_slice(&value.to_le_bytes());
     }
 }
+
+/// Defines options for finishing an MSFZ file.
+#[derive(Clone, Debug, Default)]
+pub struct MsfzFinishOptions {
+    /// The minimum output file size. Use `MIN_FILE_SIZE_16K` to guarantee compatibility with
+    /// MSVC tools that can read PDZ files.
+    pub min_file_size: u64,
+}
+
+/// This is the minimum file size that is guaranteed to avoid triggering a bug in the first
+/// version of the PDZ decoder compiled into DIA (and other MSVC-derived tools).
+pub const MIN_FILE_SIZE_16K: u64 = 0x4000;

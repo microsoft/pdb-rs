@@ -1,23 +1,31 @@
 use crate::pdz::util::*;
 use anyhow::{Context, Result};
-use ms_pdb::msfz::MsfzWriter;
-use ms_pdb::{Pdb, Stream};
+use ms_pdb::msf::Msf;
+use ms_pdb::msfz::{MsfzFinishOptions, MsfzWriter, MIN_FILE_SIZE_16K};
+use ms_pdb::Stream;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
-use tracing::{trace, trace_span};
+use tracing::{debug, trace, trace_span};
 
-#[derive(clap::Parser)]
+#[derive(clap::Parser, Debug)]
 pub struct PdzEncodeOptions {
     /// Path to the input PDB file.
     pub input_pdb: String,
 
     /// Path to the output PDZ file.
     pub output_pdz: String,
+
+    /// Pad the output PDZ file to a minimum of 16 KB. This is a workaround for a bug in the
+    /// original MSVC implementation of the PDZ *decoder*.
+    #[arg(long)]
+    pub pad16k: bool,
 }
 
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let _span = trace_span!("pdz_encode").entered();
+
+    debug!(?options, "pdz_encode args:");
 
     let pdb_metadata = std::fs::metadata(&options.input_pdb).with_context(|| {
         format!(
@@ -25,7 +33,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
             options.input_pdb
         )
     })?;
-    let pdb = Pdb::open(Path::new(&options.input_pdb))
+    let pdb = Msf::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
     let out = File::create(&options.output_pdz)
         .with_context(|| format!("Failed to open output PDZ: {}", options.output_pdz))?;
@@ -70,7 +78,9 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     // Get final size of the file. Don't append more data to the file after this line.
     let (summary, mut file) = {
         let _span = trace_span!("finish writing").entered();
-        writer.finish()?
+        writer.finish_with_options(MsfzFinishOptions {
+            min_file_size: if options.pad16k { MIN_FILE_SIZE_16K } else { 0 },
+        })?
     };
 
     let out_file_size = file.seek(SeekFrom::End(0))?;
