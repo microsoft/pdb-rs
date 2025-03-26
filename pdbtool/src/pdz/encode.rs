@@ -6,10 +6,10 @@ use ms_pdb::Stream;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
-use tracing::{debug, trace, trace_span};
+use tracing::{trace, trace_span};
 
 #[derive(clap::Parser, Debug)]
-pub struct PdzEncodeOptions {
+pub(crate) struct PdzEncodeOptions {
     /// Path to the input PDB file.
     pub input_pdb: String,
 
@@ -20,12 +20,15 @@ pub struct PdzEncodeOptions {
     /// original MSVC implementation of the PDZ *decoder*.
     #[arg(long)]
     pub pad16k: bool,
+
+    /// Compress the Stream Directory. Although the PDZ specification defines stream directory
+    /// compression, some PDZ readers do not yet support reading compressed stream directories.
+    #[arg(long)]
+    pub compress_stream_dir: bool,
 }
 
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let _span = trace_span!("pdz_encode").entered();
-
-    debug!(?options, "pdz_encode args:");
 
     let pdb_metadata = std::fs::metadata(&options.input_pdb).with_context(|| {
         format!(
@@ -80,6 +83,11 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         let _span = trace_span!("finish writing").entered();
         writer.finish_with_options(MsfzFinishOptions {
             min_file_size: if options.pad16k { MIN_FILE_SIZE_16K } else { 0 },
+            stream_dir_compression: if options.compress_stream_dir {
+                Some(ms_pdb::msfz::Compression::Zstd)
+            } else {
+                None
+            },
         })?
     };
 

@@ -6,7 +6,7 @@ use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 use sync_file::{RandomAccessFile, ReadAt};
-use tracing::{debug, debug_span, info, info_span, trace, trace_span};
+use tracing::{debug, debug_span, info_span, trace, trace_span};
 use zerocopy::IntoBytes;
 
 /// Reads MSFZ files.
@@ -147,7 +147,7 @@ impl<F: ReadAt> Msfz<F> {
         let stream_dir_size_compressed = header.stream_dir_size_compressed.get() as usize;
         let stream_dir_file_offset = header.stream_dir_offset.get();
         let stream_dir_compression = header.stream_dir_compression.get();
-        info!(
+        debug!(
             num_streams,
             stream_dir_size_uncompressed,
             stream_dir_size_compressed,
@@ -188,7 +188,7 @@ impl<F: ReadAt> Msfz<F> {
         let mut chunk_table: Box<[ChunkEntry]> =
             map_alloc_error(FromZeros::new_box_zeroed_with_elems(num_chunks))?;
         if num_chunks != 0 {
-            info!(
+            debug!(
                 num_chunks,
                 chunk_table_offset, "reading compressed chunk table"
             );

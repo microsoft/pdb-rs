@@ -16,8 +16,6 @@ pub struct MsfzWriter<F: Write + Seek = File> {
     /// The list of streams. This includes nil streams and non-nil streams. Nil streams are
     /// represented with `None`.
     pub(crate) streams: Vec<Option<Stream>>,
-
-    stream_dir_compression: Option<Compression>,
 }
 
 pub(crate) struct MsfzWriterFile<F: Write + Seek> {
@@ -131,7 +129,6 @@ impl<F: Write + Seek> MsfzWriter<F> {
                 chunks: Vec::new(),
                 chunk_compression_mode: Compression::Zstd,
             },
-            stream_dir_compression: Some(Compression::Zstd),
         };
         this.file.write_align(Pow2::from_exponent(4))?;
         Ok(this)
@@ -142,11 +139,6 @@ impl<F: Write + Seek> MsfzWriter<F> {
         // If the current chunk buffer contains data, then leave it there. It will be compressed
         // with the new algorithm.
         self.file.chunk_compression_mode = compression;
-    }
-
-    /// Sets the compression mode that is used for the Stream Directory and Chunk Table.
-    pub fn set_stream_dir_compression(&mut self, compression: Option<Compression>) {
-        self.stream_dir_compression = compression;
     }
 
     /// Reserves `num_streams` streams.
@@ -228,7 +220,7 @@ impl<F: Write + Seek> MsfzWriter<F> {
             .map_err(|_| anyhow!("The stream directory is too large."))?;
         let stream_dir_size_compressed: u32;
         let stream_dir_compression: u32;
-        if let Some(compression) = self.stream_dir_compression {
+        if let Some(compression) = options.stream_dir_compression {
             stream_dir_compression = compression.to_code();
             let stream_dir_compressed_bytes =
                 crate::compress_utils::compress_to_vec(compression, &stream_dir_bytes)?;
@@ -646,6 +638,9 @@ pub struct MsfzFinishOptions {
     /// The minimum output file size. Use `MIN_FILE_SIZE_16K` to guarantee compatibility with
     /// MSVC tools that can read PDZ files.
     pub min_file_size: u64,
+
+    /// If `Some`, then the Stream Directory will be compressed.
+    pub stream_dir_compression: Option<Compression>,
 }
 
 /// This is the minimum file size that is guaranteed to avoid triggering a bug in the first

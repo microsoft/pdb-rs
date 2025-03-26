@@ -50,9 +50,6 @@ where
     let cursor: Cursor<Vec<u8>> = Cursor::new(Vec::new());
     let mut w = MsfzWriter::new(cursor).unwrap();
 
-    // Make debugging easier
-    w.set_stream_dir_compression(None);
-
     f(&mut w);
 
     info!("Streams:");
