@@ -1003,9 +1003,9 @@ impl<'a> Parse<'a> for FunctionList<'a> {
     fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
         let num_funcs = p.u32()? as usize;
         let funcs: &[ItemIdLe] = p.slice(num_funcs)?;
-        let num_invocations = num_funcs.min(p.len() / size_of::<U32<LE>>());
-        let invocations = p.slice(num_invocations)?;
-        Ok(Self { funcs, counts: invocations })
+        let num_counts = num_funcs.min(p.len() / size_of::<U32<LE>>());
+        let counts = p.slice(num_counts)?;
+        Ok(Self { funcs, counts })
     }
 }
 
