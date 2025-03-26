@@ -218,6 +218,10 @@ pub fn dump_sym(
             write!(out, "{} ", site.offset)?;
             ty_ref(out, context, site.func_type.get())?;
         }
+
+        SymData::HotPatchFunc(hp) => {
+            write!(out, "0x{:x} : {}", hp.func, hp.name)?;
+        }
     }
 
     writeln!(out)?;
@@ -262,6 +266,7 @@ pub fn dump_globals(
     skip_opt: Option<usize>,
     max_opt: Option<usize>,
     show_bytes: bool,
+    show_types: bool,
 ) -> anyhow::Result<()> {
     println!("Global symbols:");
     let gss = p.gss()?;
@@ -275,6 +280,7 @@ pub fn dump_globals(
         max_opt,
         0,
         show_bytes,
+        show_types,
     )?;
     Ok(())
 }
@@ -287,6 +293,7 @@ pub fn dump_symbol_stream(
     max_opt: Option<usize>,
     stream_offset: u32,
     show_bytes: bool,
+    show_types: bool,
 ) -> anyhow::Result<()> {
     let mut iter = SymIter::new(symbol_records).with_ranges();
 
@@ -303,6 +310,7 @@ pub fn dump_symbol_stream(
     let mut num_found = 0;
     let mut out = String::new();
     let mut context = DumpSymsContext::new(type_stream, ipi);
+    context.show_type_index = show_types;
 
     for (record_range, sym) in iter {
         out.clear();
@@ -383,6 +391,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
         options.max,
         4,
         options.bytes,
+        false,
     )?;
 
     println!();

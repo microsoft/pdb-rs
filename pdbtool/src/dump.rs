@@ -42,6 +42,9 @@ pub enum Subcommand {
     Globals {
         max: Option<usize>,
         skip: Option<usize>,
+        /// Show types
+        #[arg(short, long)]
+        types: bool,
     },
     /// Dump the Type Stream (TPI)
     Tpi(types::DumpTypeStreamOptions),
@@ -114,8 +117,8 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
     }
 
     match options.subcommand {
-        Subcommand::Globals { skip, max } => {
-            sym::dump_globals(&p, skip, max, false)?;
+        Subcommand::Globals { skip, max, types } => {
+            sym::dump_globals(&p, skip, max, false, types)?;
         }
 
         Subcommand::Names(args) => {
