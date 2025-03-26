@@ -57,20 +57,45 @@ pub struct BlockHeader {
     pub p_end: U32<LE>,
 }
 
-/// Used for the header of S_LPROC32 and S_GPROC32.
+/// Used for the header of procedure symbols. This is used for `S_LPROC32`, `S_GPROC32`,
+/// `S_LPROC32_ID`, etc.
 ///
 /// See `PROCSYM32` in `cvinfo.h`.
 #[derive(IntoBytes, FromBytes, Immutable, KnownLayout, Unaligned, Debug)]
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct ProcFixed {
+    /// This field is always zero; procedure symbols never have parents.
     pub p_parent: U32<LE>,
+
+    /// The byte offset, relative to the start of this procedure record, of the `S_END` symbol that
+    /// closes the scope of this symbol record.
     pub p_end: U32<LE>,
+
     pub p_next: U32<LE>,
+
+    /// The length in bytes of the procedure instruction stream.
     pub proc_len: U32<LE>,
+
+    /// The offset in bytes from the start of the procedure to the point where the stack frame has
+    /// been set up. Parameter and frame variables can be viewed at this point.
     pub debug_start: U32<LE>,
+
+    /// The offset in bytes from the start of the procedure to the point where the procedure is
+    /// ready to return and has calculated its return value, if any. Frame and register variables
+    /// can still be viewed.
     pub debug_end: U32<LE>,
+
+    /// This field is either a `TypeIndex` that points into the TPI or is an `ItemId` that
+    /// points into the IPI.
+    ///
+    /// This field is a `TypeIndex` for the following symbols: `S_GPROC32`, `S_LPROC32`,
+    /// `S_LPROC32EX`, `S_LPROC32_DPC`, `S_GPROC32EX`.
+    ///
+    /// This field is a `ItemId` for `S_LPROC32_ID`, `S_GPROC32_ID`, `S_LPROC32_DPC_ID`,
+    /// `S_GPROC32EX_ID`, `S_LPROC32EX_ID`.
     pub proc_type: TypeIndexLe,
+
     pub offset_segment: OffsetSegment,
     pub flags: u8,
 }
@@ -959,25 +984,28 @@ impl<'a> Parse<'a> for Label<'a> {
     }
 }
 
-/// `S_CALLERS` or `S_CALLEES`
+/// Data for `S_CALLERS`, `S_CALLEES`, `S_INLINEES`.
 #[derive(Clone, Debug)]
 pub struct FunctionList<'a> {
     /// The list of functions, in the IPI. Each is either `LF_FUNC_ID` or `LF_MFUNC_ID`.
     pub funcs: &'a [ItemIdLe],
 
-    /// Invocation counts. The items in `invocations` parallel the items in `funcs`, but the length
-    /// of `invocations` can be less than the length of `funcs`. Unmatched functions are assumed
-    /// to have an invocation count of zero.
-    pub invocations: &'a [U32<LE>],
+    /// Counts for each function.
+    ///
+    /// The values in `counts` parallel the items in `funcs`, but the length of `invocations` can be
+    /// less than the length of `funcs`. Unmatched counts are assumed to be zero.
+    ///
+    /// This is empty for `S_INLINEES`.
+    pub counts: &'a [U32<LE>],
 }
 
 impl<'a> Parse<'a> for FunctionList<'a> {
     fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
-        let count = p.u32()?;
-        let funcs: &[ItemIdLe] = p.slice(count as usize)?;
-        let num_invocations = p.len() / size_of::<U32<LE>>();
-        let invocations = p.slice(num_invocations)?;
-        Ok(Self { funcs, invocations })
+        let num_funcs = p.u32()? as usize;
+        let funcs: &[ItemIdLe] = p.slice(num_funcs)?;
+        let num_counts = num_funcs.min(p.len() / size_of::<U32<LE>>());
+        let counts = p.slice(num_counts)?;
+        Ok(Self { funcs, counts })
     }
 }
 
@@ -1148,6 +1176,25 @@ impl<'a> Iterator for AnnotationIterStrings<'a> {
     }
 }
 
+/// Hot-patched function
+#[derive(Clone, Debug)]
+pub struct HotPatchFunc<'a> {
+    /// ID of the function
+    pub func: ItemId,
+
+    /// The name of the function
+    pub name: &'a BStr,
+}
+
+impl<'a> Parse<'a> for HotPatchFunc<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            func: p.u32()?,
+            name: p.strz()?,
+        })
+    }
+}
+
 // Trampoline subtypes
 
 /// Incremental thunks
@@ -1193,6 +1240,7 @@ pub enum SymData<'a> {
     HeapAllocSite(&'a HeapAllocSite),
     ManagedProc(ManagedProc<'a>),
     Annotation(Annotation<'a>),
+    HotPatchFunc(HotPatchFunc<'a>),
 }
 
 impl<'a> SymData<'a> {
@@ -1255,6 +1303,7 @@ impl<'a> SymData<'a> {
             SymKind::S_HEAPALLOCSITE => Self::HeapAllocSite(p.get()?),
             SymKind::S_GMANPROC | SymKind::S_LMANPROC => Self::ManagedProc(p.parse()?),
             SymKind::S_ANNOTATION => Self::Annotation(p.parse()?),
+            SymKind::S_HOTPATCHFUNC => Self::HotPatchFunc(p.parse()?),
 
             _ => Self::Unknown,
         })

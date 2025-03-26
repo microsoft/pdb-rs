@@ -170,6 +170,7 @@ sym_kinds! {
     0x1165, S_LDATA_HLSL32_EX;
     0x1167, S_FASTLINK;
     0x1168, S_INLINEES;
+    0x1169, S_HOTPATCHFUNC;
 }
 
 impl std::fmt::Debug for SymKind {
@@ -216,6 +217,21 @@ impl SymKind {
                 | SymKind::S_SEPCODE
                 | SymKind::S_GMANPROC
                 | SymKind::S_LMANPROC
+        )
+    }
+
+    /// True if this `SymKind` is a procedure definition.
+    pub fn is_proc(self) -> bool {
+        matches!(
+            self,
+            SymKind::S_GPROC32
+                | SymKind::S_GPROC32_ID
+                | SymKind::S_GPROC32_ST
+                | SymKind::S_LPROC32
+                | SymKind::S_LPROC32_DPC
+                | SymKind::S_LPROC32_DPC_ID
+                | SymKind::S_LPROC32_ID
+                | SymKind::S_LPROC32_ST
         )
     }
 
