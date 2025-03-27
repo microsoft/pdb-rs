@@ -29,7 +29,6 @@ fn min_size_workaround() {
     // Convert the PDB file to a PDZ file.
     {
         let mut cmd = Command::new(PDBTOOL);
-        cmd.arg("--verbose");
         cmd.arg("pdz-encode");
         cmd.arg(&pdb_file_name);
         cmd.arg(&pdz_file_name);

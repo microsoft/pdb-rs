@@ -326,6 +326,7 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
         })
     }
 
+    #[inline(never)]
     fn finish_current_chunk(&mut self) -> std::io::Result<()> {
         let _span = debug_span!("finish_current_chunk").entered();
 
