@@ -167,10 +167,28 @@ impl DbiStreamHeader {
         let size = self.source_info_size.get() as usize;
         Ok(start..start + size)
     }
+
+    /// The total length of all substreams, or None if this value cannot be computed.
+    ///
+    /// In a well-formed DBI stream, this value can be computed and the value is less than
+    /// the size of the data that follows the DBI Stream Header.
+    pub fn total_substreams_len(&self) -> Option<u32> {
+        // Read the fields and (where necessary) convert them from i32 to u32.
+        // If a value is negative, then we return None.
+        u32::try_from(self.mod_info_size.get())
+            .ok()?
+            .checked_add(u32::try_from(self.section_contribution_size.get()).ok()?)?
+            .checked_add(u32::try_from(self.section_map_size.get()).ok()?)?
+            .checked_add(u32::try_from(self.source_info_size.get()).ok()?)?
+            .checked_add(u32::try_from(self.type_server_map_size.get()).ok()?)?
+            .checked_add(u32::try_from(self.optional_dbg_header_size.get()).ok()?)?
+            .checked_add(u32::try_from(self.edit_and_continue_size.get()).ok()?)
+    }
 }
 
 static_assertions::const_assert_eq!(size_of::<DbiStreamHeader>(), DBI_STREAM_HEADER_LEN);
-const DBI_STREAM_HEADER_LEN: usize = 64;
+/// The size of the DBI stream header.
+pub const DBI_STREAM_HEADER_LEN: usize = 64;
 
 /// MSVC version 4.1
 pub const DBI_STREAM_VERSION_VC41: u32 = 930803;

@@ -228,7 +228,7 @@ impl<F: Write + Seek> MsfzWriter<F> {
             self.file.out.write_all(&stream_dir_compressed_bytes)?;
         } else {
             self.file.out.write_all(&stream_dir_bytes)?;
-            stream_dir_size_compressed = 0;
+            stream_dir_size_compressed = stream_dir_size_uncompressed;
             stream_dir_compression = COMPRESSION_NONE;
         }
 
@@ -326,6 +326,7 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
         })
     }
 
+    #[inline(never)]
     fn finish_current_chunk(&mut self) -> std::io::Result<()> {
         let _span = debug_span!("finish_current_chunk").entered();
 
