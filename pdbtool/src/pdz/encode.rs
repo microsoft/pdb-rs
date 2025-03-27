@@ -130,7 +130,7 @@ fn write_dbi(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) -> Result<()> 
         // Something is seriously wrong with this PDB. Pass the contents through without any
         // modification or compression.
         sw.set_compression_enabled(false);
-        // sw.write_all(stream_data)?;
+        sw.write_all(stream_data)?;
         return Ok(());
     }
 
