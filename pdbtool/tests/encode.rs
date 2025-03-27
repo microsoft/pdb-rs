@@ -3,8 +3,8 @@ use ms_pdb::msf::Msf;
 use ms_pdb::msfz::Msfz;
 use ms_pdb::{Stream, StreamIndexU16};
 use std::io::Write;
-use std::{path::Path, process::Command};
-use zerocopy::little_endian::U32;
+use std::path::Path;
+use std::process::Command;
 use zerocopy::{FromBytes, IntoBytes};
 
 const TMP_DIR: &str = env!("CARGO_TARGET_TMPDIR");
