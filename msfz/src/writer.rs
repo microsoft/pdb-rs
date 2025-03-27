@@ -228,7 +228,7 @@ impl<F: Write + Seek> MsfzWriter<F> {
             self.file.out.write_all(&stream_dir_compressed_bytes)?;
         } else {
             self.file.out.write_all(&stream_dir_bytes)?;
-            stream_dir_size_compressed = 0;
+            stream_dir_size_compressed = stream_dir_size_uncompressed;
             stream_dir_compression = COMPRESSION_NONE;
         }
 

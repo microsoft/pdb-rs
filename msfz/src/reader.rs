@@ -174,6 +174,9 @@ impl<F: ReadAt> Msfz<F> {
                 &mut stream_dir_bytes,
             )?;
         } else {
+            if stream_dir_size_uncompressed != stream_dir_size_compressed {
+                bail!("This PDZ file is invalid. The Stream Directory is not compressed, but has inconsistent compressed vs. uncompressed sizes.");
+            }
             file.read_exact_at(stream_dir_bytes.as_mut_bytes(), stream_dir_file_offset)?;
         }
 
