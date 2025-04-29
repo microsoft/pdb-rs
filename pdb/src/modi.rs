@@ -5,11 +5,11 @@
 //! * [`MODI_60_Persist` in `dbi.h`]
 
 use crate::dbi::ModuleInfoFixed;
-use crate::parser::Parser;
 use crate::utils::vec::replace_range_copy;
 use crate::StreamData;
 use crate::{dbi::ModuleInfo, syms::SymIter};
 use anyhow::{anyhow, bail, Result};
+use ms_codeview::parser::Parser;
 use std::mem::size_of;
 use std::ops::Range;
 use sync_file::ReadAt;

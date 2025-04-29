@@ -5,9 +5,9 @@
 //! * [`TPI1::hashPrec` in `tpi.cpp`](https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/PDB/dbi/tpi.cpp#L1296)
 
 use crate::hash::hash_u32;
-use crate::parser::ParserError;
 use crate::types::{Leaf, TypeData, UdtProperties};
 use bstr::BStr;
+use ms_codeview::parser::ParserError;
 use zerocopy::IntoBytes;
 
 /// Hash a type record, using the same rules as `TPI1::hashPrec`.

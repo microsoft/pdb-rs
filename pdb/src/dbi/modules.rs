@@ -1,9 +1,9 @@
 //! DBI Modules Substream
 
 use super::*;
-use crate::utils::iter::HasRestLen;
 use crate::StreamIndexU16;
 use bstr::BStr;
+use ms_codeview::HasRestLen;
 use std::mem::take;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned};
 

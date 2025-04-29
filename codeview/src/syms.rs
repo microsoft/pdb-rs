@@ -18,28 +18,7 @@ use crate::types::{ItemId, ItemIdLe, TypeIndex, TypeIndexLe};
 use bstr::BStr;
 use std::fmt::Debug;
 use std::mem::size_of;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
-
-/// Identifies the kind of symbol streams. Some behaviors of symbol streams are different,
-/// depending on which one is being processed.
-#[derive(Copy, Clone, Eq, PartialEq, Debug)]
-pub enum SymbolStreamKind {
-    /// The Global Symbol Stream
-    Global,
-
-    /// A Module Symbol Stream
-    Module,
-}
-
-impl SymbolStreamKind {
-    /// The byte offset within a stream where the symbol records begin.
-    pub fn stream_offset(self) -> usize {
-        match self {
-            Self::Global => 0,
-            Self::Module => 4,
-        }
-    }
-}
+use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
 /// This header is shared by many records that can start a symbol scope.
 #[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Default, Clone, Debug)]

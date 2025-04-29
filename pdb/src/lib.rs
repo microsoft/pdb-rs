@@ -15,7 +15,6 @@
 
 pub mod container;
 pub mod dbi;
-pub mod encoder;
 pub mod globals;
 pub mod guid;
 pub mod hash;
@@ -27,17 +26,15 @@ pub use ms_pdb_msf as msf;
 pub use ms_pdb_msfz as msfz;
 mod embedded_sources;
 pub mod names;
-pub mod parser;
 pub mod pdbi;
 mod stream_index;
-pub mod syms;
 pub mod tpi;
-pub mod types;
 pub mod utils;
 pub mod writer;
 
 pub use bstr::BStr;
 pub use container::{Container, StreamReader};
+pub use ms_codeview::{self as codeview, syms, types};
 pub use msfz::StreamData;
 pub use stream_index::{Stream, StreamIndexIsNilError, StreamIndexU16, NIL_STREAM_INDEX};
 pub use sync_file::{RandomAccessFile, ReadAt, WriteAt};

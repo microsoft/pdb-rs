@@ -356,14 +356,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ms-codeview"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bitfield",
+ "bstr",
+ "pretty-hex",
+ "tracing",
+ "uuid",
+ "zerocopy 0.8.14",
+ "zerocopy-derive 0.8.14",
+]
+
+[[package]]
 name = "ms-pdb"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "bitfield",
  "bitflags 2.8.0",
  "bitvec",
  "bstr",
+ "ms-codeview",
  "ms-pdb-msf",
  "ms-pdb-msfz",
  "pow2",
@@ -476,7 +491,7 @@ dependencies = [
 
 [[package]]
 name = "pdbtool"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "bitvec",

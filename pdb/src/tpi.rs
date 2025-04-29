@@ -39,10 +39,10 @@
 pub mod hash;
 
 use super::*;
-use crate::parser::Parser;
 use crate::types::fields::{Field, IterFields};
 use crate::types::{build_types_starts, TypeData, TypeIndex, TypeIndexLe, TypeRecord, TypesIter};
 use anyhow::bail;
+use ms_codeview::parser::Parser;
 use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;

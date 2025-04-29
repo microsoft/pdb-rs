@@ -38,12 +38,12 @@
 #[cfg(test)]
 mod tests;
 
-use crate::parser::{Parser, ParserMut};
 use crate::utils::align_4;
-use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use crate::ReadAt;
 use anyhow::bail;
 use bstr::BStr;
+use ms_codeview::parser::{Parser, ParserMut};
+use ms_codeview::{HasRestLen, IteratorWithRangesExt};
 use std::ops::Range;
 use tracing::{debug, trace, trace_span, warn};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};

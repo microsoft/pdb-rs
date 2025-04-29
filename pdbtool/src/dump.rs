@@ -1,13 +1,13 @@
 use crate::dump_utils::{HexDump, HexStr};
 use anyhow::Result;
+use ms_pdb::codeview::parser::Parser;
+use ms_pdb::codeview::IteratorWithRangesExt;
 use ms_pdb::dbi::optional_dbg::OptionalDebugHeaderStream;
 use ms_pdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
 use ms_pdb::names::NamesStream;
-use ms_pdb::parser::Parser;
 use ms_pdb::syms::{SymIter, SymKind};
 use ms_pdb::tpi::TypeStreamKind;
 use ms_pdb::types::TypeIndex;
-use ms_pdb::utils::iter::IteratorWithRangesExt;
 use ms_pdb::{Pdb, Stream};
 use std::fmt::Write;
 use std::ops::Range;

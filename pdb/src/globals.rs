@@ -15,12 +15,12 @@ pub mod psi;
 #[cfg(test)]
 mod tests;
 
-use crate::parser::{Parse, ParserError};
 use crate::syms::{self, Constant, OffsetSegment, Pub, SymIter, SymKind};
-use crate::utils::iter::IteratorWithRangesExt;
 use crate::ReadAt;
 use anyhow::Context;
 use bstr::BStr;
+use ms_codeview::parser::{Parse, ParserError};
+use ms_codeview::IteratorWithRangesExt;
 use std::collections::HashMap;
 use tracing::{debug, warn};
 

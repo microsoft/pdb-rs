@@ -1,8 +1,8 @@
 use crate::dump::sym::dump_sym;
 use anyhow::Result;
 use bstr::BStr;
+use ms_pdb::codeview::IteratorWithRangesExt;
 use ms_pdb::syms::SymData;
-use ms_pdb::utils::iter::IteratorWithRangesExt;
 use std::path::Path;
 
 /// Searches the DBI Section Contributions table.

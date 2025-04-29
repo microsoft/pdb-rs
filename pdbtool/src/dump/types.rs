@@ -1,4 +1,5 @@
 use super::*;
+use ms_pdb::names::NameIndex;
 use ms_pdb::tpi::TypeStreamKind;
 use ms_pdb::types::fields::Field;
 use ms_pdb::types::primitive::dump_primitive_type_index;
@@ -326,7 +327,7 @@ pub fn dump_type_record(
         }
 
         TypeData::UdtModSrcLine(t) => {
-            let src = t.src.get();
+            let src = NameIndex(t.src.get());
             writeln!(out, " module: {}", t.imod.get())?;
 
             write!(out, "    ")?;
@@ -344,7 +345,7 @@ pub fn dump_type_record(
         }
 
         TypeData::UdtSrcLine(t) => {
-            let src = t.src.get();
+            let src = NameIndex(t.src.get());
             writeln!(out)?;
 
             write!(out, "    ")?;
@@ -530,12 +531,12 @@ pub fn dump_item_short(
 
     match TypeData::parse(kind, &mut p)? {
         TypeData::UdtModSrcLine(t) => {
-            write!(out, "src: 0x{:08x}, line {}, ", t.src.0.get(), t.line.get())?;
+            write!(out, "src: 0x{:08x}, line {}, ", t.src.get(), t.line.get())?;
             ty_ref(out, context, t.ty.get());
         }
 
         TypeData::UdtSrcLine(t) => {
-            write!(out, "src: 0x{:08x}, line {}, ", t.src.0.get(), t.line.get())?;
+            write!(out, "src: 0x{:08x}, line {}, ", t.src.get(), t.line.get())?;
             ty_ref(out, context, t.ty.get());
         }
 

@@ -1,11 +1,11 @@
 //! Support for encoding primitives and blittable types into output buffers.
 #![allow(missing_docs)]
 
-use crate::guid::GuidLe;
 use bstr::BStr;
 use uuid::Uuid;
 use zerocopy::{Immutable, IntoBytes};
 
+/// A simple type which helps encode CodeView records into a buffer.
 pub struct Encoder<'a> {
     pub buf: &'a mut Vec<u8>,
 }
@@ -49,6 +49,6 @@ impl<'a> Encoder<'a> {
     }
 
     pub fn uuid(&mut self, u: &Uuid) {
-        self.t(&GuidLe::from(u));
+        self.bytes(&u.to_bytes_le())
     }
 }

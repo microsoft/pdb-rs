@@ -1,7 +1,6 @@
 #![allow(missing_docs)]
 
 use super::*;
-use crate::names::NameIndexLe;
 use bstr::BStr;
 use zerocopy::U64;
 
@@ -439,7 +438,7 @@ pub struct UdtSrcLine {
 
     /// The source file which contains this UDT definition.
     /// This is a `NameIndex` value in the `/names` stream.
-    pub src: NameIndexLe,
+    pub src: U32<LE>,
 
     /// Line number
     pub line: U32<LE>,
@@ -456,7 +455,7 @@ pub struct UdtModSrcLine {
 
     /// The source file which contains this UDT definition.
     /// This is a `NameIndex` value in the `/names` stream.
-    pub src: NameIndexLe,
+    pub src: U32<LE>,
 
     /// Line number, 1-based
     pub line: U32<LE>,

@@ -1,0 +1,19 @@
+[package]
+name = "ms-codeview"
+version = "0.1.0"
+edition = "2024"
+description = "Definitions for use with CodeView debugging symbols"
+authors = ["Arlie Davis <ardavis@microsoft.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
+categories = ["parsing", "development-tools", "development-tools::debugging"]
+
+[dependencies]
+anyhow.workspace = true
+bitfield.workspace = true
+bstr.workspace = true
+tracing.workspace = true
+pretty-hex.workspace = true
+uuid.workspace = true
+zerocopy = { workspace = true, features = ["alloc", "derive"] }
+zerocopy-derive.workspace = true

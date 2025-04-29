@@ -26,11 +26,11 @@
 //! * <https://llvm.org/docs/PDB/DbiStream.html>
 //! * <https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/langapi/include/pdb.h#L860>
 
-use crate::parser::{Parser, ParserError, ParserMut};
 use crate::Container;
 use crate::{get_or_init_err, Stream};
 use crate::{StreamIndexIsNilError, StreamIndexU16};
 use anyhow::{bail, Result};
+use ms_codeview::parser::{Parser, ParserError, ParserMut};
 use std::mem::size_of;
 use std::ops::Range;
 use sync_file::ReadAt;

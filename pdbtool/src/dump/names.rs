@@ -1,7 +1,7 @@
 use super::*;
+use ms_pdb::codeview::IteratorWithRangesExt;
 use ms_pdb::hash;
 use ms_pdb::names::NameIndex;
-use ms_pdb::utils::iter::IteratorWithRangesExt;
 
 #[derive(clap::Parser)]
 pub struct DumpNamesOptions {
