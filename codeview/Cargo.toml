@@ -1,7 +1,7 @@
 [package]
 name = "ms-codeview"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 description = "Definitions for use with CodeView debugging symbols"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
