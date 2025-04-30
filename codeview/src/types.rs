@@ -27,7 +27,7 @@ use crate::parser::{Number, Parse, Parser, ParserError};
 use bitfield::bitfield;
 use bstr::BStr;
 use std::fmt::Debug;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
 
 /// A type index refers to another type record, or to a primitive type.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]

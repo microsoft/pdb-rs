@@ -18,7 +18,7 @@ use crate::types::{ItemId, ItemIdLe, TypeIndex, TypeIndexLe};
 use bstr::BStr;
 use std::fmt::Debug;
 use std::mem::size_of;
-use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
 
 /// This header is shared by many records that can start a symbol scope.
 #[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Default, Clone, Debug)]

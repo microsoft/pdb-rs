@@ -3,8 +3,8 @@
 
 use super::{ItemId, ItemIdLe};
 use crate::parser::{Parser, ParserError, ParserMut};
+use crate::types::{introduces_virtual, PointerFlags};
 use crate::types::{Leaf, TypeIndex, TypeIndexLe};
-use crate::types::{PointerFlags, introduces_virtual};
 use anyhow::Context;
 use std::mem::replace;
 use tracing::error;
