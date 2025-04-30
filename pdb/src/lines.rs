@@ -10,9 +10,9 @@ pub use checksum::*;
 pub use subsection::*;
 
 use crate::names::NameIndex;
-use crate::parser::{Parser, ParserError, ParserMut};
-use crate::utils::iter::{HasRestLen, IteratorWithRangesExt};
 use anyhow::{bail, Context};
+use ms_codeview::parser::{Parser, ParserError, ParserMut};
+use ms_codeview::{HasRestLen, IteratorWithRangesExt};
 use std::mem::{size_of, take};
 use tracing::{trace, warn};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};

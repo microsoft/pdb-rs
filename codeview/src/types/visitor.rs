@@ -2,13 +2,13 @@
 //! symbol stream and a type stream.
 
 use super::{ItemId, ItemIdLe};
-use crate::names::{NameIndex, NameIndexLe};
 use crate::parser::{Parser, ParserError, ParserMut};
 use crate::types::{introduces_virtual, PointerFlags};
 use crate::types::{Leaf, TypeIndex, TypeIndexLe};
 use anyhow::Context;
 use std::mem::replace;
 use tracing::error;
+use zerocopy::{LE, U32};
 
 /// Defines the functions needed for generically visiting type indexes within a type record or a
 /// symbol record.
@@ -61,7 +61,7 @@ pub trait IndexVisitorMut {
     }
 
     #[allow(unused_variables)]
-    fn name_index(&mut self, offset: usize, value: &mut NameIndexLe) -> Result<(), ParserError> {
+    fn name_index(&mut self, offset: usize, value: &mut U32<LE>) -> Result<(), ParserError> {
         Ok(())
     }
 }
@@ -80,7 +80,7 @@ pub trait IndexVisitor {
     }
 
     #[allow(unused_variables)]
-    fn name_index(&mut self, offset: usize, value: NameIndex) -> Result<(), ParserError> {
+    fn name_index(&mut self, offset: usize, value: u32) -> Result<(), ParserError> {
         Ok(())
     }
 }
@@ -137,7 +137,7 @@ impl<'a, IV: IndexVisitor> RecordVisitor for RefVisitor<'a, IV> {
 
     fn name_index(&mut self) -> Result<(), ParserError> {
         let offset = self.original_len - self.parser.len();
-        let ni = NameIndex(self.parser.u32()?);
+        let ni = self.parser.u32()?;
         self.index_visitor.name_index(offset, ni)?;
         Ok(())
     }
@@ -194,7 +194,7 @@ impl<'a, IV: IndexVisitorMut> RecordVisitor for MutVisitor<'a, IV> {
 
     fn name_index(&mut self) -> Result<(), ParserError> {
         let offset = self.original_len - self.parser.len();
-        let ni: &mut NameIndexLe = self.parser.get_mut()?;
+        let ni: &mut U32<LE> = self.parser.get_mut()?;
         self.index_visitor.name_index(offset, ni)?;
         Ok(())
     }

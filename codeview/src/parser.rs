@@ -11,7 +11,7 @@ use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I128, U1
 
 pub use crate::types::number::Number;
 
-/// A byte-oriented parser.
+/// A byte-oriented parser, for use in decoding CodeView records.
 #[derive(Clone)]
 pub struct Parser<'a> {
     /// The bytes that have not yet been parsed.

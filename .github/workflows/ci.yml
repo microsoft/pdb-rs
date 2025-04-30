@@ -12,8 +12,8 @@ jobs:
           - windows-latest
           - ubuntu-latest
         toolchain:
+          - 1.82
           - stable
-          - beta
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: -D warnings

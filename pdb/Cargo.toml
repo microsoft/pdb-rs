@@ -1,6 +1,6 @@
 [package]
 name = "ms-pdb"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "Reads Microsoft Program Database (PDB) files"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -25,6 +25,10 @@ tracing.workspace = true
 uuid.workspace = true
 zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
+
+[dependencies.ms-codeview]
+version = "0.1.0"
+path = "../codeview"
 
 [dependencies.ms-pdb-msf]
 version = "0.1.3"

@@ -4,11 +4,11 @@
 mod tests;
 
 use super::gss::GlobalSymbolStream;
-use crate::parser::{Parser, ParserMut};
 use crate::syms::Sym;
 use anyhow::bail;
 use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::BStr;
+use ms_codeview::parser::{Parser, ParserMut};
 use std::mem::size_of;
 use tracing::{debug, debug_span, error, info, trace, warn};
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U32};

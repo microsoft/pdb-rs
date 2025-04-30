@@ -12,9 +12,9 @@
 //! * Module Streams: Contains a Global Refs section that points to entries in the GSS that are
 //!   referenced by that module.
 
-use crate::parser::Parse;
 use crate::syms::{Pub, SymIter, SymKind};
 use anyhow::bail;
+use ms_codeview::parser::Parse;
 
 /// Contains the Global Symbol Stream (GSS). This contains symbol records.
 ///

@@ -9,12 +9,12 @@ mod tests;
 use std::collections::BTreeMap;
 
 use super::*;
-use crate::encoder::Encoder;
 use crate::guid::GuidLe;
-use crate::parser::Parser;
 use anyhow::bail;
 use bitvec::prelude::{BitSlice, Lsb0};
 use bstr::ByteSlice;
+use ms_codeview::encoder::Encoder;
+use ms_codeview::parser::Parser;
 use tracing::{trace, trace_span, warn};
 use uuid::Uuid;
 use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};

@@ -4,9 +4,9 @@ use super::build_global_symbols_index;
 use super::gsi::GlobalSymbolIndex;
 use super::gss::GlobalSymbolStream;
 use super::psi::PublicSymbolIndex;
-use crate::encoder::Encoder;
 use crate::syms::SymKind;
 use crate::types::TypeIndex;
+use ms_codeview::encoder::Encoder;
 
 const NUM_BUCKETS: usize = 0x1000;
 
