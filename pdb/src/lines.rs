@@ -527,8 +527,8 @@ impl Contribution {
     /// Get the `segment:offset` of this contribution.
     pub fn offset_segment(&self) -> OffsetSegment {
         OffsetSegment {
-            offset: self.contribution_offset,
-            segment: self.contribution_segment,
+            offset: self.offset,
+            segment: self.segment,
         }
     }
 }
