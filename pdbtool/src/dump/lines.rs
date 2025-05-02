@@ -67,9 +67,9 @@ fn dump_module_lines(
                 let contribution = ms_pdb::lines::LinesSubsection::parse(subsection.data)?;
                 println!(
                     "    contribution: offset 0x{:x}, segment {}, size {}",
-                    contribution.contribution.contribution_offset,
-                    contribution.contribution.contribution_segment,
-                    contribution.contribution.contribution_size
+                    contribution.contribution.offset,
+                    contribution.contribution.segment,
+                    contribution.contribution.size
                 );
 
                 for block in contribution.blocks() {
@@ -207,7 +207,7 @@ pub fn dump_lines_like_cvdump(p: &Pdb, dbi_stream: &DbiStream<Vec<u8>>) -> Resul
             match subsection.kind {
                 SubsectionKind::LINES => {
                     let lines = LinesSubsection::parse(subsection.data)?;
-                    let contribution_offset = lines.contribution.contribution_offset.get();
+                    let contribution_offset = lines.contribution.offset.get();
 
                     for block in lines.blocks() {
                         if let Some(checksums) = &checksums {
