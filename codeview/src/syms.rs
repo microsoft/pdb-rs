@@ -280,7 +280,7 @@ pub struct Pub<'a> {
 impl<'a> Pub<'a> {
     /// Gets the `segment:offset` of this symbol.
     pub fn offset_segment(&self) -> OffsetSegment {
-        self.fixed.offset_segment.clone()
+        self.fixed.offset_segment
     }
 }
 
