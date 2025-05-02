@@ -217,7 +217,7 @@ impl PublicSymbolIndex {
 /// Sorts an address map slice.
 #[inline(never)]
 pub fn sort_address_records(addr_map: &mut [(u32, OffsetSegment)]) {
-    addr_map.sort_unstable_by_key(|(record_offset, os)| (os.clone(), *record_offset));
+    addr_map.sort_unstable_by_key(|(record_offset, os)| (*os, *record_offset));
 }
 
 /// Builds the Public Symbol Index (PSI).
