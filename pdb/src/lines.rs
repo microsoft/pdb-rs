@@ -510,10 +510,10 @@ pub struct ColumnRecord {
 #[repr(C)]
 #[allow(missing_docs)]
 pub struct Contribution {
-    pub contribution_offset: U32<LE>,
-    pub contribution_segment: U16<LE>,
+    pub offset: U32<LE>,
+    pub segment: U16<LE>,
     pub flags: U16<LE>,
-    pub contribution_size: U32<LE>,
+    pub size: U32<LE>,
     // Followed by a sequence of block records. Each block is variable-length and begins with
     // BlockHeader.
 }
