@@ -9,6 +9,7 @@ mod subsection;
 pub use checksum::*;
 pub use subsection::*;
 
+use crate::codeview::syms::OffsetSegment;
 use crate::names::NameIndex;
 use anyhow::{bail, Context};
 use ms_codeview::parser::{Parser, ParserError, ParserMut};
@@ -521,6 +522,14 @@ impl Contribution {
     /// Indicates whether this block (contribution) also has column numbers.
     pub fn have_columns(&self) -> bool {
         (self.flags.get() & CV_LINES_HAVE_COLUMNS) != 0
+    }
+
+    /// Get the `segment:offset` of this contribution.
+    pub fn offset_segment(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.contribution_offset,
+            segment: self.contribution_segment,
+        }
     }
 }
 
