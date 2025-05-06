@@ -11,6 +11,7 @@ categories = ["parsing", "development-tools", "development-tools::debugging"]
 [dependencies]
 anyhow.workspace = true
 bitfield.workspace = true
+bitflags.workspace = true
 bstr.workspace = true
 tracing.workspace = true
 pretty-hex.workspace = true

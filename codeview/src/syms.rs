@@ -15,6 +15,7 @@ pub use self::{iter::*, kind::SymKind, offset_segment::*};
 
 use crate::parser::{Number, Parse, Parser, ParserError, ParserMut};
 use crate::types::{ItemId, ItemIdLe, TypeIndex, TypeIndexLe};
+use bitflags::bitflags;
 use bstr::BStr;
 use std::fmt::Debug;
 use std::mem::size_of;
@@ -79,6 +80,21 @@ pub struct ProcFixed {
     pub flags: u8,
 }
 
+// See: https://github.com/microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L3038-L3053
+bitflags! {
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    struct ProcFlags: u8 {
+        const NOFPO = 1 << 0;
+        const INT = 1 << 1;
+        const FAR = 1 << 2;
+        const NEVER = 1 << 3;
+        const NOTREACHED = 1 << 4;
+        const CUST_CALL = 1 << 5;
+        const NOINLINE = 1 << 6;
+        const OPTDBGINFO = 1 << 7;
+    }
+}
+
 /// Used for `S_LPROC32` and `S_GPROC32`.
 ///
 /// These records are found in Module Symbol Streams. They are very important; they describe the
@@ -95,6 +111,12 @@ pub struct ProcFixed {
 pub struct Proc<'a> {
     pub fixed: &'a ProcFixed,
     pub name: &'a BStr,
+}
+
+impl<'a> Proc<'a> {
+    pub fn flags(&self) -> ProcFlags {
+        ProcFlags::from_bits_retain(self.fixed.flags)
+    }
 }
 
 impl<'a> Parse<'a> for Proc<'a> {
