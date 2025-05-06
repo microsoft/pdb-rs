@@ -80,17 +80,34 @@ pub struct ProcFixed {
     pub flags: u8,
 }
 
-// See: https://github.com/microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L3038-L3053
 bitflags! {
+    /// Flags describing a procedure symbol.
+    ///
+    /// See: `CV_PROCFLAGS` in `cvinfo.h`.
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
     pub struct ProcFlags: u8 {
+        /// Frame pointer present.
         const NOFPO = 1 << 0;
+
+        /// Interrupt return.
         const INT = 1 << 1;
+
+        /// Far return.
         const FAR = 1 << 2;
+
+        /// Does not return.
         const NEVER = 1 << 3;
+
+        /// Label isn't fallen into.
         const NOTREACHED = 1 << 4;
+
+        /// Custom calling convention.
         const CUST_CALL = 1 << 5;
+
+        /// Marked as `noinline`.
         const NOINLINE = 1 << 6;
+
+        /// Has debug information for optimized code.
         const OPTDBGINFO = 1 << 7;
     }
 }
@@ -114,6 +131,7 @@ pub struct Proc<'a> {
 }
 
 impl<'a> Proc<'a> {
+    /// View the procedure `flags` field as bit flags.
     pub fn flags(&self) -> ProcFlags {
         ProcFlags::from_bits_retain(self.fixed.flags)
     }
