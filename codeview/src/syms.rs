@@ -83,7 +83,7 @@ pub struct ProcFixed {
 // See: https://github.com/microsoft/microsoft-pdb/blob/master/include/cvinfo.h#L3038-L3053
 bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-    struct ProcFlags: u8 {
+    pub struct ProcFlags: u8 {
         const NOFPO = 1 << 0;
         const INT = 1 << 1;
         const FAR = 1 << 2;
