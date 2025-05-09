@@ -19,6 +19,7 @@ mod glob_pdbs;
 mod hexdump;
 mod pdz;
 mod save;
+mod tpi_diff;
 mod util;
 
 #[derive(clap::Parser)]
@@ -66,6 +67,7 @@ enum Command {
     /// specific stream, then use the `dump <filename> hex` command instead.
     Hexdump(hexdump::HexdumpOptions),
     PdzEncode(pdz::encode::PdzEncodeOptions),
+    TpiDiff(tpi_diff::TpiDiffOptions),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -84,6 +86,7 @@ fn main() -> anyhow::Result<()> {
         Command::Hexdump(args) => hexdump::command(args)?,
         Command::PdzEncode(args) => pdz::encode::pdz_encode(args)?,
         Command::Container(args) => container::container_command(&args)?,
+        Command::TpiDiff(args) => tpi_diff::tpi_diff(&args)?,
     }
 
     Ok(())
