@@ -343,11 +343,11 @@ pub fn dump_symbol_stream(
     Ok(())
 }
 
-/// Displays the symbols for a specific module.
+/// Displays module symbols, for all modules or for a specific module.
 #[derive(clap::Parser, Debug)]
 pub struct DumpModuleSymbols {
     /// The module to dump
-    pub module_index: u32,
+    pub module_index: Option<u32>,
 
     /// Skip this many symbol records before beginning the dump.
     #[arg(long)]
@@ -369,61 +369,84 @@ pub struct DumpModuleSymbols {
 pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Result<()> {
     let dbi = pdb.read_dbi_stream()?;
 
-    let Some(module) = dbi.iter_modules().nth(options.module_index as usize) else {
-        bail!(
-            "Could not find a module with index #{}",
-            options.module_index
-        );
-    };
+    let mut found_wanted_module = false;
 
-    let Some(module_stream) = pdb.read_module_stream(&module)? else {
-        bail!("Module does not have a module stream (no symbols for module)");
-    };
+    for (module_index, module) in dbi.iter_modules().enumerate() {
+        if let Some(wanted_module_index) = options.module_index {
+            if wanted_module_index as usize == module_index {
+                found_wanted_module = true;
+            } else {
+                continue;
+            }
+        }
 
-    let tpi = pdb.read_type_stream()?;
-    let ipi = pdb.read_ipi_stream()?;
-
-    dump_symbol_stream(
-        &tpi,
-        &ipi,
-        module_stream.sym_data()?,
-        options.skip,
-        options.max,
-        4,
-        options.bytes,
-        false,
-    )?;
-
-    println!();
-
-    if options.global_refs {
-        println!("Global Refs");
-        println!("-----------");
+        println!("Module #{}", module_index);
+        println!("-------------------");
         println!();
 
-        let module_global_refs = module_stream.global_refs()?;
-        if !module_global_refs.is_empty() {
-            let gss = pdb.gss()?;
+        let Some(module_stream) = pdb.read_module_stream(&module)? else {
+            println!("Module does not have a module stream (no symbols for module)");
+            continue;
+        };
 
-            let mut out = String::new();
-            let mut context = DumpSymsContext::new(&tpi, &ipi);
+        let tpi = pdb.read_type_stream()?;
+        let ipi = pdb.read_ipi_stream()?;
 
-            for &global_ref in module_global_refs.iter() {
-                let global_ref = global_ref.get();
-                // global_ref is an index into the GSS
+        dump_symbol_stream(
+            &tpi,
+            &ipi,
+            module_stream.sym_data()?,
+            options.skip,
+            options.max,
+            4,
+            options.bytes,
+            false,
+        )?;
 
-                let global_sym = gss.get_sym_at(global_ref)?;
-                dump_sym(
-                    &mut out,
-                    &mut context,
-                    global_ref,
-                    global_sym.kind,
-                    global_sym.data,
-                )?;
-                print!("{}", out);
+        println!();
+
+        if options.global_refs {
+            println!("Global Refs");
+            println!("-----------");
+            println!();
+
+            let module_global_refs = module_stream.global_refs()?;
+            if !module_global_refs.is_empty() {
+                let gss = pdb.gss()?;
+
+                let mut out = String::new();
+                let mut context = DumpSymsContext::new(&tpi, &ipi);
+
+                for &global_ref in module_global_refs.iter() {
+                    let global_ref = global_ref.get();
+                    // global_ref is an index into the GSS
+
+                    let global_sym = gss.get_sym_at(global_ref)?;
+                    dump_sym(
+                        &mut out,
+                        &mut context,
+                        global_ref,
+                        global_sym.kind,
+                        global_sym.data,
+                    )?;
+                    print!("{}", out);
+                }
+            } else {
+                println!("(none)");
             }
-        } else {
-            println!("(none)");
+        }
+
+        if found_wanted_module {
+            break;
+        }
+    }
+
+    if let Some(wanted_module_index) = options.module_index {
+        if !found_wanted_module {
+            bail!(
+                "Could not find a module with index #{}",
+                wanted_module_index
+            );
         }
     }
 

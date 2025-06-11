@@ -39,6 +39,7 @@ pub struct DumpOptions {
 #[derive(clap::Subcommand)]
 pub enum Subcommand {
     Names(names::DumpNamesOptions),
+    /// Dump global symbol stream (GSS)
     Globals {
         max: Option<usize>,
         skip: Option<usize>,
