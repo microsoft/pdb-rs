@@ -1,9 +1,9 @@
 use crate::pdz::util::*;
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use ms_pdb::dbi::{DbiStreamHeader, DBI_STREAM_HEADER_LEN};
 use ms_pdb::msf::Msf;
 use ms_pdb::msfz::{MsfzFinishOptions, MsfzWriter, StreamWriter, MIN_FILE_SIZE_16K};
-use ms_pdb::Stream;
+use ms_pdb::{RandomAccessFile, Stream};
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
@@ -27,6 +27,11 @@ pub(crate) struct PdzEncodeOptions {
     /// compression, some PDZ readers do not yet support reading compressed stream directories.
     #[arg(long)]
     pub compress_stream_dir: bool,
+
+    /// If a file is not a PDB, then simply copy it to the destination, unchanged. This will
+    /// copy Portable PDBs and PDZs to the output without changing them.
+    #[arg(long)]
+    pub copy_unrecognized: bool,
 }
 
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
@@ -38,6 +43,24 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
             options.input_pdb
         )
     })?;
+
+    let input_file = RandomAccessFile::open(Path::new(&options.input_pdb))
+        .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
+
+    use ms_pdb::taster::{what_flavor, Flavor};
+
+    if let Ok(flavor) = what_flavor(&input_file) {
+        if flavor != Some(Flavor::Pdb) {
+            if options.copy_unrecognized {
+                drop(input_file);
+                std::fs::copy(&options.input_pdb, &options.output_pdz)?;
+                return Ok(());
+            } else {
+                bail!("The input file is not a PDB: {}", options.input_pdb);
+            }
+        }
+    }
+
     let pdb = Msf::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
     let out = File::create(&options.output_pdz)

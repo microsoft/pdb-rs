@@ -9,6 +9,7 @@
 use clap::Parser;
 
 mod addsrc;
+mod check;
 mod container;
 mod copy;
 mod counts;
@@ -66,6 +67,7 @@ enum Command {
     /// specific stream, then use the `dump <filename> hex` command instead.
     Hexdump(hexdump::HexdumpOptions),
     PdzEncode(pdz::encode::PdzEncodeOptions),
+    Check(check::CheckOptions),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -84,6 +86,7 @@ fn main() -> anyhow::Result<()> {
         Command::Hexdump(args) => hexdump::command(args)?,
         Command::PdzEncode(args) => pdz::encode::pdz_encode(args)?,
         Command::Container(args) => container::container_command(&args)?,
+        Command::Check(args) => check::command(args)?,
     }
 
     Ok(())
@@ -123,5 +126,9 @@ fn configure_tracing(args: &CommandWithFlags) {
         LevelFilter::INFO
     };
 
-    builder.with_max_level(max_level).with_ansi(false).init();
+    builder
+        .with_max_level(max_level)
+        .with_ansi(false)
+        .without_time()
+        .init();
 }

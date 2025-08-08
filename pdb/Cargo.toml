@@ -1,6 +1,6 @@
 [package]
 name = "ms-pdb"
-version = "0.1.9"
+version = "0.1.10"
 edition = "2021"
 description = "Reads Microsoft Program Database (PDB) files"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -31,7 +31,7 @@ version = "0.1.1"
 path = "../codeview"
 
 [dependencies.ms-pdb-msf]
-version = "0.1.3"
+version = "0.1.4"
 path = "../msf"
 
 [dependencies.ms-pdb-msfz]

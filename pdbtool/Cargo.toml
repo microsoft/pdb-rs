@@ -30,5 +30,5 @@ zerocopy.workspace = true
 zstd.workspace = true
 
 [dependencies.ms-pdb]
-version = "0.1.9"
+version = "0.1.10"
 path = "../pdb"
