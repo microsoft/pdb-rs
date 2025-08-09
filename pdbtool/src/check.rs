@@ -97,7 +97,7 @@ fn check_one(options: &CheckOptions, stats: &mut Stats, file_name: &Path) {
                 let mut all_errors_text = String::new();
                 for error in errors.iter() {
                     all_errors_text.push_str(error);
-                    all_errors_text.push_str("\n");
+                    all_errors_text.push('\n');
                 }
 
                 error!("{} : has errors:\n", all_errors_text);
