@@ -386,32 +386,40 @@ impl<F: ReadAt> Msf<F> {
         // Read the FPM from disk and compare it to the FPM that we just constructed. They should
         // be identical.
         // TODO: implement for small MSF
-        let fpm_on_disk = read_fpm_big_msf(&file, active_fpm, num_pages, page_size_pow2)?;
 
-        assert_eq!(fpm_on_disk.len(), page_allocator.fpm.len()); // because num_pages defines both
+        // If we are opening this MSF file for read-write access, then check that it meets our
+        // consistency requirements. Some tools generate PDBs that violate some consistency
+        // requirements, mainly the bits set in the FPM. We want to avoid checking checking
+        // requirements so that we can read data from those tools, even if they don't set the FPM
+        // bits correctly.
+        if access_mode == AccessMode::ReadWrite {
+            let fpm_on_disk = read_fpm_big_msf(&file, active_fpm, num_pages, page_size_pow2)?;
 
-        if page_allocator.fpm != fpm_on_disk {
-            warn!("FPM computed from Stream Directory is not equal to FPM found on disk.");
-            warn!(
-                "Num pages = {num_pages} (0x{num_pages:x} bytes, bit offset: 0x{:x}:{})",
-                num_pages / 8,
-                num_pages % 8
-            );
+            assert_eq!(fpm_on_disk.len(), page_allocator.fpm.len()); // because num_pages defines both
 
-            for i in 0..num_pages as usize {
-                if fpm_on_disk[i] != page_allocator.fpm[i] {
-                    warn!(
-                        "  bit 0x{:04x} is different. disk = {}, computed = {}",
-                        i, fpm_on_disk[i], page_allocator.fpm[i]
-                    );
+            if page_allocator.fpm != fpm_on_disk {
+                warn!("FPM computed from Stream Directory is not equal to FPM found on disk.");
+                warn!(
+                    "Num pages = {num_pages} (0x{num_pages:x} bytes, bit offset: 0x{:x}:{})",
+                    num_pages / 8,
+                    num_pages % 8
+                );
+
+                for i in 0..num_pages as usize {
+                    if fpm_on_disk[i] != page_allocator.fpm[i] {
+                        warn!(
+                            "  bit 0x{:04x} is different. disk = {}, computed = {}",
+                            i, fpm_on_disk[i], page_allocator.fpm[i]
+                        );
+                    }
                 }
-            }
 
-            // Clang's PDB writer sometimes places stream pages at illegal locations,
-            // such as in the pages reserved for the FPM. We tolerate this for reading
-            // but not for writing.
-            if access_mode == AccessMode::ReadWrite {
-                bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
+                // Clang's PDB writer sometimes places stream pages at illegal locations,
+                // such as in the pages reserved for the FPM. We tolerate this for reading
+                // but not for writing.
+                if access_mode == AccessMode::ReadWrite {
+                    bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
+                }
             }
         }
 

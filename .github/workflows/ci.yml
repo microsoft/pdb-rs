@@ -13,7 +13,6 @@ jobs:
           - ubuntu-latest
         toolchain:
           - 1.82
-          - stable
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: -D warnings
