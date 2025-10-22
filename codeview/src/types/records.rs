@@ -22,9 +22,9 @@ bitfield::bitfield! {
     pub scoped,        set_scoped:        8;      // scoped definition
     pub hasuniquename, set_hasuniquename: 9;      // true if there is a decorated name following the regular name
     pub sealed,        set_sealed:        10;     // true if class cannot be used as a base class
-    pub hfa,           set_hfa:           11, 12; // CV_HFA
+    pub hfa,           set_hfa:           12, 11; // CV_HFA (bits 12-11, MSB first!)
     pub intrinsic,     set_intrinsic:     13;     // true if class is an intrinsic type (e.g. __m128d)
-    pub mocom,         set_mocom:         14;     // CV_MOCOM_UDT
+    pub mocom,         set_mocom:         15, 14; // CV_MOCOM_UDT (bits 15-14, MSB first!) - FIXED!
 }
 
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned)]
@@ -602,3 +602,4 @@ pub struct VFTable {
     /// segment of virtual function table
     pub seg: U16<LE>,
 }
+
