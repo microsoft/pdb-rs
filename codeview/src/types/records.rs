@@ -230,7 +230,7 @@ bitfield! {
     pub is_const, set_is_const: 0;
     pub is_volatile, set_is_volatile: 1;
     pub is_unaligned, set_is_unaligned: 2;
-    pub reserved, set_reserved: 3, 15;
+    pub reserved, set_reserved: 15, 3;  // Fixed: was 3, 15 (bits 15-3, MSB first)
 }
 
 /// `LF_PROCEDURE`
@@ -365,7 +365,7 @@ bitfield::bitfield! {
     pub r#const, set_const: 10;
     pub unaligned, set_unaligned: 11;
     pub restrict, set_restrict: 12;
-    pub size, set_size: 13, 18;
+    pub size, set_size: 18, 13;  // Fixed: was 13, 18 (bits 18-13, MSB first)
     pub ismocom, set_ismocom: 19;
     pub islref, set_islref: 20;
     pub isrref, set_isrref: 21;
