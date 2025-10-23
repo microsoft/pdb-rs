@@ -602,4 +602,3 @@ pub struct VFTable {
     /// segment of virtual function table
     pub seg: U16<LE>,
 }
-
