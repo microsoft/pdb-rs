@@ -22,9 +22,9 @@ bitfield::bitfield! {
     pub scoped,        set_scoped:        8;      // scoped definition
     pub hasuniquename, set_hasuniquename: 9;      // true if there is a decorated name following the regular name
     pub sealed,        set_sealed:        10;     // true if class cannot be used as a base class
-    pub hfa,           set_hfa:           12, 11; // CV_HFA (bits 12-11, MSB first!)
+    pub hfa,           set_hfa:           12, 11; // CV_HFA (bits 12-11)
     pub intrinsic,     set_intrinsic:     13;     // true if class is an intrinsic type (e.g. __m128d)
-    pub mocom,         set_mocom:         15, 14; // CV_MOCOM_UDT (bits 15-14, MSB first!) - FIXED!
+    pub mocom,         set_mocom:         15, 14; // CV_MOCOM_UDT (bits 15-14)
 }
 
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned)]
@@ -230,7 +230,7 @@ bitfield! {
     pub is_const, set_is_const: 0;
     pub is_volatile, set_is_volatile: 1;
     pub is_unaligned, set_is_unaligned: 2;
-    pub reserved, set_reserved: 15, 3;  // Fixed: was 3, 15 (bits 15-3, MSB first)
+    pub reserved, set_reserved: 15, 3;
 }
 
 /// `LF_PROCEDURE`
@@ -365,7 +365,7 @@ bitfield::bitfield! {
     pub r#const, set_const: 10;
     pub unaligned, set_unaligned: 11;
     pub restrict, set_restrict: 12;
-    pub size, set_size: 18, 13;  // Fixed: was 13, 18 (bits 18-13, MSB first)
+    pub size, set_size: 18, 13;
     pub ismocom, set_ismocom: 19;
     pub islref, set_islref: 20;
     pub isrref, set_isrref: 21;
