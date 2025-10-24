@@ -233,6 +233,15 @@ bitfield! {
     pub reserved, set_reserved: 15, 3;  // Fixed: was 3, 15 (bits 15-3, MSB first)
 }
 
+/// `LF_BITFIELD`
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+pub struct Bitfield {
+    pub underlying_type: TypeIndexLe,
+    pub length: u8,
+    pub position: u8,
+}
+
 /// `LF_PROCEDURE`
 #[repr(C)]
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
@@ -602,4 +611,3 @@ pub struct VFTable {
     /// segment of virtual function table
     pub seg: U16<LE>,
 }
-

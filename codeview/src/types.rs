@@ -94,6 +94,7 @@ pub enum TypeData<'a> {
     VTableShape(VTableShapeData<'a>),
     Pointer(Pointer<'a>),
     Modifier(TypeModifier),
+    Bitfield(&'a Bitfield),
     FieldList(FieldList<'a>),
     MethodList(MethodListData<'a>),
     ArgList(ArgList<'a>),
@@ -144,6 +145,7 @@ impl<'a> TypeData<'a> {
 
             Leaf::LF_MFUNCTION => Self::MemberFunc(p.get()?),
             Leaf::LF_MODIFIER => Self::Modifier(p.copy()?),
+            Leaf::LF_BITFIELD => Self::Bitfield(p.get()?),
 
             Leaf::LF_FIELDLIST => Self::FieldList(FieldList {
                 bytes: p.take_rest(),
