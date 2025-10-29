@@ -228,6 +228,14 @@ pub fn dump_type_record(
             ty_ref(out, t.underlying_type.get())?;
         }
 
+        TypeData::Bitfield(t) => {
+            ty_ref(out, t.underlying_type.get())?;
+            write!(out, " : {}", t.length)?;
+            if t.position != 0 {
+                write!(out, " at bit {}", t.position)?;
+            }
+        }
+
         TypeData::MemberFunc(t) => {
             write!(out, "    ret: ")?;
             ty_ref(out, t.return_value.get())?;
