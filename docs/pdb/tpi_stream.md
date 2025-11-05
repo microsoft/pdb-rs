@@ -4,17 +4,20 @@
 - [Type Records Substream](#type-records-substream)
 - [Hash Stream](#hash-stream)
 - [Hash Value Substream](#hash-value-substream)
-  - [Example](#example)
 - [Type Record Hash Function](#type-record-hash-function)
 - [Hash Index Substream](#hash-index-substream)
-- [Example](#example-1)
+- [Example](#example)
 - [Hash Adjustment Substream](#hash-adjustment-substream)
 
 # TPI Stream: Type Database (Fixed Stream 2)
 
-Each PDB contains a TPI Stream, also called the Type Database.  The TPI Stream is always stored in stream 2. The TPI is one of the central data structures of the PDB; many other structures refer to it, using `TypeIndex` values.
+Each PDB contains a TPI Stream, also called the Type Database. The TPI Stream is
+always stored in stream 2. The TPI is one of the central data structures of the
+PDB; many other structures refer to it, using `TypeIndex` values.
 
-Symbol records stored in the Global Symbol Stream (GSS) and in module symbol streams refer to type definitions stored in the TPI Stream using `TypeIndex` values.
+Symbol records stored in the Global Symbol Stream (GSS) and in module symbol
+streams refer to type definitions stored in the TPI Stream using `TypeIndex`
+values.
 
 The TPI permits only this restricted set of type records:
 
@@ -37,7 +40,8 @@ Record Kind<br>Value (hex) | Record Kind Name | Description
 
 # Type Stream Header
 
-Each Type Stream (both TPI and IPI) consists of a header, followed by a series of variable-length type records. 
+Each Type Stream (both TPI and IPI) consists of a header, followed by a series
+of variable-length type records.
 
 The header:
 
@@ -84,16 +88,24 @@ An example of a Type Stream Header:
 000000c0 : 77 65 72 55 73 65 72 49 6e 76 61 6c 69 64 00 f1 : werUserInvalid..
 ```
 
-The `header_size` field specifies the actual size of this header. The Type Records immediately follow the Type Stream Header, at the offset given by `header_size`. Readers should use the `header_size` value, rather than assuming that the header has a fixed (compile-time) size.
+The `header_size` field specifies the actual size of this header. The Type
+Records immediately follow the Type Stream Header, at the offset given by
+`header_size`. Readers should use the `header_size` value, rather than assuming
+that the header has a fixed (compile-time) size.
 
 > Invariant: The `header_size` field cannot be less than 56.
 
-> Invariant: The `header_size` field must be a multiple of 4. This is required so that the type records begin on an aligned boundary.
+> Invariant: The `header_size` field must be a multiple of 4. This is required
+> so that the type records begin on an aligned boundary.
 
-> Invariant: Although the `hash_value_buffer_length`, `index_offset_buffer_length`, and `hash_adj_buffer_length` fields are typed as signed integers, these fields should never be negative.
+> Invariant: Although the `hash_value_buffer_length`,
+> `index_offset_buffer_length`, and `hash_adj_buffer_length` fields are typed as
+> signed integers, these fields should never be negative.
 Version
 
-The version field specifies the structure of the Type Stream. These are the defined values for version, in decimal. The names and values come from the `/PDB/dbi/tpi.h` header file [MS-PDB].
+The version field specifies the structure of the Type Stream. These are the
+defined values for version, in decimal. The names and values come from the
+`/PDB/dbi/tpi.h` header file [MS-PDB].
 
 Name             | Value (decimal) | Description
 -----------------|----------|-----------
@@ -108,23 +120,38 @@ All decoders should expect `impv80` version. All encoders should generate `impv8
 
 # Type Index Range
 
-The `type_index_begin` and `type_index_end` fields specify the range of Type Index values within the type stream, and implicitly specify the number of type records in the Type Stream.
+The `type_index_begin` and `type_index_end` fields specify the range of Type
+Index values within the type stream, and implicitly specify the number of type
+records in the Type Stream.
 
-The `type_index_begin` value specifies the Type Index of the first type record stored in the stream. Type Index values that are less than `type_index_begin` are reserved for primitive types, such as void, unsigned int, etc.  The value of `type_index_begin` must be greater than or equal to 4096 (0x1000), because the first 4096 values are reserved for encoding primitive types. In fact, all observed PDBs use a value of 4096 for `type_index_begin`; encoders should always use a value of 4096, because many decoders may assume a fixed value.
+The `type_index_begin` value specifies the Type Index of the first type record
+stored in the stream. Type Index values that are less than `type_index_begin`
+are reserved for primitive types, such as void, unsigned int, etc. The value of
+`type_index_begin` must be greater than or equal to 4096 (0x1000), because the
+first 4096 values are reserved for encoding primitive types. In fact, all
+observed PDBs use a value of 4096 for `type_index_begin`; encoders should always
+use a value of 4096, because many decoders may assume a fixed value.
 
-`type_index_begin` is a very important parameter. Interpreting many data structures within the PDB requires knowing the value of `type_index_begin`.
+`type_index_begin` is a very important parameter. Interpreting many data
+structures within the PDB requires knowing the value of `type_index_begin`.
 
 > Invariant: `type_index_begin` must be greater than or equal to 4096.
 
-The `type_index_end` field specifies the exclusive upper bound of Type Index values. Thus, the number of type records is equal to `type_index_end - type_index_begin`.
+The `type_index_end` field specifies the exclusive upper bound of Type Index
+values. Thus, the number of type records is equal to
+`type_index_end - type_index_begin`.
 
 > Invariant: `type_index_end` must be greater than or equal to `type_index_begin`.
 
-> Invariant: The number of type records stored in the Type Stream must be equal to `type_index_end - type_index_begin`.
+> Invariant: The number of type records stored in the Type Stream must be equal
+> to `type_index_end - type_index_begin`.
 
 # Type Records Substream
 
-After the Type Stream Header, the rest of the data in the Type Stream stores Type Records. The `type_record_bytes` field specifies the length of the type records, in bytes. The type records are stored within the Type Stream, starting at the byte offset given by `header_size`.
+After the Type Stream Header, the rest of the data in the Type Stream stores
+Type Records. The `type_record_bytes` field specifies the length of the type
+records, in bytes. The type records are stored within the Type Stream, starting
+at the byte offset given by `header_size`.
 
 > Invariant: type_record_bytes must be a multiple of 2.
 
@@ -132,11 +159,16 @@ After the Type Stream Header, the rest of the data in the Type Stream stores Typ
 
 > Invariant: header_size + type_record_bytes must be less than or equal to the size of the Type Stream
 
-In all PDBs observed, `header_size + type_record_bytes` is equal to the size of the Type Stream. It would be possible to store additional data at the end of the Type Stream after the Type Records, but this has not been observed in practice.
+In all PDBs observed, `header_size + type_record_bytes` is equal to the size of
+the Type Stream. It would be possible to store additional data at the end of the
+Type Stream after the Type Records, but this has not been observed in practice.
 
-> Determinism: No extra data should be written to the Type Stream after the Type Records. The size of the Type Stream must be equal to header_size + type_record_bytes.
+> Determinism: No extra data should be written to the Type Stream after the Type
+> Records. The size of the Type Stream must be equal to header_size +
+> type_record_bytes.
 
-Type records are variable-length records. Each record begins with a 4-byte header, which specifies the length and the "kind" of the record.
+Type records are variable-length records. Each record begins with a 4-byte
+header, which specifies the length and the "kind" of the record.
 
 ```
 struct TypeRecordHeader {
@@ -146,12 +178,22 @@ struct TypeRecordHeader {
 }
 ```
 
-The size field specifies the size in bytes of the record. The size field does not count the size field itself, but it does count the kind field and the payload bytes.
+The size field specifies the size in bytes of the record. The size field does
+not count the size field itself, but it does count the kind field and the
+payload bytes.
 
-> Invariant: The TypeRecordHeader.size field must be a multiple of 2, and must be greater than or equal to 2.
-Type records are aligned at 2-byte boundaries. Unfortunately, many type records contain fields that have 4-byte alignment, such as uint32_t. Encoders and decoders must handle misaligned access to those fields, either using unaligned memory accesses or must copy the entire record to a buffer that has a guaranteed alignment.
+> Invariant: The TypeRecordHeader.size field must be a multiple of 2, and must
+> be greater than or equal to 2.
 
-The kind field specifies how to interpret a type record. In the PDB documentation, this kind field uses the "Leaf Type" enumeration. The details of these records are outside of the scope of this document. See these references:
+Type records are aligned at 2-byte boundaries. Unfortunately, many type records
+contain fields that have 4-byte alignment, such as `uint32_t`. Encoders and
+decoders must handle misaligned access to those fields, either using unaligned
+memory accesses or must copy the entire record to a buffer that has a guaranteed
+alignment.
+
+The kind field specifies how to interpret a type record. In the PDB
+documentation, this kind field uses the "Leaf Type" enumeration. The details of
+these records are outside of the scope of this document. See these references:
 
 * LLVM: CodeView Type Records
 * `cvinfo.h` in MS public and internal sources, specifically the `LEAF_ENUM_e` type. (`cvinfo.h` in microsoft-pdb public GitHub repo)
@@ -159,8 +201,6 @@ The kind field specifies how to interpret a type record. In the PDB documentatio
 This is an example of a single type record:
 
 ```
-000000b0 : 61 78 69 6d 75 6d 00 f1 02 15 03 00 03 00 50 6f : aximum........Po
-000000c0 : 77 65 72 55 73 65 72 49 6e 76 61 6c 69 64 00 f1 : werUserInvalid..
 000000d0 : 46 00 07 15 05 00 00 02 74 00 00 00 02 10 00 00 : F.......t.......
 000000e0 : 5f 55 53 45 52 5f 41 43 54 49 56 49 54 59 5f 50 : _USER_ACTIVITY_P
 000000f0 : 52 45 53 45 4e 43 45 00 2e 3f 41 57 34 5f 55 53 : RESENCE..?AW4_US
@@ -170,15 +210,28 @@ This is an example of a single type record:
 00000130 : 5f 52 41 54 45 5f 43 4f 4e 54 52 4f 4c 5f 45 4e : _RATE_CONTROL_EN
 ```
 
-It begins with the length (0x0046) and the kind (0x1507). In the CodeView documentation, 0x1507 identifies an `LF_ENUM` type record. Decoding that record shows that it points to a field list (another type record) using type index 0x1002, and that its name is `_USER_ACTIVITY_PRESENCE`.
+It begins with the length (0x0046) and the kind (0x1507). In the CodeView
+documentation, 0x1507 identifies an `LF_ENUM` type record. Decoding that record
+shows that it points to a field list (another type record) using type index
+0x1002, and that its name is `_USER_ACTIVITY_PRESENCE`.
 
-To ensure that records are padded to 2-byte alignment, MS PDB writers often insert 0xF1 bytes at the end of type records. This is visible at offset 0x117 in the example above. The 0xF1 byte is included in the record length, so the code that finds record boundaries does not need to know about the 0xF1 byte. When decoding records, implementations must ignore these 0xF1 bytes. When encoding records, implementations should use a value of 0xF1 to pad record payloads to an alignment boundary of 2. 
+To ensure that records are padded to 2-byte alignment, MS PDB writers often
+insert 0xF1 bytes at the end of type records. This is visible at offset 0x117 in
+the example above. The 0xF1 byte is included in the record length, so the code
+that finds record boundaries does not need to know about the 0xF1 byte. When
+decoding records, implementations must ignore these 0xF1 bytes. When encoding
+records, implementations should use a value of 0xF1 to pad record payloads to an
+alignment boundary of 2.
 
 # Hash Stream
 
-The TPI Stream may have a corresponding TPI Hash Stream. The TPI Hash Stream contains several forms of lookup tables that point into the TPI Stream, which enables faster searching.
+The TPI Stream may have a corresponding TPI Hash Stream. The TPI Hash Stream
+contains several forms of lookup tables that point into the TPI Stream, which
+enables faster searching.
 
-The TPI Stream Header specifies the stream number of the TPI Hash Stream in the `hash_stream_index` field of the TPI Stream Header. The reserved value 0xFFFF means that there is no hash stream. All observed PDBs have a valid hash stream.
+The TPI Stream Header specifies the stream number of the TPI Hash Stream in the
+`hash_stream_index` field of the TPI Stream Header. The reserved value 0xFFFF
+means that there is no hash stream. All observed PDBs have a valid hash stream.
 
 The Type Hash Stream contains the following substreams:
 
@@ -186,63 +239,81 @@ The Type Hash Stream contains the following substreams:
 * Index Offset Buffer
 * Hash Adjustment Buffer
 
-The byte offset within the Hash Stream and length of each of these substreams is specified in the TPI Stream Header, not in the Type Hash Stream itself.
+The byte offset within the Hash Stream and length of each of these substreams is
+specified in the TPI Stream Header, not in the Type Hash Stream itself.
 
-Because the Type Stream Header explicitly specifies the starting offset of each of the substreams, encoders have a degree of freedom in the order of the substreams. Observationally, the MSVC linker writes these substreams in the order given above (Hash Value Buffer, Index Offset Buffer, Hash Adjustment Buffer), with no gaps between them. Also, if a given substream has a length of zero (which is common for the Hash Adjustment Buffer), then the MSVC linker will still write the offset where the substream would have been written, rather than writing a meaningless value for the offset.
+Because the Type Stream Header explicitly specifies the starting offset of each
+of the substreams, encoders have a degree of freedom in the order of the
+substreams. Observationally, the MSVC linker writes these substreams in the
+order given above (Hash Value Buffer, Index Offset Buffer, Hash Adjustment
+Buffer), with no gaps between them. Also, if a given substream has a length of
+zero (which is common for the Hash Adjustment Buffer), then the MSVC linker will
+still write the offset where the substream would have been written, rather than
+writing a meaningless value for the offset.
 
 PDB encoders should use the same behavior as the MSVC linker:
 
-> Determinism: Encoders should write the substreams in the order specified above, with no gaps between the substreams.
+> Determinism: Encoders should write the substreams in the order specified
+> above, with no gaps between the substreams.
 
-> Determinism: If a substream is zero-length, then encoders should still write an offset (into the Type Stream Header) where the substream would logically be (i.e. the end of the previous substream).
+> Determinism: If a substream is zero-length, then encoders should still write
+> an offset (into the Type Stream Header) where the substream would logically be
+> (i.e. the end of the previous substream).
 
 # Hash Value Substream
 
-The Hash Value Substream is a substream of the Type Hash Stream. It contains hash values for all type records. It is not clear what the purpose of the Hash Value Substream is.
+The Hash Value Substream is a substream of the Type Hash Stream. It contains
+hash values for all type records. It is not clear what the purpose of the Hash
+Value Substream is.
 
-The Type Stream Header specifies the stream offset and size of the Hash Value Substream.  The Hash Value Substream is optional; it may be empty (zero-length) even if the Type Stream contains type records. However, if the Hash Value Substream is present, then it must contain the same number of entries as the number of type records in the Type Stream.
+The Type Stream Header specifies the stream offset and size of the Hash Value
+Substream. The Hash Value Substream is optional; it may be empty (zero-length)
+even if the Type Stream contains type records. However, if the Hash Value
+Substream is present, then it must contain the same number of entries as the
+number of type records in the Type Stream.
 
-> Invariant: If `TypeStreamHeader.hash_value_buffer_length` is non-zero then it must be a multiple of `hash_key_size` and its value must be `num_type_records * hash_key_size`, where `num_type_records` is `type_index_end – type_index_end`.
+> Invariant: If `TypeStreamHeader.hash_value_buffer_length` is non-zero then it
+> must be a multiple of `hash_key_size` and its value must be
+> `num_type_records * hash_key_size`, where `num_type_records` is
+> `type_index_end – type_index_end`.
 
-The number of hash values in the Hash Value Substream is equal to `hash_value_buffer_length / hash_key_size`. This value should either be zero, or should be equal to the number of types in the Type Record Stream. Each value corresponds to a type record, by ordering hash values and type records sequentially. The hash values are computed using CRC-32 (with an initializer of zero) over the bytes of the entire type record. This includes the type record's size field, kind field, and record payload.
-
-## Example
-
-Here are examples of the first three type records and their matching hashes from the Type Hash Stream.
-
-Record #0 (TypeIndex = 0x1000):
- 
-The matching value from the Type Hash Stream:
- 
-Record #1 (TypeIndex = 0x1001):
- 
-The matching value from the Type Hash Stream:
- 
-Record #2 (TypeIndex = 0x1002):
- 
-The matching value from the Type Hash Stream:
-
-> TODO: Observationally, we find many records whose computed CRC-32 value does not match their stored value, but many that do match. Figure out why.
+The number of hash values in the Hash Value Substream is equal to
+`hash_value_buffer_length / hash_key_size`. This value should either be zero, or
+should be equal to the number of types in the Type Record Stream. Each value
+corresponds to a type record, by ordering hash values and type records
+sequentially. The hash values are computed using CRC-32 (with an initializer of
+zero) over the bytes of the entire type record. This includes the type record's
+size field, kind field, and record payload.
 
 # Type Record Hash Function
 
-The Hash Value Substream contains hash values computed for each type record. The hash function is complex because the function depends on the type record kind. (See `TPI1::hashPrec` defined in `tpi.cpp` in [MS-PDB].)
+The Hash Value Substream contains hash values computed for each type record. The
+hash function is complex because the function depends on the type record kind.
+(See `TPI1::hashPrec` defined in `tpi.cpp` in [MS-PDB].)
 
-* For global UDT definitions, use the `LHashPbCb` function over the `name` field of the UDT type. The definition of a "global UDT definition" is moderately complicated; see `REC::fIsGlobalDefnUdt` in `tpi.cpp`.
-  + The type kind must be one of `LF_ALIAS`, `LF_CLASS`, `LF_STRUCTURE`, `LF_UNION`, `LF_ENUM`, or `LF_INTERFACE`.
-  + If the type kind is LF_ALIAS, then the record is a global UDT definition.
-  + If the type kind is other than LF_ALIAS, then these requirements apply:
-* The type record must not be a forward declaration. Forward declarations are identified by a bit set in the property field of the type record. All of the relevant types have the same property bitmask set the same offset, which makes testing this requirement easy.
+* For global UDT definitions, use the `LHashPbCb` function over the `name` field
+  of the UDT type. The definition of a "global UDT definition" is moderately
+  complicated; see `REC::fIsGlobalDefnUdt` in `tpi.cpp`.
+  * The type kind must be one of `LF_ALIAS`, `LF_CLASS`, `LF_STRUCTURE`,
+    `LF_UNION`, `LF_ENUM`, or `LF_INTERFACE`.
+  * If the type kind is LF_ALIAS, then the record is a global UDT definition.
+  * If the type kind is other than LF_ALIAS, then these requirements apply:
+* The type record must not be a forward declaration. Forward declarations are
+  identified by a bit set in the property field of the type record. All of the
+  relevant types have the same property bitmask set the same offset, which makes
+  testing this requirement easy.
 * The type record must not have the scoped bit set in its property bitmask.
 * The type record must not be an "anonymous UDT".
-   + The type name must not be `<unnamed-tag>` or `__unnamed`.
-   + The type name must not end with `::<unnamed-tag>` or `::__unnamed`.
+   * The type name must not be `<unnamed-tag>` or `__unnamed`.
+   * The type name must not end with `::<unnamed-tag>` or `::__unnamed`.
 
-> TODO: Expand this section and fully specify the behavior of `TPI1::hashPrec`. That function also uses CRC-32 for hashing some names.
+> TODO: Expand this section and fully specify the behavior of `TPI1::hashPrec`.
+> That function also uses CRC-32 for hashing some names.
 
 # Hash Index Substream
 
-The Hash Index Substream is stored in the Type Hash Stream. It consists of an array of fixed-size records with this definition:
+The Hash Index Substream is stored in the Type Hash Stream. It consists of an
+array of fixed-size records with this definition:
 
 ```
 // sizeof = 8
@@ -252,19 +323,29 @@ struct HashIndexPair {
 };
 ```
 
-This array of `HashIndexPair` structures is sorted in strictly-increasing order by `type_index`. Each entry specifies the offset within the Type Records Substream of the corresponding type record.  That is, you will need to add the header_size field to stream_offset to get the absolute byte offset within the Type Stream.
+This array of `HashIndexPair` structures is sorted in strictly-increasing order
+by `type_index`. Each entry specifies the offset within the Type Records
+Substream of the corresponding type record. That is, you will need to add the
+header_size field to stream_offset to get the absolute byte offset within the
+Type Stream.
 
-Observationally, the Hash Index Substream is usually fairly small. There is no clear pattern to the increases in the type_index of `stream_offset` fields. Typical values observed are an increase of 80 to 100 Type Index values, and 8000 to 10000 bytes for stream_offset.
+Observationally, the Hash Index Substream is usually fairly small. There is no
+clear pattern to the increases in the type_index of `stream_offset` fields.
+Typical values observed are an increase of 80 to 100 Type Index values, and 8000
+to 10000 bytes for stream_offset.
 
-The first entry in the array must have `type_index == type_index_begin`, and must have `stream_offset == 0`.
+The first entry in the array must have `type_index == type_index_begin`, and
+must have `stream_offset == 0`.
 
 > Invariant: The byte size of the Hash Index Substream is a multiple of 8.
 
-> Invariant: The entries in Hash Index Substream are ordered with type_index strictly increasing, and stream_offset strictly increasing. 
+> Invariant: The entries in Hash Index Substream are ordered with type_index
+> strictly increasing, and stream_offset strictly increasing.
 
 # Example
 
-This is an example of the Hash Index Substream. The Hash Index Substream is highlighted; it is preceded (in this example) by the Hash Value Substream.
+This is an example of the Hash Index Substream. The Hash Index Substream is
+highlighted; it is preceded (in this example) by the Hash Value Substream.
  
 The first few entries of the Hash Index Substream decode as:
 
@@ -280,4 +361,5 @@ Type Index  | Stream Offset
 
 # Hash Adjustment Substream
 
-The purpose and structure of the Hash Adjustment Substream is not well-understood. [LLVM] suggests that it is related to Edit-and-Continue.
+The purpose and structure of the Hash Adjustment Substream is not
+well-understood. [LLVM] suggests that it is related to Edit-and-Continue.

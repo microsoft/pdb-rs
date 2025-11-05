@@ -519,7 +519,13 @@ pub fn dump_item_short(
         return Ok(());
     }
 
-    let item_record = context.ipi.record(TypeIndex(item))?;
+    let item_record = match context.ipi.record(TypeIndex(item)) {
+        Ok(r) => r,
+        Err(e) => {
+            write!(out, "(error: {e:?})")?;
+            return Ok(());
+        }
+    };
     let kind = item_record.kind;
     let data = item_record.data;
 

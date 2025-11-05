@@ -1,13 +1,25 @@
 
 # DBI Sources Substream
 
-The DBI Sources Substream provides a list of the source files that were read when compiling each module. Because many executables contain modules that read from the same source files (such as header files), the DBI Sources substream only lists each unique source file once. It stores a list of file names that were read in each compiland, using offsets into a string table to avoid storing the file names more than once.
+The DBI Sources Substream provides a list of the source files that were read
+when compiling each module. Because many executables contain modules that read
+from the same source files (such as header files), the DBI Sources substream
+only lists each unique source file once. It stores a list of file names that
+were read in each compiland, using offsets into a string table to avoid storing
+the file names more than once.
 
-The size and location of the DBI Sources Substream is specified in the DBI Stream Header. The size is specified explicitly; its location is computed by summing the sizes of the substreams that precede it.
+The size and location of the DBI Sources Substream is specified in the DBI
+Stream Header. The size is specified explicitly; its location is computed by
+summing the sizes of the substreams that precede it.
 
-> Invariant: The starting byte offset of the DBI Sources Substream is a multiple of 4. The starting byte offset is computed from `module_info_size + section_contributions_size + section_map_size`, from the DBI Stream Header. Each of those sections has a corresponding invariant that those sizes are multiplies of 4.
+> Invariant: The starting byte offset of the DBI Sources Substream is a multiple
+> of 4. The starting byte offset is computed from
+> `module_info_size + section_contributions_size + section_map_size`, from the
+> DBI Stream Header. Each of those sections has a corresponding invariant that
+> those sizes are multiplies of 4.
 
-> Invariant: The size of the DBI Sources Substream (`source_info_size`) is a multiple of 4.
+> Invariant: The size of the DBI Sources Substream (`source_info_size`) is a
+> multiple of 4.
 
 The DBI Sources Substream has this structure:
 
@@ -23,38 +35,83 @@ struct DbiSourcesSubstream {
 };
 ```
 
-`num_modules` specifies the number of modules in this substream. The order of module records in the DBI Modules Substream corresponds to the order of module records in the DBI Sources Substream.
+`num_modules` specifies the number of modules in this substream. The order of
+module records in the DBI Modules Substream corresponds to the order of module
+records in the DBI Sources Substream.
 
-> Invariant: `num_modules` is equal to the number of Module info records in the [DBI Modules Substream](dbi_modules.md).
+> Invariant: `num_modules` is equal to the number of `ModuleInfo` records in the
+> [DBI Modules Substream](dbi_modules.md).
 
-The size of the `file_offsets` array should be computed by summing the values in the `module_file_counts` array.
-Let `num_file_offsets` be the sum of all values in `module_file_counts`.  This is not the number of _unique_ file names; it is the length of the `file_offsets` array. `file_offsets` will usually contain duplicates because different modules will often include the same header files.
+The size of the `file_offsets` array should be computed by summing the values in
+the `module_file_counts` array. Let `num_file_offsets` be the sum of all values
+in `module_file_counts`. This is not the number of _unique_ file names; it is
+the length of the `file_offsets` array. `file_offsets` will usually contain
+duplicates because different modules will often include the same header files.
 
-The `num_sources` field is obsolete and must be ignored when reading the DBI Sources Substream. In the past, it specified the number of entries in the `file_offsets` array. However, because the field only has 16 bits of precision, and many PDBs exist that link together modules that read from more than 2^16 source files, it can no longer be used as an accurate count of the number of source files in the stream. Encoders should set `num_sources` to the truncated value (the lower 16 bits) of the length of `num_file_offsets`.
+The `num_sources` field is obsolete and must be ignored when reading the DBI
+Sources Substream. In the past, it specified the number of entries in the
+`file_offsets` array. However, because the field only has 16 bits of precision,
+and many PDBs exist that link together modules that read from more than 2^16
+source files, it can no longer be used as an accurate count of the number of
+source files in the stream. Encoders should set `num_sources` to the truncated
+value (the lower 16 bits) of the length of `num_file_offsets`.
 
-The `module_file_starts` and `module_file_counts` arrays, taken together, specify the range of values within `file_offsets` that correspond to each module. For a module `m`, `module_file_starts[m]` is the index within `file_offsets` of the first file in the list of files for `m` and `module_file_counts[m]` specifies the number of files for `m`.  In Rust notation, `file_offsets[module_file_starts[m] .. module_file_starts[m] + module_file_counts[m]]` is the slice of `file_offsets` for `m`.
+The `module_file_starts` and `module_file_counts` arrays, taken together,
+specify the range of values within `file_offsets` that correspond to each
+module. For a module `m`, `module_file_starts[m]` is the index within
+`file_offsets` of the first file in the list of files for `m` and
+`module_file_counts[m]` specifies the number of files for `m`. In Rust notation,
+`file_offsets[module_file_starts[m] .. module_file_starts[m] + module_file_counts[m]]`
+is the slice of `file_offsets` for `m`.
 
-> Invariant: `module_file_starts[m] + module_file_counts[m] <= num_file_offsets` for all `m` in `0..num_modules`.
+> Invariant:
+> `module_file_starts[m] + module_file_counts[m] <= num_file_offsets` for all
+> `m` in `0..num_modules`.
 
-> Guideline: Every entry in `file_offsets` is covered by exactly one module. There are no unused gaps and no entries covered by more than one module.
+> Guideline: Every entry in `file_offsets` is covered by exactly one module.
+> There are no unused gaps and no entries covered by more than one module.
 
-The following determinism requirements state this more directly. They ensure that every entry in `file_offsets` is used by exactly one module, and that the order of the per-module ranges within `file_offsets` follows the same order as the modules themselves.
+The following determinism requirements state this more directly. They ensure
+that every entry in `file_offsets` is used by exactly one module, and that the
+order of the per-module ranges within `file_offsets` follows the same order as
+the modules themselves.
 
 > Determinism: `module_file_starts[0] == 0`.
 
-> Determinism: `module_file_starts[i] = module_file_starts[i - 1] + module_file_counts[i - 1]` for all `i > 0`.
+> Determinism:
+> `module_file_starts[i] = module_file_starts[i - 1] + module_file_counts[i - 1]`
+> for all `i > 0`.
 
-`file_offsets` contains offsets into the names_buffer array. The values are relative to the start of `names_buffer`; e.g. a value of zero references the first character in `names_buffer`. The values stored in `file_name_offsets` are organized as a set contiguous sequences, where each sequence corresponds to one module and the length of that sequence is specified in module_file_counts.
+`file_offsets` contains offsets into the names_buffer array. The values are
+relative to the start of `names_buffer`; e.g. a value of zero references the
+first character in `names_buffer`. The values stored in `file_name_offsets` are
+organized as a set contiguous sequences, where each sequence corresponds to one
+module and the length of that sequence is specified in module_file_counts.
 
-`names_buffer` contains the character data for the file names. Each string is UTF-8 and is NUL-terminated. Values in the `file_name_offsets` array point to the start of strings in `names_buffer`.
+`names_buffer` contains the character data for the file names. Each string is
+UTF-8 and is NUL-terminated. Values in the `file_name_offsets` array point to
+the start of strings in `names_buffer`.
 
-In all observed PDBs the values in `file_name_offsets` always point to the start of a string, never to the middle of a string.  That is, `file_name_offsets[i]` is either 0, or `names_buffer[file_name_offsets[i] – 1] == 0`. PDB writers should adhere to this requirement, but it is not stated as an invariant. PDB readers should be prepared for decoding DBI Sources Substreams where file name offsets point into the middle of strings.
+In all observed PDBs the values in `file_name_offsets` always point to the start
+of a string, never to the middle of a string. That is, `file_name_offsets[i]` is
+either 0, or `names_buffer[file_name_offsets[i] – 1] == 0`. PDB writers should
+adhere to this requirement, but it is not stated as an invariant. PDB readers
+should be prepared for decoding DBI Sources Substreams where file name offsets
+point into the middle of strings.
 
-Decoders _should not_ assume that strings within `names_buffer` have no gaps between them. An encoder could place strings at any offset within `names_buffer`, as long as `file_offsets` points to valid offsets within `names_buffer`. This is implied by the fact that there is alignment padding at the end of `DbiSourcesSubstream` and that nothing indicates where `names_buffer` ends and the alignment padding begins.  Decoders should only decode strings that correspond to an entry in `file_offsets`.
+Decoders _should not_ assume that strings within `names_buffer` have no gaps
+between them. An encoder could place strings at any offset within
+`names_buffer`, as long as `file_offsets` points to valid offsets within
+`names_buffer`. This is implied by the fact that there is alignment padding at
+the end of `DbiSourcesSubstream` and that nothing indicates where `names_buffer`
+ends and the alignment padding begins. Decoders should only decode strings that
+correspond to an entry in `file_offsets`.
 
 ## Example
 
-This is an example of the start of a DBI Sources Substream. In this example, the DBI Sources Substream begins at stream offset 0x1ee4c0, which is aligned to our 16-byte rows, so all of the data shown is from the DBI Sources Substream.
+This is an example of the start of a DBI Sources Substream. In this example, the
+DBI Sources Substream begins at stream offset 0x1ee4c0, which is aligned to our
+16-byte rows, so all of the data shown is from the DBI Sources Substream.
 
 ```
 001ee4c0 : 15 09 2f d0 00 00 01 00 06 00 63 00 bf 00 c2 00 : ../.......c.....
@@ -73,9 +130,12 @@ This is an example of the start of a DBI Sources Substream. In this example, the
 001ee590 : 1a 3b ef 3b c4 3c 99 3d 6e 3e 43 3f e9 3f 90 40 : .;.;.<.=n>C?.?.@
 ```
  
-In this example, `num_modules` is 0x915 (2325) and `num_sources` is 53295 (0xD02F). However, we cannot trust the `num_sources` value, as we will see below when we recompute it from `module_file_counts`.
+In this example, `num_modules` is 0x915 (2325) and `num_sources` is 53295
+(0xD02F). However, we cannot trust the `num_sources` value, as we will see below
+when we recompute it from `module_file_counts`.
 
-Using the `num_modules` value (0x915), we can find the offsets of the `module_file_counts`, `module_file_starts`, and `file_name_offsets` fields:
+Using the `num_modules` value (0x915), we can find the offsets of the
+`module_file_counts`, `module_file_starts`, and `file_name_offsets` fields:
 
 Field                | Stream offset | Size expression                       | Size value
 ---------------------|---------------|---------------------------------------|-----------
@@ -86,11 +146,15 @@ Field                | Stream offset | Size expression                       | S
 `file_name_offsets`  | 0x001f0918    | `sizeof(uint32_t) * num_file_offsets` | unknown
 `names_buffer`       | unknown       | consumes rest of record               | implicit
 
-Because we do not yet know the value of `num_file_offsets` we cannot yet compute the location of `names_buffer`.
+Because we do not yet know the value of `num_file_offsets` we cannot yet compute
+the location of `names_buffer`.
 
-Using the stream offsets that we just computed, we can read the first few entries of the `module_file_counts` and `module_file_starts` arrays.
+Using the stream offsets that we just computed, we can read the first few
+entries of the `module_file_counts` and `module_file_starts` arrays.
 
-At stream offset 0x1ee4c4 (which is visible in the hex dump above), we see the beginning of the `module_file_starts` array. At stream offset 0x1ef6ee we see the beginning of the `module_file_counts` array:
+At stream offset 0x1ee4c4 (which is visible in the hex dump above), we see the
+beginning of the `module_file_starts` array. At stream offset 0x1ef6ee we see
+the beginning of the `module_file_counts` array:
 
 ```
 001ef6e0 :                                           01 00 : -.-.-.-.-.-.-...
@@ -118,9 +182,17 @@ At stream offset 0x1ee4c4 (which is visible in the hex dump above), we see the b
 0x001ee4d2 | 0x0114 | 0x001ef6fc | 0x0004
 0x001ee4d4 | 0x0118 | 0x001ef6fe | 0x0059
 
-Note that each `module_file_starts[i + 1]` can be computed from `module_file_starts[i] + module_file_counts[i]`. This is because the `module_file_starts` values point into the `file_name_offsets` array, and these values are "packed". There is no overlap between the files for different modules and the slice of values for each module have been appended in the same order as the modules themselves.
+Note that each `module_file_starts[i + 1]` can be computed from
+`module_file_starts[i] + module_file_counts[i]`. This is because the
+`module_file_starts` values point into the `file_name_offsets` array, and these
+values are "packed". There is no overlap between the files for different modules
+and the slice of values for each module have been appended in the same order as
+the modules themselves.
 
-Now that we have found the `module_file_counts` array, we scan it and compute the sum of all values in it. Let `num_file_offsets` be the sum of all values in `module_file_counts`. In our example, that value is 0x4d02f (315,439). This allows us to find the remaining offsets of our fields:
+Now that we have found the `module_file_counts` array, we scan it and compute
+the sum of all values in it. Let `num_file_offsets` be the sum of all values in
+`module_file_counts`. In our example, that value is 0x4d02f (315,439). This
+allows us to find the remaining offsets of our fields:
 
 Field                | Stream offset | Size expression                       | Size value
 ---------------------|---------------|---------------------------------------|-----------
@@ -174,29 +246,45 @@ Decoding the first few values from `file_name_offsets` and using the value to lo
 
 ## Invariants
 
-> Invariant: In the DbiStreamHeader, the fields which give the size of substreams must never be negative. If a substream is empty, its length should be zero.
+> Invariant: In the DbiStreamHeader, the fields which give the size of
+> substreams must never be negative. If a substream is empty, its length should
+> be zero.
 
-> Invariant: The Sources substream must begin on a 4-byte aligned boundary, and its length must be a multiple of 4.
+> Invariant: The Sources substream must begin on a 4-byte aligned boundary, and
+> its length must be a multiple of 4.
 
-> Invariant: The size of the entire DBI stream should be equal to the sum of the size of the DbiStreamHeader and all of the substreams.
+> Invariant: The size of the entire DBI stream should be equal to the sum of the
+> size of the DbiStreamHeader and all of the substreams.
 
-> Limit: The number of modules is limited to 65,534 (0xfffe). The value 0xffff is not available because it is used to mean "no module" in some data structures.
+> Limit: The number of modules is limited to 65,534 (0xfffe). The value 0xffff
+> is not available because it is used to mean "no module" in some data
+> structures.
 
-> Limit: The number of unique source files for a given module is limited to 65,535 (0xffff).
+> Limit: The number of unique source files for a given module is limited to
+> 65,535 (0xffff).
 
 ## Determinism
 
-> Determinism: The strings in `names_buffer` are sorted and unique, using case-sensitive rules.
+> Determinism: The strings in `names_buffer` are sorted and unique, using
+> case-sensitive rules.
 
-> Determinism: Every string in `names_buffer` is referenced by at least one entry in `file_name_offsets`.
+> Determinism: Every string in `names_buffer` is referenced by at least one
+> entry in `file_name_offsets`.
 
-> Determinism: There are no gaps (unused bytes) between strings within `names_buffer`.
+> Determinism: There are no gaps (unused bytes) between strings within
+> `names_buffer`.
 
-> Determinism: Every value in `file_name_offsets` points to the start of a string, not the middle of a string.
+> Determinism: Every value in `file_name_offsets` points to the start of a
+> string, not the middle of a string.
 
-> Determinism: For a given sequence of values in `file_name_offsets` that correspond to a single module M, the order of the file name offsets should be deterministic. Since the strings are required to be sorted, the simplest deterministic order would be to sort the file name offsets for M (which is the same as sorting them by the strings they refer to).
+> Determinism: For a given sequence of values in `file_name_offsets` that
+> correspond to a single module M, the order of the file name offsets should be
+> deterministic. Since the strings are required to be sorted, the simplest
+> deterministic order would be to sort the file name offsets for M (which is the
+> same as sorting them by the strings they refer to).
 
-> Determinism: The modules themselves should be sorted, but this order is provided by the DBI Modules Substream. 
+> Determinism: The modules themselves should be sorted, but this order is
+> provided by the DBI Modules Substream.
 
 > Determinism: `num_modules` is set to the low 16 bits of `num_file_offsets`.
 

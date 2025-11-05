@@ -15,7 +15,8 @@ instruction addresses to source locations
 - [Relationships](relationships.md) - Describes values that "point" from one data structure into another. These relationships must be preserved when PDBs are modified.
 - CodeView symbols and types
   - [Type Records](type_records.md) - Describes _type records_ that are stored in the TPI Stream.
-  - [Number](number.md) - Describes the `Number` data type, which is used by type and symbol records.
+  - [CodeView Number](codeview_number.md) - Describes the `Number` data type,
+    which is used by type and symbol records.
   - [Primitive types](primitive_types.md) - Describes primitive types, such as `unsigned long`.
   - [TPI Stream](tpi_stream.md) - Describes the TPI Stream, which contains a sequence of related type records.
   - [Symbols](symbols.md) - Describes _symbol records_, which describe data types, procedures, and other language concepts.

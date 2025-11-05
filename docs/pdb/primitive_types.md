@@ -6,10 +6,9 @@ type. For example, the C/C++ types `void`, `unsigned int`, and `char` are
 primitive types.
 
 Primitive types are identified by `TypeIndex` values that are less than the
-`type_index_begin` value defined in the TPI Stream Header. In practice,
-`type_index_begin` is always equal to 4096, and many values below 4096 are
-already assigned meanings by CodeView, so it is unlikely that `type_index_begin`
-will have a lower value in the future.
+`type_index_begin` value defined in the TPI Stream Header. `type_index_begin` is
+required to be at least 4096, so all `TypeIndex` values that are less than 4096
+are primitive types.
 
 The `TypeIndex` value for primitive types is composed of the following bit
 fields. Because primitive types are in the reserved range of 0-4095, the
@@ -92,9 +91,11 @@ are identified by `__int8`, `__int32`, `unsigned __int64`, etc.
 
 # Types summary
 
-Most types also have a 32-bit pointer type and a 64-bit pointer type. There are many obsolete types that are not shown in this table.
+Most types also have a 32-bit pointer type and a 64-bit pointer type. There are
+many obsolete types that are not shown in this table.
 
-Most compilers, such as the MSVC C/C++ compiler, MASM, and Rust, can generate only a subset of the types in this table.
+Most compilers, such as the MSVC C/C++ compiler, MASM, and Rust, can generate
+only a subset of the types in this table.
 
 Name          |Value | 32-bit<br>Pointer Name | Value  | 64-bit<br>Pointer Name | Value | Size<br>(bytes) | C/C++ Type | Description
 --------------|------|--------------|------|--------------|------|--|-------------------|------------------------
