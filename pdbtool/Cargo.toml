@@ -29,6 +29,9 @@ zerocopy-derive.workspace = true
 zerocopy.workspace = true
 zstd.workspace = true
 
+[dependencies.ms-coff]
+path = "../coff"
+
 [dependencies.ms-pdb]
 version = "0.1.14"
 path = "../pdb"

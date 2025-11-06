@@ -1,15 +1,17 @@
 use crate::dump_utils::{HexDump, HexStr};
 use anyhow::Result;
 use bstr::BStr;
+use bstr::ByteSlice;
 use ms_pdb::codeview::parser::Parser;
 use ms_pdb::codeview::IteratorWithRangesExt;
 use ms_pdb::dbi::optional_dbg::OptionalDebugHeaderStream;
 use ms_pdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
 use ms_pdb::names::NamesStream;
-use ms_pdb::syms::{SymData, SymIter, SymKind};
+use ms_pdb::syms::{OffsetSegment, SymData, SymIter, SymKind};
 use ms_pdb::tpi::TypeStreamKind;
 use ms_pdb::types::TypeIndex;
 use ms_pdb::{Pdb, Stream};
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::ops::Range;
 use std::path::Path;
@@ -20,6 +22,7 @@ use self::types::dump_type_index_short;
 
 mod lines;
 mod names;
+mod sections;
 mod sources;
 mod streams;
 pub mod sym;
@@ -54,7 +57,10 @@ pub enum Subcommand {
     Ipi(types::DumpTypeStreamOptions),
 
     /// Dump DBI header
-    Dbi,
+    Dbi(DbiOptions),
+
+    /// Dump fixups, which are located in the DBI stream.
+    Fixups,
 
     /// Dump DBI Edit-and-Continue Substream
     DbiEnc,
@@ -97,6 +103,20 @@ pub enum Subcommand {
         #[arg(long)]
         len: Option<String>,
     },
+
+    /// Dumps the COFF groups, which are contiguous segments within a section.
+    /// For example, `.text$mn` is a COFF group within the `.text` section.
+    CoffGroups,
+
+    /// Dumps the COFF section headers. This information comes from an Optional Debug Stream.
+    Sections(sections::DumpSectionsOptions),
+}
+
+#[derive(clap::Parser)]
+pub struct DbiOptions {
+    /// Show the "Optional Debug Headers" substream
+    #[arg(long)]
+    pub optional_dbg: bool,
 }
 
 #[derive(clap::Parser)]
@@ -135,9 +155,11 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
             names::dump_names(&p, args)?;
         }
 
-        Subcommand::Dbi => {
-            dump_dbi(&p)?;
+        Subcommand::Dbi(opts) => {
+            dump_dbi(&p, opts)?;
         }
+
+        Subcommand::Fixups => dump_fixups(&p)?,
 
         Subcommand::DbiEnc => {
             let enc = dbi_stream.edit_and_continue();
@@ -167,9 +189,10 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
         Subcommand::ModuleSymbols(args) => sym::dump_module_symbols(&p, args)?,
 
         Subcommand::Tpi(opts) => {
+            let arch = p.arch()?;
             let type_stream = p.read_type_stream()?;
             let id_stream = p.read_ipi_stream()?;
-            let type_dump_syms_context = DumpSymsContext::new(&type_stream, &id_stream);
+            let type_dump_syms_context = DumpSymsContext::new(arch, &type_stream, &id_stream);
             types::dump_type_stream(
                 TypeStreamKind::TPI,
                 &type_stream,
@@ -181,10 +204,11 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
         }
 
         Subcommand::Ipi(opts) => {
+            let arch = p.arch()?;
             let type_stream = p.read_type_stream()?;
             let id_stream = p.read_ipi_stream()?;
-            let type_dump_syms_context = DumpSymsContext::new(&type_stream, &id_stream);
-            let id_dump_syms_context = DumpSymsContext::new(&id_stream, &id_stream); // TODO: not even remotely right
+            let type_dump_syms_context = DumpSymsContext::new(arch, &type_stream, &id_stream);
+            let id_dump_syms_context = DumpSymsContext::new(arch, &id_stream, &id_stream); // TODO: not even remotely right
 
             let names = p.names()?;
             types::dump_type_stream(
@@ -202,7 +226,7 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
         Subcommand::Streams(args) => streams::dump_streams(&p, args)?,
         Subcommand::Modules(args) => dump_modules(&p, &dbi_stream, args)?,
         Subcommand::Sources(args) => sources::dump_dbi_sources(&dbi_stream, args)?,
-        Subcommand::SectionContribs => dump_section_contribs(&dbi_stream)?,
+        Subcommand::SectionContribs => sections::dump_section_contribs(&p, &dbi_stream)?,
         Subcommand::SectionMap => dump_section_map(&p, &dbi_stream)?,
 
         Subcommand::Hex {
@@ -238,27 +262,9 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
                 println!("Stream length: 0x{len:x} ({len}).", len = stream_data.len());
             }
         }
-    }
 
-    Ok(())
-}
-
-fn dump_section_contribs(dbi_stream: &DbiStream<Vec<u8>>) -> anyhow::Result<()> {
-    println!("*** SECTION CONTRIBUTIONS");
-    println!();
-
-    println!("  Imod  Address        Size      Characteristics");
-
-    let section_contribs = dbi_stream.section_contributions()?;
-    for contrib in section_contribs.contribs.iter() {
-        println!(
-            "  {:04X} {:04X}:{:08X}  {:08X}  {:08X}",
-            contrib.module_index.get() + 1,
-            contrib.section.get(),
-            contrib.offset.get(),
-            contrib.size.get(),
-            contrib.characteristics.get()
-        );
+        Subcommand::CoffGroups => sections::dump_coff_groups(&p)?,
+        Subcommand::Sections(opts) => sections::dump_sections(&p, opts)?,
     }
 
     Ok(())
@@ -469,7 +475,7 @@ fn str_to_u32(s: &str) -> anyhow::Result<u32> {
     }
 }
 
-fn dump_dbi(pdb: &Pdb) -> Result<()> {
+fn dump_dbi(pdb: &Pdb, options: DbiOptions) -> Result<()> {
     let header = pdb.dbi_header();
 
     println!("Signature: 0x{:08x}", header.signature.get());
@@ -513,6 +519,62 @@ fn dump_dbi(pdb: &Pdb) -> Result<()> {
     show_sub(&subs.type_server_map, "Type Server Map");
     show_sub(&subs.optional_debug_header_bytes, "Optional Debug Headers");
     show_sub(&subs.edit_and_continue, "Edit-and-Continue");
+
+    if options.optional_dbg {
+        println!();
+        println!("Optional debug header streams:");
+
+        let opt_streams = pdb.optional_debug_streams()?;
+
+        if !opt_streams.streams.is_empty() {
+            for (i, stream) in opt_streams.iter() {
+                let name = i.name().unwrap_or("???");
+                if stream >= pdb.num_streams() {
+                    println!("error: stream '{name}' out of range: {stream}");
+                    continue;
+                }
+                let stream_len = pdb.stream_len(stream as u32);
+
+                println!("    {name:<20} : stream {stream:6}, len {stream_len:6}");
+            }
+        } else {
+            println!("    (none)");
+        }
+    }
+
+    Ok(())
+}
+
+fn dump_fixups(pdb: &Pdb) -> Result<()> {
+    let Some(fixups) = pdb.read_fixups()? else {
+        println!("This PDB does not contain fixups.");
+        return Ok(());
+    };
+
+    println!("Fixups:");
+    println!();
+    println!("i        type        extra      rva   target");
+    println!("-------- -------- -------- -------- --------");
+
+    let machine = pdb.machine();
+
+    let mut fixup_type_string: String = String::new();
+
+    for (i, fixup) in fixups.iter().enumerate() {
+        let fixup_type_str: &str =
+            if let Some(s) = ms_coff::reloc_type_str_short(machine, fixup.fixup_type) {
+                s
+            } else {
+                fixup_type_string.clear();
+                _ = write!(fixup_type_string, "{:04x}", fixup.fixup_type);
+                fixup_type_string.as_str()
+            };
+
+        println!(
+            "[{i:6}] {fixup_type_str:<8} {:8x} {:8x} {:8x}",
+            fixup.extra, fixup.rva, fixup.rva_target
+        );
+    }
 
     Ok(())
 }

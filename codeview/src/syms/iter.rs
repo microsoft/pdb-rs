@@ -45,6 +45,23 @@ impl<'a> SymIter<'a> {
         Self { data }
     }
 
+    /// Skip 4 bytes for the header of a module stream
+    pub fn skip_module_prefix(&mut self) {
+        if self.data.len() >= 4 {
+            self.data = &self.data[4..];
+        }
+    }
+
+    /// Creates a new symbol iterator for symbols stored in a module stream.
+    ///
+    /// The symbol data in a module stream begins with a 4-byte header. This function ignores
+    /// the 4-byte header.
+    pub fn for_module_syms(data: &'a [u8]) -> Self {
+        Self {
+            data: if data.len() < 4 { &[] } else { &data[4..] },
+        }
+    }
+
     /// Parses the 4-byte CodeView signature that is at the start of a module symbol stream.
     pub fn get_signature(&mut self) -> Result<[u8; 4], ParserError> {
         let mut p = Parser::new(self.data);

@@ -468,7 +468,7 @@ impl<F: ReadAt> Msfz<F> {
         let fragments = self.stream_fragments_result(stream)?;
         Ok(StreamReader {
             msfz: self,
-            size: fragments.iter().map(|f| f.size).sum(),
+            size: fragments.iter().map(|f| f.size as u64).sum(),
             fragments,
             pos: 0,
         })
@@ -488,7 +488,7 @@ impl<F: ReadAt> Msfz<F> {
 /// Allows reading a stream using the [`Read`], [`Seek`], and [`ReadAt`] traits.
 pub struct StreamReader<'a, F> {
     msfz: &'a Msfz<F>,
-    size: u32,
+    size: u64,
     fragments: &'a [Fragment],
     pos: u64,
 }
@@ -502,7 +502,7 @@ impl<'a, F> StreamReader<'a, F> {
     /// Size in bytes of the stream.
     ///
     /// This returns zero for nil streams.
-    pub fn stream_size(&self) -> u32 {
+    pub fn stream_size(&self) -> u64 {
         self.size
     }
 }

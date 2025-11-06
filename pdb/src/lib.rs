@@ -22,8 +22,13 @@ pub mod lines;
 pub mod modi;
 pub mod taster;
 pub use ::uuid::Uuid;
+use ms_codeview::arch::Arch;
+use ms_codeview::syms::{SymIter, SymKind};
+use ms_coff::IMAGE_FILE_MACHINE;
 pub use ms_pdb_msf as msf;
 pub use ms_pdb_msfz as msfz;
+use tracing::warn;
+mod coff_groups;
 mod embedded_sources;
 pub mod names;
 pub mod pdbi;
@@ -33,8 +38,10 @@ pub mod utils;
 pub mod writer;
 
 pub use bstr::BStr;
+pub use coff_groups::{CoffGroup, CoffGroups};
 pub use container::{Container, StreamReader};
 pub use ms_codeview::{self as codeview, syms, types};
+pub use ms_coff::{self as coff, IMAGE_SECTION_HEADER};
 pub use msfz::StreamData;
 pub use stream_index::{Stream, StreamIndexIsNilError, StreamIndexU16, NIL_STREAM_INDEX};
 pub use sync_file::{RandomAccessFile, ReadAt, WriteAt};
@@ -50,6 +57,9 @@ use std::fs::File;
 use std::path::Path;
 use syms::{Pub, Sym};
 use zerocopy::{FromZeros, IntoBytes};
+
+use crate::dbi::optional_dbg::OptionalDebugHeaders;
+use crate::dbi::ModuleInfo;
 
 #[cfg(test)]
 #[static_init::dynamic]
@@ -79,6 +89,12 @@ pub struct Pdb<F = sync_file::RandomAccessFile> {
     dbi_substreams: dbi::DbiSubstreamRanges,
 
     pdbi: pdbi::PdbiStream,
+
+    cached: PdbCached,
+}
+
+#[derive(Default)]
+struct PdbCached {
     names: OnceCell<NamesStream<Vec<u8>>>,
 
     tpi_header: OnceCell<tpi::CachedTypeStreamHeader>,
@@ -92,6 +108,10 @@ pub struct Pdb<F = sync_file::RandomAccessFile> {
     gss: OnceCell<Box<GlobalSymbolStream>>,
     gsi: OnceCell<Box<GlobalSymbolIndex>>,
     psi: OnceCell<Box<PublicSymbolIndex>>,
+
+    coff_groups: OnceCell<CoffGroups>,
+    optional_dbg_streams: OnceCell<OptionalDebugHeaders>,
+    section_headers: OnceCell<Box<[IMAGE_SECTION_HEADER]>>,
 }
 
 #[derive(Copy, Clone, Eq, PartialEq)]
@@ -142,14 +162,7 @@ impl<F: ReadAt> Pdb<F> {
             dbi_header,
             dbi_substreams,
             pdbi,
-            tpi_header: OnceCell::new(),
-            ipi_header: OnceCell::new(),
-            names: OnceCell::new(),
-            dbi_modules_cell: Default::default(),
-            dbi_sources_cell: Default::default(),
-            gss: OnceCell::new(),
-            gsi: OnceCell::new(),
-            psi: OnceCell::new(),
+            cached: Default::default(),
         }))
     }
 
@@ -200,14 +213,14 @@ impl<F: ReadAt> Pdb<F> {
     ///
     /// This loads the TPI Stream Header on-demand. This does not load the rest of the TPI Stream.
     pub fn tpi_header(&self) -> anyhow::Result<&tpi::CachedTypeStreamHeader> {
-        self.tpi_or_ipi_header(Stream::TPI, &self.tpi_header)
+        self.tpi_or_ipi_header(Stream::TPI, &self.cached.tpi_header)
     }
 
     /// Gets the IPI Stream Header.
     ///
     /// This loads the IPI Stream Header on-demand. This does not load the rest of the TPI Stream.
     pub fn ipi_header(&self) -> anyhow::Result<&tpi::CachedTypeStreamHeader> {
-        self.tpi_or_ipi_header(Stream::IPI, &self.ipi_header)
+        self.tpi_or_ipi_header(Stream::IPI, &self.cached.ipi_header)
     }
 
     fn tpi_or_ipi_header<'s>(
@@ -242,7 +255,7 @@ impl<F: ReadAt> Pdb<F> {
     ///
     /// This loads the Names Stream on-demand.
     pub fn names(&self) -> anyhow::Result<&NamesStream<Vec<u8>>> {
-        get_or_init_err(&self.names, || {
+        get_or_init_err(&self.cached.names, || {
             if let Some(stream) = self.named_stream(names::NAMES_STREAM_NAME) {
                 let stream_data = self.read_stream_to_vec(stream)?;
                 Ok(NamesStream::parse(stream_data)?)
@@ -278,7 +291,7 @@ impl<F: ReadAt> Pdb<F> {
     /// Gets a reference to the Global Symbol Stream (GSS). This loads the GSS on-demand.
     #[inline]
     pub fn gss(&self) -> anyhow::Result<&GlobalSymbolStream> {
-        if let Some(gss) = self.gss.get() {
+        if let Some(gss) = self.cached.gss.get() {
             Ok(gss)
         } else {
             self.gss_slow()
@@ -288,21 +301,22 @@ impl<F: ReadAt> Pdb<F> {
     /// Gets a reference to the Global Symbol Stream (GSS). This loads the GSS on-demand.
     #[inline(never)]
     fn gss_slow(&self) -> anyhow::Result<&GlobalSymbolStream> {
-        let box_ref = get_or_init_err(&self.gss, || -> anyhow::Result<Box<GlobalSymbolStream>> {
-            Ok(Box::new(self.read_gss()?))
-        })?;
+        let box_ref = get_or_init_err(
+            &self.cached.gss,
+            || -> anyhow::Result<Box<GlobalSymbolStream>> { Ok(Box::new(self.read_gss()?)) },
+        )?;
         Ok(box_ref)
     }
 
     /// If the GSS has been loaded by using the `gss()` function, then this method frees it.
     pub fn gss_drop(&mut self) {
-        self.gss.take();
+        self.cached.gss.take();
     }
 
     /// Gets a reference to the Global Symbol Index (GSI). This loads the GSI on-demand.
     #[inline(never)]
     pub fn gsi(&self) -> anyhow::Result<&GlobalSymbolIndex> {
-        if let Some(gsi) = self.gsi.get() {
+        if let Some(gsi) = self.cached.gsi.get() {
             Ok(gsi)
         } else {
             self.gsi_slow()
@@ -311,21 +325,22 @@ impl<F: ReadAt> Pdb<F> {
 
     #[inline(never)]
     fn gsi_slow(&self) -> anyhow::Result<&GlobalSymbolIndex> {
-        let box_ref = get_or_init_err(&self.gsi, || -> anyhow::Result<Box<GlobalSymbolIndex>> {
-            Ok(Box::new(self.read_gsi()?))
-        })?;
+        let box_ref = get_or_init_err(
+            &self.cached.gsi,
+            || -> anyhow::Result<Box<GlobalSymbolIndex>> { Ok(Box::new(self.read_gsi()?)) },
+        )?;
         Ok(box_ref)
     }
 
     /// If the GSI has been loaded by using the `gsi()` function, then this method frees it.
     pub fn gsi_drop(&mut self) {
-        self.gsi.take();
+        self.cached.gsi.take();
     }
 
     /// Gets a reference to the Public Symbol Index (PSI). This loads the PSI on-demand.
     #[inline]
     pub fn psi(&self) -> anyhow::Result<&PublicSymbolIndex> {
-        if let Some(psi) = self.psi.get() {
+        if let Some(psi) = self.cached.psi.get() {
             Ok(psi)
         } else {
             self.psi_slow()
@@ -334,15 +349,16 @@ impl<F: ReadAt> Pdb<F> {
 
     #[inline(never)]
     fn psi_slow(&self) -> anyhow::Result<&PublicSymbolIndex> {
-        let box_ref = get_or_init_err(&self.psi, || -> anyhow::Result<Box<PublicSymbolIndex>> {
-            Ok(Box::new(self.read_psi()?))
-        })?;
+        let box_ref = get_or_init_err(
+            &self.cached.psi,
+            || -> anyhow::Result<Box<PublicSymbolIndex>> { Ok(Box::new(self.read_psi()?)) },
+        )?;
         Ok(box_ref)
     }
 
     /// If the PSI has been loaded by using the `psi()` function, then this method frees it.
     pub fn psi_drop(&mut self) {
-        self.psi.take();
+        self.cached.psi.take();
     }
 
     /// Searches for an `S_PUB32` symbol by name.
@@ -388,6 +404,98 @@ impl<F: ReadAt> Pdb<F> {
     /// Gets access to the underlying container.
     pub fn container(&self) -> &Container<F> {
         &self.container
+    }
+
+    /// Find the `"* Linker *"` module, which contains the S_COFFGROUP symbols.
+    ///
+    /// If the PDB does not contain a linker module then this returns `Err`.
+    pub fn linker_module(&self) -> anyhow::Result<ModuleInfo<'_>> {
+        if let Some(module) = self.linker_module_opt()? {
+            Ok(module)
+        } else {
+            bail!("This PDB does not contain a linker module.");
+        }
+    }
+
+    /// Find the `"* Linker *"` module, which contains the S_COFFGROUP symbols.
+    ///
+    /// If the PDB does not contain a linker module then this returns `Ok(None)`.
+    pub fn linker_module_opt(&self) -> anyhow::Result<Option<ModuleInfo<'_>>> {
+        let modules = self.modules()?;
+        for module in modules.iter() {
+            if module.module_name == LINKER_MODULE_NAME {
+                return Ok(Some(module));
+            }
+        }
+        Ok(None)
+    }
+
+    /// Gets the list of COFF groups defined in this binary.
+    pub fn coff_groups(&self) -> anyhow::Result<&CoffGroups> {
+        get_or_init_err(&self.cached.coff_groups, || self.read_coff_groups())
+    }
+
+    /// Reads (uncached) the list of COFF groups defined in this binary.
+    pub fn read_coff_groups(&self) -> anyhow::Result<CoffGroups> {
+        // S_COFFGROUP symbols are defined in the linker module.
+        let Some(linker_module) = self.linker_module_opt()? else {
+            return Ok(CoffGroups { vec: Vec::new() });
+        };
+
+        let Some(linker_module_stream) = linker_module.stream() else {
+            bail!("The linker module does not contain any symbols.");
+        };
+
+        let mut linker_module_syms: Vec<u8> = vec![0; linker_module.sym_size() as usize];
+        let sr = self.get_stream_reader(linker_module_stream)?;
+        sr.read_exact_at(&mut linker_module_syms, 0)?;
+
+        // Count the number of S_COFFGROUP symbols. We can use this to do a precise allocation.
+        let mut num_coff_groups: usize = 0;
+        for sym in SymIter::for_module_syms(&linker_module_syms) {
+            if sym.kind == SymKind::S_COFFGROUP {
+                num_coff_groups += 1;
+            }
+        }
+
+        let mut groups = Vec::with_capacity(num_coff_groups);
+
+        for sym in SymIter::for_module_syms(&linker_module_syms) {
+            if sym.kind == SymKind::S_COFFGROUP {
+                match sym.parse_as::<ms_codeview::syms::CoffGroup>() {
+                    Ok(group) => {
+                        groups.push(CoffGroup {
+                            name: group.name.to_string(),
+                            characteristics: group.fixed.characteristics.get(),
+                            offset_segment: group.fixed.off_seg,
+                            size: group.fixed.cb.get(),
+                        });
+                    }
+                    Err(_) => {
+                        warn!("failed to parse S_COFFGROUP symbol");
+                    }
+                }
+            }
+        }
+
+        groups.sort_unstable_by_key(|g| g.offset_segment);
+
+        Ok(CoffGroups { vec: groups })
+    }
+
+    /// Returns the target architecture for this PE binary.
+    pub fn machine(&self) -> IMAGE_FILE_MACHINE {
+        IMAGE_FILE_MACHINE(self.dbi_header.machine.get())
+    }
+
+    /// Returns the target CPU architecture.
+    pub fn arch(&self) -> anyhow::Result<Arch> {
+        match self.machine() {
+            IMAGE_FILE_MACHINE::IMAGE_FILE_MACHINE_AMD64 => Ok(Arch::AMD64),
+            IMAGE_FILE_MACHINE::IMAGE_FILE_MACHINE_ARM64 => Ok(Arch::ARM64),
+            IMAGE_FILE_MACHINE::IMAGE_FILE_MACHINE_I386 => Ok(Arch::X86),
+            _ => bail!("target machine not supported"),
+        }
     }
 }
 
@@ -493,3 +601,9 @@ impl Debug for BindingKey {
         }
     }
 }
+
+/// The name of the special "linker" module.
+///
+/// The linker module is created by the linker and is not an input to the linker. It contains
+/// special / well-known symbols, such as `S_COFFGROUP`.
+pub const LINKER_MODULE_NAME: &str = "* Linker *";

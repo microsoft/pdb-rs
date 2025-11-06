@@ -374,7 +374,7 @@ where
 
         let starts = self.record_starts();
         let Some(&record_start) = starts.get(relative_type_index as usize) else {
-            bail!("The given TypeIndex is out of bounds (exceeds maximum allowed TypeIndex)");
+            bail!("The given TypeIndex {type_index:?} is out of bounds (exceeds maximum allowed TypeIndex)");
         };
 
         let all_type_records = self.type_records_bytes();

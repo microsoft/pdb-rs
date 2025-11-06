@@ -14,7 +14,7 @@ pub struct SectionMapHeader {
     pub num_logical_segments: U16<LE>,
 }
 
-#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned)]
+#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct SectionMapEntry {
     /// Descriptor flags bit field. See `SectionMapEntryFlags`.

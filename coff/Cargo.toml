@@ -1,0 +1,11 @@
+[package]
+name = "ms-coff"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bitflags.workspace = true
+bstr.workspace = true
+static_assertions.workspace = true
+zerocopy.workspace = true
+zerocopy-derive.workspace = true

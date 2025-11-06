@@ -58,10 +58,10 @@ pub fn find_name_command(options: &FindNameOptions) -> Result<()> {
     use crate::dump::sym::DumpSymsContext;
 
     let pdb = ms_pdb::Pdb::open(Path::new(&options.pdb))?;
-
+    let arch = pdb.arch()?;
     let tpi = pdb.read_type_stream()?;
     let ipi = pdb.read_ipi_stream()?;
-    let mut context = DumpSymsContext::new(&tpi, &ipi);
+    let mut context = DumpSymsContext::new(arch, &tpi, &ipi);
 
     let gss = pdb.read_gss()?;
 

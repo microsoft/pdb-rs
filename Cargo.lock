@@ -363,9 +363,21 @@ dependencies = [
  "bitfield",
  "bitflags 2.8.0",
  "bstr",
+ "ms-coff",
  "pretty-hex",
  "tracing",
  "uuid",
+ "zerocopy 0.8.14",
+ "zerocopy-derive 0.8.14",
+]
+
+[[package]]
+name = "ms-coff"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.8.0",
+ "bstr",
+ "static_assertions",
  "zerocopy 0.8.14",
  "zerocopy-derive 0.8.14",
 ]
@@ -380,6 +392,7 @@ dependencies = [
  "bitvec",
  "bstr",
  "ms-codeview",
+ "ms-coff",
  "ms-pdb-msf",
  "ms-pdb-msfz",
  "pow2",
@@ -495,6 +508,7 @@ dependencies = [
  "dbg-ranges",
  "friendly",
  "glob",
+ "ms-coff",
  "ms-pdb",
  "regex",
  "static_init",

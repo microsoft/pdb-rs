@@ -34,6 +34,14 @@ impl Ord for OffsetSegment {
 }
 
 impl OffsetSegment {
+    /// Constructor
+    pub fn new(offset: u32, segment: u16) -> Self {
+        Self {
+            offset: offset.into(),
+            segment: segment.into(),
+        }
+    }
+
     /// The offset in bytes of a symbol within a segment.
     #[inline]
     pub fn offset(&self) -> u32 {

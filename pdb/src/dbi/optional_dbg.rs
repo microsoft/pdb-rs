@@ -52,6 +52,54 @@ impl<'a> OptionalDebugHeader<'a> {
     }
 }
 
+/// Contains the list of Optional Debug Streams.
+#[derive(Clone)]
+pub struct OptionalDebugHeaders {
+    /// Contains stream indices, indexed by OptionalDebugStreamIndex.
+    pub streams: Vec<u16>,
+}
+
+impl OptionalDebugHeaders {
+    /// Iterates the Optional Debug Streams.
+    pub fn iter(&self) -> impl Iterator<Item = (OptionalDebugStream, u32)> + '_ {
+        self.streams.iter().enumerate().filter_map(|(i, &s)| {
+            if s != NIL_STREAM_INDEX {
+                Some((OptionalDebugStream(i as u32), s as u32))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+/// Identifies one of the Optional Debug Streams.
+#[derive(Copy, Clone, Eq, PartialEq, Debug, Hash, Ord, PartialOrd)]
+pub struct OptionalDebugStream(pub u32);
+
+#[allow(missing_docs)]
+impl OptionalDebugStream {
+    pub const FPO_DATA: Self = Self(0);
+    pub const EXCEPTION_DATA: Self = Self(1);
+    pub const FIXUP_DATA: Self = Self(2);
+    pub const OMAP_TO_SRC_DATA: Self = Self(3);
+    pub const OMAP_FROM_SRC_DATA: Self = Self(4);
+    pub const SECTION_HEADER_DATA: Self = Self(5);
+    pub const TOKEN_TO_RECORD_ID_MAP: Self = Self(6);
+    pub const XDATA: Self = Self(7);
+    pub const PDATA: Self = Self(8);
+    pub const NEW_FPO_DATA: Self = Self(9);
+    pub const ORIGINAL_SECTION_HEADER_DATA: Self = Self(10);
+}
+
+impl OptionalDebugStream {
+    /// Returns the name of this optional debug stream.
+    pub fn name(&self) -> Option<&'static str> {
+        OPTIONAL_DEBUG_HEADER_STREAM_NAME
+            .get(self.0 as usize)
+            .copied()
+    }
+}
+
 /// Iterates streams
 pub struct IterStreams<'a> {
     stream_indexes: &'a [StreamIndexU16],

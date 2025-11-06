@@ -18,3 +18,7 @@ pretty-hex.workspace = true
 uuid.workspace = true
 zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
+
+[dependencies.ms-coff]
+path = "../coff"
+#version = "0.1.0"

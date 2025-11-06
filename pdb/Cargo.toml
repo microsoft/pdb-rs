@@ -30,6 +30,10 @@ zerocopy-derive.workspace = true
 version = "0.1.4"
 path = "../codeview"
 
+[dependencies.ms-coff]
+version = "0.1.0"
+path = "../coff"
+
 [dependencies.ms-pdb-msf]
 version = "0.1.5"
 path = "../msf"

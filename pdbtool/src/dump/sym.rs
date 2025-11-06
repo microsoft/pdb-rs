@@ -1,8 +1,10 @@
 use super::*;
 use crate::dump_utils::indent;
 use anyhow::bail;
+use ms_pdb::codeview::arch::{Arch, ArchReg};
 use ms_pdb::syms::SymData;
 use ms_pdb::tpi::TypeStream;
+use ms_pdb::types::ItemId;
 use tracing::warn;
 
 pub fn dump_sym(
@@ -12,8 +14,31 @@ pub fn dump_sym(
     kind: SymKind,
     data: &[u8],
 ) -> anyhow::Result<()> {
-    use super::types::dump_item_short as item_ref;
-    use super::types::dump_type_index_short as ty_ref;
+    fn item_ref(
+        out: &mut dyn std::fmt::Write,
+        context: &super::sym::DumpSymsContext,
+        item: ItemId,
+    ) {
+        match super::types::dump_item_short(out, context, item) {
+            Ok(()) => {}
+            Err(e) => {
+                _ = write!(out, "(error: {e:?}");
+            }
+        }
+    }
+
+    fn ty_ref(
+        out: &mut dyn std::fmt::Write,
+        context: &super::sym::DumpSymsContext,
+        type_index: TypeIndex,
+    ) {
+        match super::types::dump_type_index_short(out, context, type_index) {
+            Ok(()) => {}
+            Err(e) => {
+                _ = write!(out, "(error: {e:?}");
+            }
+        }
+    }
 
     if context.scope_depth == 0 && kind.starts_scope() {
         writeln!(out)?;
@@ -30,6 +55,12 @@ pub fn dump_sym(
     write!(out, "{:?}: ", kind)?;
 
     match SymData::parse(kind, data)? {
+        // TODO: S_CALLEES is using a different kind of TypeIndex value.
+        // Suppress these for now.
+        _ if kind == SymKind::S_CALLEES || kind == SymKind::S_INLINESITE => {
+            write!(out, "<unavailable>")?;
+        }
+
         SymData::Pub(pub_data) => {
             write!(
                 out,
@@ -41,12 +72,12 @@ pub fn dump_sym(
         }
 
         SymData::Udt(udt_data) => {
-            ty_ref(out, context, udt_data.type_)?;
+            ty_ref(out, context, udt_data.type_);
             write!(out, " {}", udt_data.name)?;
         }
 
         SymData::Constant(constant_data) => {
-            ty_ref(out, context, constant_data.type_)?;
+            ty_ref(out, context, constant_data.type_);
             write!(out, " {} = {}", constant_data.name, constant_data.value)?;
         }
 
@@ -67,7 +98,7 @@ pub fn dump_sym(
 
         SymData::Data(data) => {
             write!(out, "{} ", data.header.offset_segment,)?;
-            ty_ref(out, context, data.header.type_.get())?;
+            ty_ref(out, context, data.header.type_.get());
             write!(out, " {}", data.name)?;
         }
 
@@ -95,7 +126,7 @@ pub fn dump_sym(
                 "{} ..+ 0x{:x}, ",
                 proc.fixed.offset_segment, proc.fixed.proc_len
             )?;
-            ty_ref(out, context, proc.fixed.proc_type.get())?;
+            ty_ref(out, context, proc.fixed.proc_type.get());
             write!(out, " {}", proc.name)?;
         }
 
@@ -119,13 +150,15 @@ pub fn dump_sym(
         SymData::FrameProc(_) => {}
 
         SymData::RegRel(reg_rel) => {
+            let reg = reg_rel.fixed.register.get();
+            let arch_reg = ArchReg::new(context.arch, reg);
             write!(
                 out,
-                "reg(0x{:x})+0x{:x}, ",
-                reg_rel.fixed.register.get(),
-                reg_rel.fixed.offset.get()
+                "{arch_reg} + 0x{offset:x}, ",
+                // reg_rel.fixed.register.get(),
+                offset = reg_rel.fixed.offset.get()
             )?;
-            ty_ref(out, context, reg_rel.fixed.ty.get())?;
+            ty_ref(out, context, reg_rel.fixed.ty.get());
             write!(out, " {}", reg_rel.name)?;
         }
 
@@ -138,7 +171,7 @@ pub fn dump_sym(
         }
 
         SymData::Local(local) => {
-            ty_ref(out, context, local.fixed.ty.get())?;
+            ty_ref(out, context, local.fixed.ty.get());
             write!(out, " {}", local.name)?;
         }
 
@@ -162,21 +195,22 @@ pub fn dump_sym(
         }
 
         SymData::BuildInfo(b) => {
-            item_ref(out, context, b.item)?;
+            item_ref(out, context, b.item);
         }
 
         SymData::InlineSite(site) => {
-            item_ref(out, context, site.fixed.inlinee.get())?;
+            item_ref(out, context, site.fixed.inlinee.get());
         }
 
         SymData::InlineSite2(site) => {
-            item_ref(out, context, site.fixed.inlinee.get())?;
+            item_ref(out, context, site.fixed.inlinee.get());
         }
 
         SymData::InlineSiteEnd => {}
 
         SymData::DefRangeRegister(r) => {
-            write!(out, "register: 0x{:x}", r.fixed.reg)?;
+            let reg = ArchReg::new(context.arch, r.fixed.reg.get());
+            write!(out, "register: {reg}")?;
         }
 
         SymData::DefRangeRegisterRel(r) => {
@@ -201,7 +235,7 @@ pub fn dump_sym(
             if !funcs.funcs.is_empty() {
                 writeln!(out)?;
                 for f in funcs.funcs.iter() {
-                    item_ref(out, context, f.get())?;
+                    item_ref(out, context, f.get());
                     writeln!(out)?;
                 }
             }
@@ -211,16 +245,42 @@ pub fn dump_sym(
 
         SymData::CallSiteInfo(site) => {
             write!(out, "{} ", site.offset)?;
-            ty_ref(out, context, site.func_type.get())?;
+            ty_ref(out, context, site.func_type.get());
         }
 
         SymData::HeapAllocSite(site) => {
             write!(out, "{} ", site.offset)?;
-            ty_ref(out, context, site.func_type.get())?;
+            ty_ref(out, context, site.func_type.get());
         }
 
         SymData::HotPatchFunc(hp) => {
             write!(out, "0x{:x} : {}", hp.func, hp.name)?;
+        }
+
+        SymData::CoffGroup(group) => {
+            write!(
+                out,
+                "{} : {} + {}",
+                group.name,
+                group.fixed.off_seg,
+                group.fixed.cb.get()
+            )?;
+        }
+        SymData::ArmSwitchTable(table) => {
+            writeln!(out)?;
+            writeln!(
+                out,
+                "    switch_type:                 {:?}",
+                table.switch_type()
+            )?;
+            writeln!(
+                out,
+                "    num_entries:                 {}",
+                table.num_entries
+            )?;
+            writeln!(out, "    base location:               {}", table.base())?;
+            writeln!(out, "    branch instruction location: {}", table.branch())?;
+            writeln!(out, "    jump table location:         {}", table.table())?;
         }
     }
 
@@ -247,16 +307,22 @@ pub struct DumpSymsContext<'a> {
     pub show_record_offsets: bool,
     pub show_type_index: bool,
     pub ipi: &'a TypeStream<Vec<u8>>,
+    pub arch: Arch,
 }
 
 impl<'a> DumpSymsContext<'a> {
-    pub fn new(type_stream: &'a TypeStream<Vec<u8>>, ipi: &'a TypeStream<Vec<u8>>) -> Self {
+    pub fn new(
+        arch: Arch,
+        type_stream: &'a TypeStream<Vec<u8>>,
+        ipi: &'a TypeStream<Vec<u8>>,
+    ) -> Self {
         Self {
             scope_depth: 0,
             type_stream,
             show_record_offsets: true,
             show_type_index: false,
             ipi,
+            arch,
         }
     }
 }
@@ -269,10 +335,12 @@ pub fn dump_globals(
     show_types: bool,
 ) -> anyhow::Result<()> {
     println!("Global symbols:");
+    let arch = p.arch()?;
     let gss = p.gss()?;
     let tpi = p.read_type_stream()?;
     let ipi = p.read_ipi_stream()?;
     dump_symbol_stream(
+        arch,
         &tpi,
         &ipi,
         &gss.stream_data,
@@ -286,6 +354,7 @@ pub fn dump_globals(
 }
 
 pub fn dump_symbol_stream(
+    arch: Arch,
     type_stream: &TypeStream<Vec<u8>>,
     ipi: &TypeStream<Vec<u8>>,
     symbol_records: &[u8],
@@ -309,7 +378,7 @@ pub fn dump_symbol_stream(
 
     let mut num_found = 0;
     let mut out = String::new();
-    let mut context = DumpSymsContext::new(type_stream, ipi);
+    let mut context = DumpSymsContext::new(arch, type_stream, ipi);
     context.show_type_index = show_types;
 
     for (record_range, sym) in iter {
@@ -371,6 +440,20 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
 
     let mut found_wanted_module = false;
 
+    let tpi = pdb.read_type_stream()?;
+    let ipi = pdb.read_ipi_stream()?;
+
+    println!("Types:");
+    println!("    type_index_begin: {:?}", tpi.type_index_begin());
+    println!("    type_index_end:   {:?}", tpi.type_index_end());
+    println!(
+        "    num_types:        {:8}",
+        tpi.type_index_end().0 - tpi.type_index_begin().0
+    );
+    println!("    num_starts:       {:8}", tpi.record_starts().len());
+
+    println!();
+
     for (module_index, module) in dbi.iter_modules().enumerate() {
         if let Some(wanted_module_index) = options.module_index {
             if wanted_module_index as usize == module_index {
@@ -389,10 +472,10 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
             continue;
         };
 
-        let tpi = pdb.read_type_stream()?;
-        let ipi = pdb.read_ipi_stream()?;
+        let arch = pdb.arch()?;
 
         dump_symbol_stream(
+            arch,
             &tpi,
             &ipi,
             module_stream.sym_data()?,
@@ -415,7 +498,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
                 let gss = pdb.gss()?;
 
                 let mut out = String::new();
-                let mut context = DumpSymsContext::new(&tpi, &ipi);
+                let mut context = DumpSymsContext::new(arch, &tpi, &ipi);
 
                 for &global_ref in module_global_refs.iter() {
                     let global_ref = global_ref.get();
@@ -454,6 +537,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
 }
 
 pub fn dump_gsi(p: &Pdb) -> Result<()> {
+    let arch = p.arch()?;
     let gsi = p.gsi()?;
     let gss = p.gss()?;
     let tpi = p.read_type_stream()?;
@@ -462,7 +546,7 @@ pub fn dump_gsi(p: &Pdb) -> Result<()> {
     println!("*** GLOBALS");
     println!();
 
-    let mut context = DumpSymsContext::new(&tpi, &ipi);
+    let mut context = DumpSymsContext::new(arch, &tpi, &ipi);
 
     let mut out = String::new();
     for sym in gsi.names().iter(gss) {
@@ -478,6 +562,7 @@ pub fn dump_gsi(p: &Pdb) -> Result<()> {
 }
 
 pub fn dump_psi(p: &Pdb) -> Result<()> {
+    let arch = p.arch()?;
     let psi = p.read_psi()?;
     let gss = p.gss()?;
     let tpi = p.read_type_stream()?;
@@ -486,7 +571,7 @@ pub fn dump_psi(p: &Pdb) -> Result<()> {
     println!("*** PUBLICS");
     println!();
 
-    let mut context = DumpSymsContext::new(&tpi, &ipi);
+    let mut context = DumpSymsContext::new(arch, &tpi, &ipi);
 
     let mut out = String::new();
     for sym in psi.names().iter(gss) {

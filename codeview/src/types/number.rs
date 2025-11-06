@@ -250,7 +250,7 @@ fn try_from_int_error() -> TryFromIntError {
 }
 
 #[cfg(test)]
-fn parse_number(bytes: &[u8]) -> Number {
+fn parse_number(bytes: &[u8]) -> Number<'_> {
     let mut p = Parser::new(bytes);
     let n = p.number().unwrap();
     assert!(p.is_empty());

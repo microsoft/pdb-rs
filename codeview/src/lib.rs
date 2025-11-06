@@ -18,6 +18,7 @@
 #![warn(missing_docs)]
 #![allow(clippy::needless_lifetimes)]
 
+pub mod arch;
 pub mod encoder;
 pub mod parser;
 pub mod syms;
