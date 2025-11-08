@@ -3,6 +3,9 @@
 Type records and symbol records may contain instances of the `Number` type. In
 the PDB documentation, these are called "numeric leaves".
 
+> Example: The `S_CONSTANT` record contains a `Number` field which is the
+> value of the constant.
+
 `Number` contains a numeric value of a given value and type. The type of the
 number is represented in its encoding, so there is no need for an external
 specification of the type of the number.
@@ -24,7 +27,7 @@ very common.
 If _leaf_ is greater or equal to 0x8000, then the leaf specifies the type and
 size of the `Number`:
 
-Leaf   | Leaf Name       | Size<br>(bytes) | Description
+Leaf   | Leaf Type       | Size<br>(bytes) | Description
 -------|-----------------|----|------------
 0x8000 | `LF_CHAR`       | 1  | signed 8-bit integer
 0x8001 | `LF_SHORT`      | 2  | signed 16-bit integer
@@ -61,3 +64,18 @@ values can be stored directly in _leaf_.
 For `LF_VARSTRING`, the leaf value is followed by a `uint16_t` value that
 specifies the length in bytes of the string data, followed by the length data.
 There is no alignment padding after the string data.
+
+## Examples
+
+Encoded bytes           | Leaf Type       | Value
+------------------------|-----------------|--------------
+00 00                   | `LF_USHORT`     | 0
+0a 01                   | `LF_USHORT`     | 266 (0x010a)
+00 80 41                | `LF_CHAR`       | 'A'
+01 80 fe ff             | `LF_SHORT`      | -2
+02 80 fe ff             | `LF_USHORT`     | 0xfffe
+03 80 11 22 00 00       | `LF_LONG`       | 0x2211
+04 80 fe ff ff ff       | `LF_LONG`       | -2
+04 80 fe ff ff ff       | `LF_ULONG`      | 0xfffffffe
+1b 80 41 42 43 00       | `LF_UTF8STRING` | "ABC"
+10 80 04 00 44 45 46    | `LF_VARSTRING`  | "DEF"
