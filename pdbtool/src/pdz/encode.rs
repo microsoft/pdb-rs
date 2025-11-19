@@ -63,10 +63,10 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
 
     let pdb = Msf::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
-    let out = File::create(&options.output_pdz)
+
+    let mut writer = MsfzWriter::create(Path::new(&options.output_pdz))
         .with_context(|| format!("Failed to open output PDZ: {}", options.output_pdz))?;
 
-    let mut writer = MsfzWriter::new(out)?;
     let mut stream_data: Vec<u8> = Vec::new();
     let num_streams = pdb.num_streams();
     writer.reserve_num_streams(num_streams as usize);
