@@ -115,7 +115,7 @@ impl FragmentLocation {
 impl Msfz<RandomAccessFile> {
     /// Opens an MSFZ file and validates its header.
     pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
-        let f = File::open(path)?;
+        let f = open_options_shared(File::options().read(true)).open(path)?;
         let raf = RandomAccessFile::from(f);
         Self::from_file(raf)
     }

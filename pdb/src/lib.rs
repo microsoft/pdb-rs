@@ -408,7 +408,7 @@ fn get_or_init_err<T, E, F: FnOnce() -> Result<T, E>>(cell: &OnceCell<T>, f: F) 
 impl Pdb<RandomAccessFile> {
     /// Opens a PDB file.
     pub fn open(file_name: &Path) -> anyhow::Result<Box<Pdb<RandomAccessFile>>> {
-        let f = File::open(file_name)?;
+        let f = ms_pdb_msf::open_options_shared(File::options().read(true)).open(file_name)?;
         let random_file = RandomAccessFile::from(f);
         Self::from_file_access(random_file, AccessMode::Read)
     }

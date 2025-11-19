@@ -17,6 +17,8 @@ pub mod spec {
     use super::*;
 }
 
+use std::fs::OpenOptions;
+
 use anyhow::Result;
 use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32, U64};
 
@@ -170,4 +172,29 @@ pub const MSFZ_FILE_VERSION_V0: u64 = 0;
 /// This only looks at the signature; it doens't read anything else in the file.
 pub fn is_header_msfz(header: &[u8]) -> bool {
     header.starts_with(&MSFZ_FILE_SIGNATURE)
+}
+
+fn open_options_shared(options: &mut OpenOptions) -> &mut OpenOptions {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 1;
+        options.share_mode(FILE_SHARE_READ)
+    }
+    #[cfg(not(windows))]
+    {
+        options
+    }
+}
+
+fn open_options_exclusive(options: &mut OpenOptions) -> &mut OpenOptions {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        options.share_mode(0)
+    }
+    #[cfg(not(windows))]
+    {
+        options
+    }
 }

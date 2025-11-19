@@ -35,7 +35,7 @@ impl Default for CreateOptions {
 impl Msf<RandomAccessFile> {
     /// Opens an MSF file for read access, given a file name.
     pub fn open(file_name: &Path) -> anyhow::Result<Self> {
-        let file = File::open(file_name)?;
+        let file = open_options_shared(File::options().read(true)).open(file_name)?;
         let random_file = RandomAccessFile::from(file);
         Self::new_with_access_mode(random_file, AccessMode::Read)
     }
@@ -46,14 +46,16 @@ impl Msf<RandomAccessFile> {
     /// This function does not write anything to disk until stream data is written or
     /// [`Self::commit`] is called.
     pub fn create(file_name: &Path, options: CreateOptions) -> anyhow::Result<Self> {
-        let file = File::create(file_name)?;
+        let file = open_options_exclusive(File::options().read(true).write(true).create(true))
+            .open(file_name)?;
         let random_file = RandomAccessFile::from(file);
         Self::create_with_file(random_file, options)
     }
 
     /// Opens an existing MSF file for read/write access, given a file name.
     pub fn modify(file_name: &Path) -> anyhow::Result<Self> {
-        let file = File::options().read(true).write(true).open(file_name)?;
+        let file =
+            open_options_exclusive(File::options().read(true).write(true)).open(file_name)?;
         let random_file = RandomAccessFile::from(file);
         Self::modify_with_file(random_file)
     }

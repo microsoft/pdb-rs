@@ -56,7 +56,7 @@ use anyhow::bail;
 use bitvec::prelude::{BitVec, Lsb0};
 use pow2::{IntOnlyPow2, Pow2};
 use std::collections::HashMap;
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::path::Path;
@@ -468,3 +468,30 @@ pub fn is_file_header_msf(header: &[u8]) -> bool {
 /// This does not specify the minimum valid size of an MSF file. It is only a recommended minimum
 /// for callers of [`is_file_header_msf`].
 pub const MIN_FILE_HEADER_SIZE: usize = 0x100;
+
+#[doc(hidden)]
+pub fn open_options_shared(options: &mut OpenOptions) -> &mut OpenOptions {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        const FILE_SHARE_READ: u32 = 1;
+        options.share_mode(FILE_SHARE_READ)
+    }
+    #[cfg(not(windows))]
+    {
+        options
+    }
+}
+
+#[doc(hidden)]
+pub fn open_options_exclusive(options: &mut OpenOptions) -> &mut OpenOptions {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::OpenOptionsExt;
+        options.share_mode(0)
+    }
+    #[cfg(not(windows))]
+    {
+        options
+    }
+}

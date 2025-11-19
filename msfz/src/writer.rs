@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use pow2::Pow2;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
+use std::path::Path;
 use tracing::{debug, debug_span, trace, trace_span};
 use zerocopy::IntoBytes;
 
@@ -93,6 +94,17 @@ impl std::fmt::Display for Summary {
         writeln!(f, "Number of chunks: {}", self.num_chunks)?;
         writeln!(f, "Number of streams: {}", self.num_streams)?;
         Ok(())
+    }
+}
+
+impl MsfzWriter<File> {
+    /// Creates a new writer on a file at a given path.
+    ///
+    /// This will *truncate* any existing file.
+    pub fn create(file_name: &Path) -> Result<Self> {
+        let f = open_options_exclusive(File::options().write(true).create(true).truncate(true))
+            .open(file_name)?;
+        Self::new(f)
     }
 }
 
