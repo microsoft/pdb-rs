@@ -37,6 +37,10 @@ pub(crate) struct PdzEncodeOptions {
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let _span = trace_span!("pdz_encode").entered();
 
+    if options.input_pdb.eq_ignore_ascii_case(&options.output_pdz) {
+        anyhow::bail!("`input_pdb` and `output_pdz` must be different paths");
+    }
+
     let pdb_metadata = std::fs::metadata(&options.input_pdb).with_context(|| {
         format!(
             "Failed to get metadata for input PDB: {}",

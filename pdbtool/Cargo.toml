@@ -1,6 +1,6 @@
 [package]
 name = "pdbtool"
-version = "0.1.12"
+version = "0.1.13"
 edition = "2021"
 description = "A tool for reading Program Database (PDB) files and displaying information about them."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
