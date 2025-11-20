@@ -180,6 +180,34 @@ fn dbi_negative_module_info() {
     dbi_case("dbi_negative_module_info", &dbi);
 }
 
+// Ensure the `pdz-encode` command fails when input and output paths are the same.
+#[test]
+fn pdz_encode_errors_when_input_and_output_equal_cmd() {
+    let dir = Path::new(TMP_DIR).join("pdz_equal_paths");
+    _ = std::fs::create_dir_all(&dir);
+
+    let pdb_file_name = dir.join("same.pdb");
+    // Use a different-cased output filename to ensure casing differences are detected.
+    let pdz_file_name = dir.join("Same.pdb");
+
+    let mut cmd = Command::new(PDBTOOL);
+    cmd.arg("pdz-encode");
+    cmd.arg(&pdb_file_name);
+    cmd.arg(&pdz_file_name);
+
+    let output = cmd.output().expect("failed to run pdbtool");
+    assert!(!output.status.success(), "expected command to fail when paths equal");
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let combined = format!("{}{}", stdout, stderr);
+    assert!(
+        combined.contains("must be different"),
+        "expected error message to mention 'must be different', got: {}",
+        combined
+    );
+}
+
 /// Write out a PDB with the DBI contents provided, convert it to PDZ, read the data back,
 /// verify we got the same data.
 #[inline(never)]
