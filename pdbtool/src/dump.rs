@@ -1,11 +1,12 @@
 use crate::dump_utils::{HexDump, HexStr};
 use anyhow::Result;
+use bstr::BStr;
 use ms_pdb::codeview::parser::Parser;
 use ms_pdb::codeview::IteratorWithRangesExt;
 use ms_pdb::dbi::optional_dbg::OptionalDebugHeaderStream;
 use ms_pdb::dbi::{DbiSourcesSubstream, DbiStream, ModuleInfo};
 use ms_pdb::names::NamesStream;
-use ms_pdb::syms::{SymIter, SymKind};
+use ms_pdb::syms::{SymData, SymIter, SymKind};
 use ms_pdb::tpi::TypeStreamKind;
 use ms_pdb::types::TypeIndex;
 use ms_pdb::{Pdb, Stream};
@@ -106,6 +107,14 @@ pub struct ModulesOptions {
 
     /// Display a specific module by module number. This value is zero-based.
     pub module: Option<u32>,
+
+    /// Show source file paths for each module.
+    #[arg(long)]
+    pub sources: bool,
+
+    /// Show information about the tool (compiler, etc.) that created each module.
+    #[arg(long)]
+    pub tool: bool,
 }
 
 pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
@@ -286,6 +295,9 @@ fn dump_modules(pdb: &Pdb, dbi: &DbiStream, args: ModulesOptions) -> Result<()> 
 
     let modules_records_start = dbi.substreams.modules_bytes.start;
 
+    let sources = pdb.sources()?;
+    let mut source_file_names: Vec<&BStr> = Vec::new();
+
     for (module_index, (module_record_range, module)) in modules.iter().with_ranges().enumerate() {
         if let Some(mi) = args.module {
             if module_index != mi as usize {
@@ -331,29 +343,89 @@ fn dump_modules(pdb: &Pdb, dbi: &DbiStream, args: ModulesOptions) -> Result<()> 
         } else {
             println!("    Stream: (none)");
         }
-
-        let h = module.header();
-        println!(
-            "    section_contr.module_index: {}",
-            h.section_contrib.module_index.get()
-        );
-        println!(
-            "    pdb_file_path_name_index: {}",
-            h.pdb_file_path_name_index.get()
-        );
-        println!("    source_file_count: {}", h.source_file_count.get());
-        println!(
-            "    source_file_name_index: {}",
-            h.source_file_name_index.get()
-        );
-
-        if h.unused1.get() != 0 {
-            println!("    unused1: 0x{0:08x} {0:10}", h.unused1.get());
-        }
-        if h.unused2.get() != 0 {
-            println!("    unused2: 0x{0:08x} {0:10}", h.unused2.get());
-        }
         println!();
+
+        if args.sources {
+            let name_offsets = sources.name_offsets_for_module(module_index)?;
+
+            println!("    Sources:");
+            if !name_offsets.is_empty() {
+                for &name_offset in name_offsets.iter() {
+                    if let Ok(source_file_name) = sources.get_source_file_name_at(name_offset.get())
+                    {
+                        source_file_names.push(source_file_name);
+                    }
+                }
+
+                source_file_names.sort_unstable();
+
+                for name in source_file_names.iter() {
+                    println!("        {name}");
+                }
+                source_file_names.clear();
+            } else {
+                println!("        (none)");
+            }
+            println!();
+        }
+
+        if args.tool {
+            if let Some(module_stream) = pdb.read_module_stream(&module)? {
+                let mut found = false;
+                let sym_data = module_stream.sym_data()?;
+                for sym in SymIter::new(sym_data) {
+                    match sym.kind {
+                        SymKind::S_COMPILE => {
+                            println!("    Tool: uses obsolete S_COMPILE, not supported");
+                            found = true;
+                            break;
+                        }
+
+                        SymKind::S_COMPILE2 => {
+                            println!("    Tool: uses obsolete S_COMPILE2, not supported");
+                            found = true;
+                            break;
+                        }
+
+                        SymKind::S_COMPILE3 => {
+                            match sym.parse()? {
+                                SymData::Compile3(compile) => {
+                                    println!("    Tool:");
+                                    println!("        Name:               {}", compile.name);
+                                    println!(
+                                        "        Front-end version:  {}.{}, build {}, qfe {}",
+                                        compile.fixed.frontend_major.get(),
+                                        compile.fixed.frontend_minor.get(),
+                                        compile.fixed.frontend_build.get(),
+                                        compile.fixed.frontend_qfe.get()
+                                    );
+                                    println!(
+                                        "        Version:            {}.{}, build {}, qfe {}",
+                                        compile.fixed.ver_major.get(),
+                                        compile.fixed.ver_minor.get(),
+                                        compile.fixed.ver_build.get(),
+                                        compile.fixed.ver_qfe.get()
+                                    );
+                                }
+
+                                _ => {}
+                            }
+                            found = true;
+                            break;
+                        }
+
+                        _ => {}
+                    }
+                }
+
+                if !found {
+                    println!("    Tool: (unavailable)");
+                }
+            } else {
+                println!("    Tool: (unavailable)");
+            }
+            println!();
+        }
 
         num_modules += 1;
     }
