@@ -420,7 +420,9 @@ impl<F: ReadAt> Msf<F> {
                 // such as in the pages reserved for the FPM. We tolerate this for reading
                 // but not for writing.
                 if access_mode == AccessMode::ReadWrite {
-                    bail!("FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk.");
+                    bail!(
+                        "FPM is corrupted; FPM computed from Stream Directory is not equal to FPM found on disk."
+                    );
                 }
             }
         }
@@ -625,7 +627,10 @@ fn mark_stream_pages_busy(
 
         for (stream_page, &page) in stream_pages.iter().enumerate() {
             if page == 0 {
-                bail!("Page cannot be marked busy because it points to the first page of the file. Stream {0} is invalid.", stream);
+                bail!(
+                    "Page cannot be marked busy because it points to the first page of the file. Stream {0} is invalid.",
+                    stream
+                );
             }
 
             // Clang's PDB writer currently generates PDBs that assign stream pages to pages
@@ -637,9 +642,15 @@ fn mark_stream_pages_busy(
             if msf_kind == MsfKind::Big {
                 let page_within_interval = page & page_within_interval_mask;
                 if page_within_interval == 1 || page_within_interval == 2 {
-                    warn!("Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.", stream);
+                    warn!(
+                        "Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.",
+                        stream
+                    );
                     if strict_mode {
-                        bail!("Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.", stream);
+                        bail!(
+                            "Page {page} is invalid; it is assigned to a page reserved for the Free Page Map. Stream {0} is invalid.",
+                            stream
+                        );
                     }
                     // The page will already have been marked busy. Skip the code below which
                     // marks the page as busy, so that don't report two warnings.
@@ -649,9 +660,16 @@ fn mark_stream_pages_busy(
 
             if let Some(mut page_is_free) = fpm.get_mut(page as usize) {
                 if !*page_is_free {
-                    error!(page, stream, stream_page, "Page cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
+                    error!(
+                        page,
+                        stream,
+                        stream_page,
+                        "Page cannot be marked busy, because it is already marked busy. It may be used by more than one stream."
+                    );
                     if strict_mode {
-                        bail!("Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream. Stream #{stream}");
+                        bail!(
+                            "Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream. Stream #{stream}"
+                        );
                     } else {
                         continue;
                     }

@@ -81,14 +81,19 @@ impl<'a> SectionContributionsSubstream<'a> {
         match version {
             SECTION_CONTRIBUTIONS_SUBSTREAM_VER60 => {}
             _ => {
-                bail!("The Section Contributions Substream has a version number that is not supported. Version: 0x{:08x}", version);
+                bail!(
+                    "The Section Contributions Substream has a version number that is not supported. Version: 0x{:08x}",
+                    version
+                );
             }
         }
 
         let records_bytes = p.into_rest();
         let Ok(contribs) = <[SectionContribEntry]>::ref_from_bytes(records_bytes) else {
-            bail!("The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
-                bytes.len());
+            bail!(
+                "The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
+                bytes.len()
+            );
         };
         Ok(SectionContributionsSubstream { contribs })
     }
@@ -167,15 +172,20 @@ impl<'a> SectionContributionsSubstreamMut<'a> {
         match version {
             SECTION_CONTRIBUTIONS_SUBSTREAM_VER60 => {}
             _ => {
-                bail!("The Section Contributions Substream has a version number that is not supported. Version: 0x{:08x}", version);
+                bail!(
+                    "The Section Contributions Substream has a version number that is not supported. Version: 0x{:08x}",
+                    version
+                );
             }
         }
 
         let records_bytes = p.into_rest();
 
         let Ok(contribs) = <[SectionContribEntry]>::mut_from_bytes(records_bytes) else {
-            bail!("The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
-                bytes_len);
+            bail!(
+                "The Section Contributions stream has an invalid size. It is not a multiple of the section contribution record size.  Size: 0x{:x}",
+                bytes_len
+            );
         };
         Ok(Self { contribs })
     }
@@ -188,9 +198,11 @@ impl<'a> SectionContributionsSubstreamMut<'a> {
             if let Some(&new) = modules_old_to_new.get(old as usize) {
                 contrib.module_index.set(new as u16);
             } else {
-                bail!("Section contribution record (at contribution index #{i} has module index {old}, \
+                bail!(
+                    "Section contribution record (at contribution index #{i} has module index {old}, \
                        which is out of range (num modules is {})",
-                    modules_old_to_new.len());
+                    modules_old_to_new.len()
+                );
             }
 
             // While we're at it, make sure that the padding fields are cleared.

@@ -17,7 +17,7 @@ use ms_codeview::encoder::Encoder;
 use ms_codeview::parser::Parser;
 use tracing::{trace, trace_span, warn};
 use uuid::Uuid;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U32, Unaligned};
 
 /// Contains the PDB Information Stream.
 ///
@@ -94,7 +94,9 @@ impl PdbiStream {
                 bail!("The PDBI version requires a unique ID, but none has been provided.");
             }
         } else if self.unique_id.is_some() {
-            warn!("PDBI version is too old to have a unique ID, but this PdbiStream has a unique ID. It will be ignored.");
+            warn!(
+                "PDBI version is too old to have a unique ID, but this PdbiStream has a unique ID. It will be ignored."
+            );
         }
 
         self.named_streams.to_bytes(&mut e);
@@ -138,7 +140,7 @@ impl PdbiStream {
 
     /// Checks whether this PDB has a given feature enabled.
     pub fn has_feature(&self, feature_code: FeatureCode) -> bool {
-        self.features.iter().any(|f| *f == feature_code)
+        self.features.contains(&feature_code)
     }
 }
 
@@ -255,8 +257,11 @@ impl NamedStreams {
         let _deleted_num_items: u32 = deleted_mask.iter().map(|&b| b.count_ones()).sum();
 
         if present_num_items != name_count {
-            bail!("The PDBI name table contains inconsistent values.  Name count is {}, but present bitmap count is {}.",
-                name_count, present_num_items);
+            bail!(
+                "The PDBI name table contains inconsistent values.  Name count is {}, but present bitmap count is {}.",
+                name_count,
+                present_num_items
+            );
         }
 
         let items: &[HashEntry] = p.slice(name_count as usize)?;
@@ -274,8 +279,10 @@ impl NamedStreams {
             let name = kp.strz()?.to_str_lossy();
 
             if let Some(existing_stream) = names.get(&*name) {
-                warn!("The PDBI contains more than one stream with the same name {:?}: stream {} vs stream {}",
-                name, existing_stream, stream);
+                warn!(
+                    "The PDBI contains more than one stream with the same name {:?}: stream {} vs stream {}",
+                    name, existing_stream, stream
+                );
                 continue;
             }
 
@@ -285,7 +292,9 @@ impl NamedStreams {
         // Parse the "number of NameIndex" values at the end (niMac).
         let num_name_index = p.u32()?;
         if num_name_index != 0 {
-            warn!("The Named Streams table contains a non-zero value for the 'niMac' field. This is not supported");
+            warn!(
+                "The Named Streams table contains a non-zero value for the 'niMac' field. This is not supported"
+            );
         }
 
         Ok(Self {

@@ -347,7 +347,7 @@ pub fn dump_primitive_type_index(
 
     if let Ok(i) = PRIMITIVES.binary_search_by_key(&type_index.0, |entry| entry.0) {
         let s = PRIMITIVES[i].1;
-        write!(out, "{}", s)?;
+        write!(out, "{s}")?;
     } else {
         write!(out, "??PRIM(0x{:04x}) {{ ty: ", type_index.0)?;
 
@@ -366,7 +366,7 @@ pub fn dump_primitive_type_index(
                     break 'a;
                 }
             };
-            write!(out, "{}", ty_str)?;
+            write!(out, "{ty_str}")?;
         }
 
         write!(out, ", mode: {mode}, size: {size} }}")?;

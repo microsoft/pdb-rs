@@ -22,7 +22,7 @@ fn dump_module_lines(
     println!("    Obj file: {}", module.obj_file());
 
     if let Some(module_stream) = module.stream() {
-        println!("    Stream: {}", module_stream,);
+        println!("    Stream: {module_stream}",);
     } else {
         println!("    Stream: (none)");
         return Ok(());
@@ -79,7 +79,7 @@ fn dump_module_lines(
                     );
                     if let Some(checksum) = checksums.get(&block.header.file_index.get()) {
                         let name = names.get_string(checksum.name())?;
-                        println!("            file: {}", name);
+                        println!("            file: {name}");
                     } else {
                         println!(
                             "            file: unknown: {}",
@@ -97,7 +97,7 @@ fn dump_module_lines(
                         if ms_pdb::lines::is_jmc_line(line_num_start) {
                             print!("<no-step>");
                         } else {
-                            print!("{}", line_num_start);
+                            print!("{line_num_start}");
                         }
                     }
                     println!();
@@ -128,7 +128,7 @@ fn dump_module_lines(
                     if let Some(&name_offset) = name_offsets_for_module.get(i) {
                         let name2 = sources.get_source_file_name_at(name_offset.get())?;
                         if name != name2 {
-                            println!("    different name: {}", name2);
+                            println!("    different name: {name2}");
                         }
                     } else {
                         println!("    index is out of range");

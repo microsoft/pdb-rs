@@ -19,7 +19,7 @@ use bitflags::bitflags;
 use bstr::BStr;
 use std::fmt::Debug;
 use std::mem::size_of;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
+use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
 /// This header is shared by many records that can start a symbol scope.
 #[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Default, Clone, Debug)]
@@ -280,6 +280,18 @@ impl<'a> Sym<'a> {
     /// Parse the payload of the symbol.
     pub fn parse(&self) -> Result<SymData<'a>, ParserError> {
         SymData::parse(self.kind, self.data)
+    }
+
+    /// Parses the payload of the symbol with a type chosen by the caller.
+    ///
+    /// This is useful when the caller has already tested `Sym::kind` and knows the type of the
+    /// payload.
+    pub fn parse_as<T>(&self) -> Result<T, ParserError>
+    where
+        T: Parse<'a>,
+    {
+        let mut p = Parser::new(self.data);
+        p.parse::<T>()
     }
 }
 
@@ -1214,12 +1226,220 @@ impl<'a> Parse<'a> for HotPatchFunc<'a> {
     }
 }
 
+/// Data for `S_ARMSWITCHTABLE`.
+///
+/// This describes a switch table (jump table).
+///
+/// MSVC generates this symbol only when targeting ARM64.
+/// LLVM generates this symbol for all target architectures.
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone)]
+pub struct ArmSwitchTable {
+    /// Section-relative offset to the base for switch offsets
+    pub offset_base: U32<LE>,
+    /// Section index of the base for switch offsets
+    pub sect_base: U16<LE>,
+    /// type of each entry
+    pub switch_type: U16<LE>,
+    /// Section-relative offset to the table branch instruction
+    pub offset_branch: U32<LE>,
+    /// Section-relative offset to the start of the table
+    pub offset_table: U32<LE>,
+    /// Section index of the table branch instruction
+    pub sect_branch: U16<LE>,
+    /// Section index of the table
+    pub sect_table: U16<LE>,
+    /// number of switch table entries
+    pub num_entries: U32<LE>,
+}
+
+impl ArmSwitchTable {
+    /// The `[segment:offset]` of the jump base.
+    ///
+    /// This is the base address of the target of the jump. The value stored within the jump table
+    /// entry is added to this base.
+    ///
+    /// LLVM often generates tables where `base` and `table` have the same address, but this is
+    /// not necessarily true for all tables.
+    pub fn base(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.offset_base,
+            segment: self.sect_base,
+        }
+    }
+
+    /// The `[segment:offset]` of the branch instruction.
+    pub fn branch(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.offset_branch,
+            segment: self.sect_branch,
+        }
+    }
+
+    /// The `[segment:offset]` of the jump table.
+    pub fn table(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.offset_table,
+            segment: self.sect_table,
+        }
+    }
+
+    /// The type of switch table (2-byte, 4-byte, etc.).
+    pub fn switch_type(&self) -> ArmSwitchType {
+        ArmSwitchType(self.switch_type.get())
+    }
+
+    /// The number of entries in the jump table.
+    pub fn num_entries(&self) -> u32 {
+        self.num_entries.get()
+    }
+}
+
+impl core::fmt::Debug for ArmSwitchTable {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ArmSwitchTable")
+            .field("base", &self.base())
+            .field("branch", &self.branch())
+            .field("table", &self.table())
+            .field("switch_type", &self.switch_type())
+            .field("num_entries", &self.num_entries())
+            .finish()
+    }
+}
+
+/// The type of switch table, as defined by `S_ARMSWITCHTABLE`.
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub struct ArmSwitchType(pub u16);
+
+impl ArmSwitchType {
+    /// Signed 1-byte offset
+    pub const INT1: ArmSwitchType = ArmSwitchType(0);
+    /// Unsigned 1-byte offset
+    pub const UINT1: ArmSwitchType = ArmSwitchType(1);
+    /// Signed 2-byte offset
+    pub const INT2: ArmSwitchType = ArmSwitchType(2);
+    /// Unsigned 2-byte offset
+    pub const UINT2: ArmSwitchType = ArmSwitchType(3);
+    /// Signed 4-byte offset
+    pub const INT4: ArmSwitchType = ArmSwitchType(4);
+    /// Unsigned 4-byte offset
+    pub const UINT4: ArmSwitchType = ArmSwitchType(5);
+    /// Absolute pointer (no base)
+    pub const POINTER: ArmSwitchType = ArmSwitchType(6);
+    /// Unsigned 1-byte offset, shift left by 1
+    pub const UINT1SHL1: ArmSwitchType = ArmSwitchType(7);
+    /// Unsigned 2-byte offset, shift left by 2
+    pub const UINT2SHL1: ArmSwitchType = ArmSwitchType(8);
+    /// Signed 1-byte offset, shift left by 1
+    pub const INT1SHL1: ArmSwitchType = ArmSwitchType(9);
+    /// Signed 2-byte offset, shift left by 1
+    pub const INT2SHL1: ArmSwitchType = ArmSwitchType(10);
+    // CV_SWT_TBB          = CV_SWT_UINT1SHL1,
+    // CV_SWT_TBH          = CV_SWT_UINT2SHL1,
+}
+
+impl core::fmt::Debug for ArmSwitchType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        static NAMES: [&str; 11] = [
+            "INT1",
+            "UINT1",
+            "INT2",
+            "UINT2",
+            "INT4",
+            "UINT4",
+            "POINTER",
+            "UINT1SHL1",
+            "UINT2SHL1",
+            "INT1SHL1",
+            "INT2SHL1",
+        ];
+
+        if let Some(&s) = NAMES.get(self.0 as usize) {
+            f.write_str(s)
+        } else {
+            write!(f, "??{}", self.0)
+        }
+    }
+}
+
 // Trampoline subtypes
 
 /// Incremental thunks
 pub const TRAMPOLINE_KIND_INCREMENTAL: u16 = 0;
 /// Branch island thunks
 pub const TRAMPOLINE_KIND_BRANCH_ISLAND: u16 = 1;
+
+/// The fixed header of `S_COFFGROUP` symbols.
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+pub struct CoffGroupFixed {
+    /// Size in bytes of the coff group
+    pub cb: U32<LE>,
+    /// Characteristics flags. These are the same as the COFF section characteristics.
+    ///
+    /// See: <https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-image_section_header>
+    pub characteristics: U32<LE>,
+    /// Location of the COFF group
+    pub off_seg: OffsetSegment,
+}
+
+/// For `S_COFFGROUP`.
+///
+/// `S_COFFGROUP` records are present in the `* Linker *` special module. These records describe
+/// contiguous subsections within COFF sections. For example, `.text$mn` is a COFF group within
+/// the `.text` segment.
+#[derive(Clone, Debug)]
+pub struct CoffGroup<'a> {
+    /// The fixed-size header
+    pub fixed: &'a CoffGroupFixed,
+    /// The name of the COFF group
+    pub name: &'a BStr,
+}
+
+impl<'a> Parse<'a> for CoffGroup<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            fixed: p.get()?,
+            name: p.strz()?,
+        })
+    }
+}
+
+/// For `S_SECTION`
+#[derive(Clone, Debug)]
+pub struct Section<'a> {
+    /// The fixed-size header
+    pub fixed: &'a SectionFixed,
+    /// The name of the section
+    pub name: &'a BStr,
+}
+
+/// The fixed header of `S_SECTION` symbols.
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+pub struct SectionFixed {
+    /// Section number
+    pub section: U16<LE>,
+    /// Alignment of this section (power of 2)
+    pub align: u8,
+    /// Reserved
+    pub reserved: u8,
+    /// RVA of this section base
+    pub rva: U32<LE>,
+    /// Size in bytes of this section
+    pub cb: U32<LE>,
+    /// Section characteristics (bit flags)
+    pub characteristics: U32<LE>,
+}
+
+impl<'a> Parse<'a> for Section<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            fixed: p.get()?,
+            name: p.strz()?,
+        })
+    }
+}
 
 /// Parsed data from a symbol record
 #[derive(Clone, Debug)]
@@ -1260,6 +1480,9 @@ pub enum SymData<'a> {
     ManagedProc(ManagedProc<'a>),
     Annotation(Annotation<'a>),
     HotPatchFunc(HotPatchFunc<'a>),
+    CoffGroup(CoffGroup<'a>),
+    ArmSwitchTable(&'a ArmSwitchTable),
+    Section(Section<'a>),
 }
 
 impl<'a> SymData<'a> {
@@ -1323,6 +1546,9 @@ impl<'a> SymData<'a> {
             SymKind::S_GMANPROC | SymKind::S_LMANPROC => Self::ManagedProc(p.parse()?),
             SymKind::S_ANNOTATION => Self::Annotation(p.parse()?),
             SymKind::S_HOTPATCHFUNC => Self::HotPatchFunc(p.parse()?),
+            SymKind::S_ARMSWITCHTABLE => Self::ArmSwitchTable(p.get()?),
+            SymKind::S_COFFGROUP => Self::CoffGroup(p.parse()?),
+            SymKind::S_SECTION => Self::Section(p.parse()?),
 
             _ => Self::Unknown,
         })

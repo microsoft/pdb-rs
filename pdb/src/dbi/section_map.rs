@@ -14,7 +14,7 @@ pub struct SectionMapHeader {
     pub num_logical_segments: U16<LE>,
 }
 
-#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned)]
+#[derive(IntoBytes, KnownLayout, Immutable, FromBytes, Unaligned, Debug)]
 #[repr(C)]
 pub struct SectionMapEntry {
     /// Descriptor flags bit field. See `SectionMapEntryFlags`.
@@ -77,7 +77,10 @@ impl<'a> SectionMap<'a> {
         let header: SectionMapHeader = p.copy()?;
 
         let Ok(entries) = <[SectionMapEntry]>::ref_from_bytes(p.take_rest()) else {
-            bail!("Section map has invalid length (is not a multiple of SectionMapEntry size). Length (including 4-byte header): 0x{:x}", bytes.len());
+            bail!(
+                "Section map has invalid length (is not a multiple of SectionMapEntry size). Length (including 4-byte header): 0x{:x}",
+                bytes.len()
+            );
         };
         Ok(Self { header, entries })
     }

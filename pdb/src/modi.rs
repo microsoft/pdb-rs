@@ -4,17 +4,17 @@
 //! * <https://llvm.org/docs/PDB/ModiStream.html>
 //! * [`MODI_60_Persist` in `dbi.h`]
 
+use crate::StreamData;
 use crate::dbi::ModuleInfoFixed;
 use crate::utils::vec::replace_range_copy;
-use crate::StreamData;
 use crate::{dbi::ModuleInfo, syms::SymIter};
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use ms_codeview::parser::Parser;
 use std::mem::size_of;
 use std::ops::Range;
 use sync_file::ReadAt;
 use tracing::{debug, warn};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U32, Unaligned};
 
 /// The Module Symbols substream begins with this header. It is located at stream offset 0 in the
 /// Module Stream.
@@ -55,6 +55,30 @@ impl<F: ReadAt> crate::Pdb<F> {
 
         let stream_data = self.read_stream(stream)?;
         Ok(Some(ModiStreamData::new(stream_data, mod_info.header())?))
+    }
+
+    /// Reads the symbol data for a specific module.
+    ///
+    /// The returned buffer will contain a 4-byte header. The caller can use `SymIter::for_module_syms`
+    /// on the returned buffer.
+    ///
+    /// If the given module does not have a module stream, then this function will return `Ok`
+    /// with a zero-length buffer, so callers should be prepared to deal with the presence
+    /// _or absence_ of the 4-byte header.
+    pub fn read_module_symbols(&self, module: &ModuleInfo) -> Result<Vec<u32>> {
+        let len_u32 = module.sym_size() as usize / 4;
+        if len_u32 < 4 {
+            return Ok(Vec::new());
+        }
+
+        let Some(module_stream) = module.stream() else {
+            return Ok(Vec::new());
+        };
+
+        let mut syms: Vec<u32> = vec![0; len_u32];
+        let sr = self.get_stream_reader(module_stream)?;
+        sr.read_exact_at(syms.as_mut_bytes(), 0)?;
+        Ok(syms)
     }
 }
 

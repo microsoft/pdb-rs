@@ -103,24 +103,28 @@ fn build_and_search_globals() {
 
         println!("Dumping names from GSI:");
         for name_sym in gsi.names().iter(&gss) {
-            println!("{:?}", name_sym);
+            println!("{name_sym:?}");
         }
 
         let gsi_names = gsi.names();
-        assert!(gsi_names
-            .find_symbol(&gss, "bad_name_not_found".into())
-            .unwrap()
-            .is_none());
+        assert!(
+            gsi_names
+                .find_symbol(&gss, "bad_name_not_found".into())
+                .unwrap()
+                .is_none()
+        );
         assert!(gsi_names.find_symbol(&gss, "FOO".into()).unwrap().is_some());
         assert!(gsi_names.find_symbol(&gss, "BAR".into()).unwrap().is_some());
-        assert!(gsi_names
-            .find_symbol(
-                &gss,
-                "AugmentedMultiThreadedSymbolExpanderServiceProviderSingletonAbstractBaseFacet"
-                    .into()
-            )
-            .unwrap()
-            .is_some());
+        assert!(
+            gsi_names
+                .find_symbol(
+                    &gss,
+                    "AugmentedMultiThreadedSymbolExpanderServiceProviderSingletonAbstractBaseFacet"
+                        .into()
+                )
+                .unwrap()
+                .is_some()
+        );
     }
 
     {
@@ -132,10 +136,11 @@ fn build_and_search_globals() {
 
         psi.check_consistency(&gss).unwrap();
 
-        assert!(psi
-            .find_symbol_by_name(&gss, "bad_name_not_found".into())
-            .unwrap()
-            .is_none());
+        assert!(
+            psi.find_symbol_by_name(&gss, "bad_name_not_found".into())
+                .unwrap()
+                .is_none()
+        );
 
         {
             let memset = psi
@@ -164,10 +169,11 @@ fn empty_psi() {
 fn empty_gsi() {
     let gss = GlobalSymbolStream::empty();
     let gsi = GlobalSymbolIndex::parse(NUM_BUCKETS, Vec::new()).unwrap();
-    assert!(gsi
-        .find_symbol(&gss, bstr::BStr::new("none"))
-        .unwrap()
-        .is_none());
+    assert!(
+        gsi.find_symbol(&gss, bstr::BStr::new("none"))
+            .unwrap()
+            .is_none()
+    );
 
     // Check bad offset: Outside of bounds
     assert!(gss.get_sym_at(0xbadbad).is_err());

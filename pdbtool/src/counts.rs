@@ -384,9 +384,9 @@ fn show_counts(counts: &mut Counts) {
             counts.module_sym_sizes[counts.module_sym_sizes.len() * 95 / 100].0;
         println!("Number of modules: {}", counts.module_sym_sizes.len());
         println!("Module symbol stream sizes:");
-        println!("    percentile  5%  : {:8}", module_sym_size_percentile5);
-        println!("    percentile 50%  : {:8}", module_sym_size_median);
-        println!("    percentile 95%  : {:8}", module_sym_size_percentile95);
+        println!("    percentile  5%  : {module_sym_size_percentile5:8}");
+        println!("    percentile 50%  : {module_sym_size_median:8}");
+        println!("    percentile 95%  : {module_sym_size_percentile95:8}");
         println!();
     }
 

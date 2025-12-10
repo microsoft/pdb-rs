@@ -20,7 +20,7 @@ pub mod spec {
 use std::fs::OpenOptions;
 
 use anyhow::Result;
-use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32, U64};
+use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, LE, U32, U64, Unaligned};
 
 mod compress_utils;
 mod reader;

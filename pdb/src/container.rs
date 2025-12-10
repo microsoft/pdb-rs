@@ -131,6 +131,16 @@ impl<'a, F: ReadAt> StreamReader<'a, F> {
             Self::Msfz(s) => s.is_empty(),
         }
     }
+
+    /// Returns the length in bytes of the stream.
+    ///
+    /// If the stream is a nil stream, this returns 0.
+    pub fn stream_size(&self) -> u64 {
+        match self {
+            Self::Msf(s) => s.len() as u64,
+            Self::Msfz(s) => s.stream_size(),
+        }
+    }
 }
 
 impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {

@@ -31,9 +31,9 @@ where
 
     if let Some((start, end)) = prev {
         if start != end {
-            write!(out, "{}-{} ", start, end)?;
+            write!(out, "{start}-{end} ")?;
         } else {
-            write!(out, "{} ", start)?;
+            write!(out, "{start} ")?;
         }
     }
 

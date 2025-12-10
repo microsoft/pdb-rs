@@ -173,10 +173,7 @@ pub fn dump_streams(p: &Pdb, options: StreamsOptions) -> anyhow::Result<()> {
 
         let stream_size = p.stream_len(stream_index);
         if let Some(usage) = usage_opt {
-            println!(
-                "Stream #{stream_index:6} : (size {stream_size:10}) {:?}",
-                usage
-            );
+            println!("Stream #{stream_index:6} : (size {stream_size:10}) {usage:?}");
             if p.is_stream_valid(stream_index) {
             } else {
                 println!("   error: Stream is nil");
@@ -199,10 +196,7 @@ pub fn dump_streams(p: &Pdb, options: StreamsOptions) -> anyhow::Result<()> {
     }
 
     if num_streams_unknown_usage != 0 {
-        println!(
-            "Number of streams with unknown usage: {}",
-            num_streams_unknown_usage
-        );
+        println!("Number of streams with unknown usage: {num_streams_unknown_usage}");
     }
 
     Ok(())

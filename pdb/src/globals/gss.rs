@@ -48,7 +48,9 @@ impl GlobalSymbolStream {
 
         let mut sym_iter = SymIter::new(record_bytes);
         let Some(sym) = sym_iter.next() else {
-            bail!("Invalid record offset into GSS: {record_offset}. Failed to decode symbol data at that offset.");
+            bail!(
+                "Invalid record offset into GSS: {record_offset}. Failed to decode symbol data at that offset."
+            );
         };
 
         Ok(sym)
@@ -65,7 +67,8 @@ impl GlobalSymbolStream {
         let sym = self.get_sym_at(record_offset)?;
 
         if sym.kind != SymKind::S_PUB32 {
-            bail!("Invalid record offset into GSS: {record_offset}. Found a symbol with the wrong type.  Expected S_PUB32, found {:?}",
+            bail!(
+                "Invalid record offset into GSS: {record_offset}. Found a symbol with the wrong type.  Expected S_PUB32, found {:?}",
                 sym.kind
             );
         };

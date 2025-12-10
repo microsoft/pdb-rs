@@ -6,10 +6,10 @@
 #![allow(clippy::useless_vec)]
 
 use bstr::BStr;
+use ms_pdb::Pdb;
 use ms_pdb::syms::{Data, SymData, SymKind};
 use ms_pdb::types::fields::Field;
 use ms_pdb::types::{TypeData, TypeIndex};
-use ms_pdb::Pdb;
 use std::collections::HashMap;
 use std::path::Path;
 use std::process::Command;
@@ -269,7 +269,9 @@ fn types() -> anyhow::Result<()> {
                 if expected_type == actual_type {
                     trace!("field has correct type: {expected_type:?} - {name}");
                 } else {
-                    error!("expected field {name} to have type {expected_type:?}, but it had type {actual_type:?}");
+                    error!(
+                        "expected field {name} to have type {expected_type:?}, but it had type {actual_type:?}"
+                    );
                     error = true;
                 }
             } else {

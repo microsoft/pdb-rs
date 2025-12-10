@@ -1,5 +1,5 @@
 use anyhow::bail;
-use ms_pdb::{names::NAMES_STREAM_NAME, Pdb, Stream};
+use ms_pdb::{Pdb, Stream, names::NAMES_STREAM_NAME};
 use std::ops::Range;
 use std::path::Path;
 

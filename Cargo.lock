@@ -357,12 +357,13 @@ dependencies = [
 
 [[package]]
 name = "ms-codeview"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "bitfield",
  "bitflags 2.8.0",
  "bstr",
+ "ms-coff",
  "pretty-hex",
  "tracing",
  "uuid",
@@ -371,8 +372,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "ms-coff"
+version = "0.1.0"
+dependencies = [
+ "bitflags 2.8.0",
+ "bstr",
+ "static_assertions",
+ "zerocopy 0.8.14",
+ "zerocopy-derive 0.8.14",
+]
+
+[[package]]
 name = "ms-pdb"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -380,6 +392,7 @@ dependencies = [
  "bitvec",
  "bstr",
  "ms-codeview",
+ "ms-coff",
  "ms-pdb-msf",
  "ms-pdb-msfz",
  "pow2",
@@ -396,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb-msf"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -415,7 +428,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb-msfz"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "anyhow",
  "bstr",
@@ -485,7 +498,7 @@ dependencies = [
 
 [[package]]
 name = "pdbtool"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "anyhow",
  "bitvec",
@@ -495,6 +508,7 @@ dependencies = [
  "dbg-ranges",
  "friendly",
  "glob",
+ "ms-coff",
  "ms-pdb",
  "regex",
  "static_init",

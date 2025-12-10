@@ -7,7 +7,7 @@ use crate::types::TypeIndex;
 use bstr::{BStr, ByteSlice};
 use std::mem::{size_of, take};
 use zerocopy::byteorder::{I16, I32, I64, LE, U16, U32, U64};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I128, U128};
+use zerocopy::{FromBytes, I128, Immutable, IntoBytes, KnownLayout, U128, Unaligned};
 
 pub use crate::types::number::Number;
 

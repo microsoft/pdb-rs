@@ -38,15 +38,15 @@
 #[cfg(test)]
 mod tests;
 
-use crate::utils::align_4;
 use crate::ReadAt;
+use crate::utils::align_4;
 use anyhow::bail;
 use bstr::BStr;
 use ms_codeview::parser::{Parser, ParserMut};
 use ms_codeview::{HasRestLen, IteratorWithRangesExt};
 use std::ops::Range;
 use tracing::{debug, trace, trace_span, warn};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U32, Unaligned};
 
 /// The name of the `/names` stream. This identifies the stream in the Named Streams Table,
 /// in the PDB Information Stream.
@@ -445,7 +445,10 @@ impl NameIndexMapping {
         let table = self.table.as_slice();
         match table.binary_search_by_key(&name, |(old, _)| *old) {
             Ok(i) => Ok(table[i].1),
-            Err(_) => bail!("The NameIndex value 0x{:x} cannot be remapped because it was not present in the old Names stream.", name.0),
+            Err(_) => bail!(
+                "The NameIndex value 0x{:x} cannot be remapped because it was not present in the old Names stream.",
+                name.0
+            ),
         }
     }
 }

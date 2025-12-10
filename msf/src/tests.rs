@@ -515,7 +515,7 @@ fn writer() -> Msf<TestFile> {
 fn finish_and_dump(mut w: Msf<TestFile>) {
     match w.commit() {
         Err(e) => {
-            panic!("PdbWriter::commit failed: {}", e);
+            panic!("PdbWriter::commit failed: {e}");
         }
         Ok(_wrote_any) => {
             let data_guard = w.file.data.lock().unwrap();

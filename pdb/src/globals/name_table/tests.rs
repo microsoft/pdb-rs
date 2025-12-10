@@ -44,7 +44,7 @@ fn test_names(names: &[String]) -> NameTable {
         let start = rt_table.hash_buckets[i];
         let end = rt_table.hash_buckets[i + 1];
         if start != end {
-            println!("  {i:4} : {:4} .. {:4}", start, end);
+            println!("  {i:4} : {start:4} .. {end:4}");
         }
     }
 

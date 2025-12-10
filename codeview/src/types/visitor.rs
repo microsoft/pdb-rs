@@ -3,10 +3,9 @@
 
 use super::{ItemId, ItemIdLe};
 use crate::parser::{Parser, ParserError, ParserMut};
-use crate::types::{introduces_virtual, PointerFlags};
 use crate::types::{Leaf, TypeIndex, TypeIndexLe};
+use crate::types::{PointerFlags, introduces_virtual};
 use anyhow::Context;
-use std::mem::replace;
 use tracing::error;
 use zerocopy::{LE, U32};
 
@@ -218,10 +217,7 @@ pub fn visit_type_indexes_in_record_slice<IV: IndexVisitor>(
 
     visit_type_indexes_in_record(type_kind, &mut v).with_context(|| {
         let offset = record_data_len - v.parser.len();
-        format!(
-            "at byte offset 0x{:x} {} within type record",
-            offset, offset
-        )
+        format!("at byte offset 0x{offset:x} {offset} within type record")
     })
 }
 
@@ -246,10 +242,7 @@ where
 
     visit_type_indexes_in_record(type_kind, &mut v).with_context(|| {
         let offset = record_data_len - v.parser.len();
-        format!(
-            "at byte offset 0x{:x} {} within type record",
-            offset, offset
-        )
+        format!("at byte offset 0x{offset:x} {offset} within type record")
     })
 }
 
@@ -358,7 +351,7 @@ pub fn visit_type_indexes_in_record<V: RecordVisitor>(
                 }
 
                 let item_kind = Leaf(p.u16()?);
-                let after = replace(&mut prev_item_kind, Some(item_kind));
+                let after = prev_item_kind.replace(item_kind);
 
                 match item_kind {
                     Leaf::LF_BCLASS => {

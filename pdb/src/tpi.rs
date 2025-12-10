@@ -40,13 +40,13 @@ pub mod hash;
 
 use super::*;
 use crate::types::fields::{Field, IterFields};
-use crate::types::{build_types_starts, TypeData, TypeIndex, TypeIndexLe, TypeRecord, TypesIter};
+use crate::types::{TypeData, TypeIndex, TypeIndexLe, TypeRecord, TypesIter, build_types_starts};
 use anyhow::bail;
 use ms_codeview::parser::Parser;
 use std::fmt::Debug;
 use std::mem::size_of;
 use std::ops::Range;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U32};
+use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U32, Unaligned};
 
 /// The header of the TPI stream.
 #[allow(missing_docs)]
@@ -374,7 +374,9 @@ where
 
         let starts = self.record_starts();
         let Some(&record_start) = starts.get(relative_type_index as usize) else {
-            bail!("The given TypeIndex is out of bounds (exceeds maximum allowed TypeIndex)");
+            bail!(
+                "The given TypeIndex {type_index:?} is out of bounds (exceeds maximum allowed TypeIndex)"
+            );
         };
 
         let all_type_records = self.type_records_bytes();

@@ -1,5 +1,5 @@
 use crate::*;
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use core::mem::size_of;
 use std::fs::File;
 use std::io::{Read, Seek, SeekFrom};
@@ -175,7 +175,9 @@ impl<F: ReadAt> Msfz<F> {
             )?;
         } else {
             if stream_dir_size_uncompressed != stream_dir_size_compressed {
-                bail!("This PDZ file is invalid. The Stream Directory is not compressed, but has inconsistent compressed vs. uncompressed sizes.");
+                bail!(
+                    "This PDZ file is invalid. The Stream Directory is not compressed, but has inconsistent compressed vs. uncompressed sizes."
+                );
             }
             file.read_exact_at(stream_dir_bytes.as_mut_bytes(), stream_dir_file_offset)?;
         }
@@ -468,7 +470,7 @@ impl<F: ReadAt> Msfz<F> {
         let fragments = self.stream_fragments_result(stream)?;
         Ok(StreamReader {
             msfz: self,
-            size: fragments.iter().map(|f| f.size).sum(),
+            size: fragments.iter().map(|f| f.size as u64).sum(),
             fragments,
             pos: 0,
         })
@@ -488,7 +490,7 @@ impl<F: ReadAt> Msfz<F> {
 /// Allows reading a stream using the [`Read`], [`Seek`], and [`ReadAt`] traits.
 pub struct StreamReader<'a, F> {
     msfz: &'a Msfz<F>,
-    size: u32,
+    size: u64,
     fragments: &'a [Fragment],
     pos: u64,
 }
@@ -502,7 +504,7 @@ impl<'a, F> StreamReader<'a, F> {
     /// Size in bytes of the stream.
     ///
     /// This returns zero for nil streams.
-    pub fn stream_size(&self) -> u32 {
+    pub fn stream_size(&self) -> u64 {
         self.size
     }
 }
@@ -648,7 +650,9 @@ fn decode_stream_dir(
                 let offset_within_chunk = location.compressed_offset_within_chunk();
 
                 let Some(chunk) = chunk_table.get(first_chunk as usize) else {
-                    bail!("The Stream Directory contains an invalid fragment record. Chunk index {first_chunk} exceeds the size of the chunk table.");
+                    bail!(
+                        "The Stream Directory contains an invalid fragment record. Chunk index {first_chunk} exceeds the size of the chunk table."
+                    );
                 };
 
                 let uncompressed_chunk_size = chunk.uncompressed_size.get();
@@ -657,7 +661,9 @@ fn decode_stream_dir(
                 // always have a size that is non-zero, so at least one byte must come from the
                 // first chunk identified by a compressed fragment.
                 if offset_within_chunk >= uncompressed_chunk_size {
-                    bail!("The Stream Directory contains an invalid fragment record. offset_within_chunk {offset_within_chunk} exceeds the size of the chunk.");
+                    bail!(
+                        "The Stream Directory contains an invalid fragment record. offset_within_chunk {offset_within_chunk} exceeds the size of the chunk."
+                    );
                 };
 
                 // We could go further and validate that the current fragment extends beyond a
@@ -679,7 +685,9 @@ fn decode_stream_dir(
             // which is handled at the start of the while loop.
             fragment_size = dec.u32()?;
             if fragment_size == NIL_STREAM_SIZE {
-                bail!("Stream directory is malformed. It contains a non-initial fragment with size = NIL_STREAM_SIZE.");
+                bail!(
+                    "Stream directory is malformed. It contains a non-initial fragment with size = NIL_STREAM_SIZE."
+                );
             }
             // continue for more
         }

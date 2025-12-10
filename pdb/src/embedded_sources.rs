@@ -8,7 +8,7 @@ impl<F: ReadAt> Pdb<F> {
     where
         F: WriteAt,
     {
-        let stream_name = format!("/src/{}", file_path);
+        let stream_name = format!("/src/{file_path}");
         self.add_or_replace_named_stream(&stream_name, file_contents)
     }
 

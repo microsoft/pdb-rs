@@ -250,7 +250,7 @@ fn try_from_int_error() -> TryFromIntError {
 }
 
 #[cfg(test)]
-fn parse_number(bytes: &[u8]) -> Number {
+fn parse_number(bytes: &[u8]) -> Number<'_> {
     let mut p = Parser::new(bytes);
     let n = p.number().unwrap();
     assert!(p.is_empty());
@@ -334,7 +334,7 @@ fn number_real32() {
 
     let b: [u8; 4] = PI.to_le_bytes();
     assert_eq!(b, [0xdb, 0x0f, 0x49, 0x40]); // 0x400490fdb, pi in f32
-    println!("f32 PI bytes: {:#x?}", b);
+    println!("f32 PI bytes: {b:#x?}");
 
     // 8005 is LF_REAL32
     let n = parse_number(&[0x05, 0x80, 0xdb, 0x0f, 0x49, 0x40]);
@@ -366,7 +366,7 @@ fn number_real64() {
     let b: [u8; 8] = PI.to_le_bytes();
     assert_eq!(b, [0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x9, 0x40]);
     // assert_eq!(b, [0xdb, 0x0f, 0x49, 0x40]); // 0x400921fb54442d18, pi in f64
-    println!("f64 PI bytes: {:#x?}", b);
+    println!("f64 PI bytes: {b:#x?}");
 
     // 8006 is LF_REAL64
     let n = parse_number(&[0x06, 0x80, 0x18, 0x2d, 0x44, 0x54, 0xfb, 0x21, 0x9, 0x40]);
@@ -481,10 +481,10 @@ fn display() {
             format!("{leaf:?} {n}")
         };
 
-        assert_eq!(actual_output, expected_output, "bytes: {:#x?}", input);
+        assert_eq!(actual_output, expected_output, "bytes: {input:#x?}");
 
         // Cover Debug::fmt. It just trivially defers to Display.
-        let _ = format!("{:?}", n);
+        let _ = format!("{n:?}");
     }
 }
 

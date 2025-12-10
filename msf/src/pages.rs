@@ -131,9 +131,7 @@ impl<'a> StreamPageMapper<'a> {
 
         assert!(
             transfer_size <= bytes_wanted,
-            "transfer_size = {}, bytes_wanted = {}",
-            transfer_size,
-            bytes_wanted
+            "transfer_size = {transfer_size}, bytes_wanted = {bytes_wanted}"
         );
 
         Some((file_offset, transfer_size))
@@ -330,7 +328,9 @@ impl PageAllocator {
         };
 
         if !*b {
-            bail!("Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream.");
+            bail!(
+                "Page {page} cannot be marked busy, because it is already marked busy. It may be used by more than one stream."
+            );
         }
         b.set(false);
 
@@ -342,7 +342,9 @@ impl PageAllocator {
             );
         };
         if *freed {
-            bail!("Page {page} cannot be marked 'freed', because it is already marked freed. This indicates that the page was used more than once in the Stream Directory or Page Map.");
+            bail!(
+                "Page {page} cannot be marked 'freed', because it is already marked freed. This indicates that the page was used more than once in the Stream Directory or Page Map."
+            );
         }
         freed.set(true);
 
@@ -421,13 +423,17 @@ impl PageAllocator {
                 // the beginning of an interval. There is exactly 1 usable page at the start of an
                 // interval; after that page is the FPM1 and then the FPM2. So we can only allocate
                 // a single page.
-                trace!("num_pages is positioned on first page of an interval; can only allocate 1 page");
+                trace!(
+                    "num_pages is positioned on first page of an interval; can only allocate 1 page"
+                );
                 1
             }
             1 => {
                 // num_pages is positioned on FPM1. That's fine.  Step over FPM1 and FPM2.
                 // Increment phase to pretend like that's how we got here in the first place.
-                trace!("num_pages is positioned on FPM1; incrementing by 2 and using remainder of interval");
+                trace!(
+                    "num_pages is positioned on FPM1; incrementing by 2 and using remainder of interval"
+                );
                 self.fpm_freed.push(false); // FPM1
                 self.fpm_freed.push(false); // FPM2
                 self.fpm.push(false); // FPM1
@@ -439,7 +445,9 @@ impl PageAllocator {
             2 => {
                 // We are positioned on FPM2. That's unusual but OK. Step over FPM2 and mark it
                 // as busy.
-                trace!("num_pages is positioned on FPM2; incrementing by 1 and using remainder of interval");
+                trace!(
+                    "num_pages is positioned on FPM2; incrementing by 1 and using remainder of interval"
+                );
                 self.fpm_freed.push(false);
                 self.fpm.push(false);
                 self.num_pages += 1;

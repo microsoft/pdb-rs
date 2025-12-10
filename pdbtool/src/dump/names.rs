@@ -63,7 +63,7 @@ pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
 
         for (i, &ni) in hashes.iter().enumerate() {
             if ni.get() == 0 {
-                println!("  hash 0x{:08x} : none", i);
+                println!("  hash 0x{i:08x} : none");
                 num_hashes_unused += 1;
                 probing_hash_base = i as u32 + 1;
                 continue;
@@ -71,10 +71,7 @@ pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
 
             let s = names_stream.get_string(NameIndex(ni.get()))?;
             let computed_hash = hash::hash_mod_u32(s, names_stream.num_hashes as u32);
-            println!(
-                "  hash 0x{:08x} : computed hash 0x{:08x} : {}",
-                i, computed_hash, s
-            );
+            println!("  hash 0x{i:08x} : computed hash 0x{computed_hash:08x} : {s}");
 
             let hash_is_good = computed_hash == i as u32
                 || (computed_hash >= probing_hash_base && computed_hash < i as u32);
@@ -86,15 +83,9 @@ pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
         }
 
         println!();
-        println!(
-            "Number of hashes that are correct:    {:8}",
-            num_hashes_good
-        );
-        println!("Number of hashes that are wrong:      {:8}", num_hashes_bad);
-        println!(
-            "Number of hash slots that are unused: {:8}",
-            num_hashes_unused
-        );
+        println!("Number of hashes that are correct:    {num_hashes_good:8}");
+        println!("Number of hashes that are wrong:      {num_hashes_bad:8}");
+        println!("Number of hash slots that are unused: {num_hashes_unused:8}");
 
         let num_hashes_used = num_hashes_good + num_hashes_bad;
         if num_hashes_used == names_stream.num_strings {
@@ -102,8 +93,7 @@ pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
         } else {
             println!(
                 "error: Number of hashes used is {}, which is not equal to the total number of strings ({}).",
-                num_hashes_used,
-                names_stream.num_strings
+                num_hashes_used, names_stream.num_strings
             );
         }
     }

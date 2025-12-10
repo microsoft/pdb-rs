@@ -128,7 +128,10 @@ impl<'a> DbiSourcesSubstream<'a> {
         let start = self.module_file_starts[module_index].get() as usize;
         let count = self.module_file_counts[module_index].get() as usize;
         let Some(s) = self.file_name_offsets.get(start..start + count) else {
-            bail!("File name offsets for module #{module_index} are invalid.  start: {start}, count: {count}, len available: {}", self.file_name_offsets.len());
+            bail!(
+                "File name offsets for module #{module_index} are invalid.  start: {start}, count: {count}, len available: {}",
+                self.file_name_offsets.len()
+            );
         };
         Ok(s)
     }

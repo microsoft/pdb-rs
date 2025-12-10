@@ -1,7 +1,7 @@
 [package]
 name = "pdbtool"
-version = "0.1.14"
-edition = "2021"
+version = "0.1.15"
+edition = "2024"
 description = "A tool for reading Program Database (PDB) files and displaying information about them."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
@@ -29,6 +29,10 @@ zerocopy-derive.workspace = true
 zerocopy.workspace = true
 zstd.workspace = true
 
+[dependencies.ms-coff]
+version = "0.1.0"
+path = "../coff"
+
 [dependencies.ms-pdb]
-version = "0.1.14"
+version = "0.1.15"
 path = "../pdb"
