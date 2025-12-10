@@ -7,9 +7,8 @@ based on XOR’ing input bytes in groups of 4. For inputs whose length is not a
 multiple of 4, the hash function XOR’s the last 1, 2, or 3 bytes, but there is
 an accidental special-case that must be considered carefully.
 
-
-The hash function takes a byte array and produces a uint32. It then divides that
-value by a modulus (usually a hash bucket count) and returns the remainder.
+The hash function takes a byte array and produces a `uint32`. It then divides
+that value by a modulus (usually a hash bucket count) and returns the remainder.
 
 To compute the hash function:
 

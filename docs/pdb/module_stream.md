@@ -24,13 +24,13 @@ Module Stream and its substreams.
 
 Each Module Stream has this structure:
 
-```
+```c
 struct ModuleStream {
     uint8_t symbols[sym_byte_size];
     uint8_t c11_lines[c11_byte_size];
     uint8_t c13_lines[c13_byte_size];
     uint8_t global_refs[];
-}
+};
 ```
 
 where `sym_byte_size`, `c11_byte_size`, and `c13_byte_size` are taken from
@@ -63,11 +63,13 @@ zero, meaning this Module Stream does not contain Global Refs.
 
 If Global Refs is present, then it has this structure:
 
-```
+```c
 struct GlobalRefs {
     uint32_t size;                     // size in bytes of the global refs table
     uint32_t global_refs[size / 4];
-}
+};
 ```
 
-Each value in `global_refs` is a byte offset into the [Global Symbol Stream](globals.md). Each entry identifies a global symbol that is relevant to this module.
+Each value in `global_refs` is a byte offset into the
+[Global Symbol Stream](globals.md). Each entry identifies a global symbol that
+is relevant to this module.

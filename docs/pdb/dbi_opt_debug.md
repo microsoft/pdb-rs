@@ -4,10 +4,10 @@ The DBI Optional Debug Header Substream contains a list of stream indexes. Each
 stream, if present, contains a copy of a data structure from the corresponding
 executable.
 
-```
+```c
 struct OptionalDebugHeaderSubstream {
     uint16_t streams[];
-}
+};
 ```
 
 The size of the Optional Debug Header Substream is determined by the number of

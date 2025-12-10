@@ -1,7 +1,7 @@
 - [Global Symbols: GSS, GSI, and PSI](#global-symbols-gss-gsi-and-psi)
 - [Global Symbol Stream (GSS)](#global-symbol-stream-gss)
   - [Reference Symbols](#reference-symbols)
-- [Name Table (used in GSI and PSI)](#name-table-used-in-gsi-and-psi)
+- [Symbol Name Table (used in GSI and PSI)](#symbol-name-table-used-in-gsi-and-psi)
   - [Hash Records](#hash-records)
   - [Hash Buckets](#hash-buckets)
 - [Example Name Table Header](#example-name-table-header)
@@ -13,9 +13,9 @@
 - [Querying the Name Table](#querying-the-name-table)
 - [Global Symbol Index (GSI) Stream](#global-symbol-index-gsi-stream)
 - [Public Symbol Index (PSI) Stream](#public-symbol-index-psi-stream)
-- [Address Table](#address-table)
-- [Querying the PSI Address Table](#querying-the-psi-address-table)
-- [Pointer relationships](#pointer-relationships)
+  - [Address Table](#address-table)
+  - [Querying the PSI Address Table](#querying-the-psi-address-table)
+  - [Pointer relationships](#pointer-relationships)
 
 # Global Symbols: GSS, GSI, and PSI
 
@@ -71,6 +71,10 @@ Record Kind<br> Value (hex) | Record Kind Name | Description
 0x1128 | `S_ANNOTATIONREF`  | A reference to an `S_ANNOTATION` symbol
 0x1129 | `S_TOKENREF`       | A reference to a managed token (MSIL)
 
+> Encoders should only encode symbols that are listed in this table.
+
+> Decoders should ignore any symbols that are not listed in this table.
+
 ## Reference Symbols
 
 Some symbols in the GSS are references to symbols stored in module streams.
@@ -116,7 +120,7 @@ The Name Table is a hash table. It has the following structure. Again, this
 describes only the "small table" representation; the "large" representation is
 not specified.
 
-```
+```c
 struct SymbolNameTable {
     // Always 0xFFFF_FFFF. This value indicates that the "small" representation is being used.
     uint32_t signature;
@@ -137,7 +141,7 @@ struct SymbolNameTable {
 
     // Contains a bitmap which describes which hash buckets are present
     uint8_t hash_buckets[header.hash_buckets_size];
-}
+};
 ```
 
 > Invariant: `hash_records_size` is a multiple of 8.
@@ -146,7 +150,7 @@ Let `num_hash_records = hash_records_size / 8`.
 
 ## Hash Records
 
-```
+```c
 struct HashRecord {
     // This field specifies the byte offset of this symbol within the Global
     // Symbol Stream (GSS), plus 1.
@@ -156,7 +160,7 @@ struct HashRecord {
     // data structures. Decoders should ignore this field. Encoders should set
     // this field 1.
     int32_t c_refs;
-}
+};
 ```
 
 Each entry in `hash_records` describes a symbol record stored in the Global
@@ -189,10 +193,10 @@ the hash bucket.
 Let `DecompressedHashBuckets` be the in-memory representation of the hash
 buckets:
 
-```
+```c
 struct DecompressedHashBuckets {
     int32_t buckets[num_buckets];
-}
+};
 ```
 
 `num_buckets` is a parameter that is chosen when the hash table is constructed.
@@ -324,7 +328,7 @@ The following is an example of a `hash_buckets` region. The `FF` values (and the
 `00 00 00 00` immediately after them) are the "non-empty buckets" bitmap.
 Following that are the bucket-index values.
 
-```
+```text
 00088520 : 01 00 00 00 19 63 5b 00 01 00 00 00 ff ff ff ff
 00088530 : ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 00088540 : ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
@@ -371,16 +375,14 @@ bits in this table have been set.
 However, the size in bytes of `nonempty_buckets` is a bit strange. It relies on
 an implementation detail of the PDB reader/writer library. Let `num_buckets` be
 the number of hash buckets. Then let
-`non_empty_bitmask_size_in_bytes = (num_buckets + 32) / 8`. The C++ PDB library
-adds 1 to `num_buckets` and then computes the 32-bit aligned size of the
-bitmask, because it stores it in uint32 values. Then it serializes the mask as a
-byte array, but it uses the full `uint32_t` array.
+`non_empty_bitmask_size_in_bytes =(num_buckets + 32) / 8`. The C++ PDB library adds 1 to `num_buckets` and then computes the 32-bit aligned size of the bitmask, because it stores it in `uint32` values. Then it serializes the mask as
+a byte array, but it uses the full `uint32_t` array.
 
 In our example, since `num_buckets` is 4096 (0x1000), we compute the size in
 bytes of `nonempty_buckets` as 516 (0x204), not 512. You can see the unused 32
-bits at the end of the nonempty_buckets bitmap:
+bits at the end of the `nonempty_buckets` bitmap:
 
-```
+```c
 000886f0 : ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 00088700 : ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
 00088710 : ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
@@ -407,8 +409,8 @@ each bucket. This highlights the first 16 hash bucket values:
 
 In table format:
 
-Bytes | Hex | Decimal,<br>divided by 12 | Difference from next bucket offset<br>(number of hash records in this bucket)
---------------|------------|---|----
+Bytes         | Hex        | Decimal,<br>divided by 12 | Difference from next bucket offset<br>(number of hash records in this bucket)
+--------------|------------|-----|----
 `00 00 00 00` | `00000000` |   0 | 18
 `D8 00 00 00` | `000000D8` |  18 | 21
 `D4 01 00 00` | `000001D4` |  39 | 15
@@ -531,7 +533,7 @@ symbols in the GSS; all other symbol kinds are indexed in the GSI.
 
 The PSI stream has this structure:
 
-```
+```c
 struct PsiStream {
   PsiStreamHeader header;
   uint8_t name_table[];
@@ -549,7 +551,7 @@ in the `PsiStreamHeader`.
 
 `PsiStreamHeader` has this structure:
 
-```
+```c
 struct PsiStreamHeader {
     uint32_t name_table_size;  // Size in bytes of name_table
     uint32_t addr_table_size;  // Size in bytes of address_table
@@ -603,7 +605,7 @@ a value to be repeated, but it would have no benefit.
 
 This is an example of the GSI Address Table, starting at 0x8_C730:
 
-```
+```text
 0008c710 : 8c c1 0c 00 f8 c1 0c 00 d0 c2 0c 00 b4 c3 0c 00 : ................
 0008c720 : 44 c4 0c 00 64 c5 0c 00 b8 c5 0c 00 9c c6 0c 00 : D...d...........
 0008c730 : a8 d5 58 00 9c 29 8c 00 fc 74 8e 00 80 d8 68 00 : ..X..)...t....h.
@@ -625,7 +627,7 @@ Bytes         | Hex value  | Symbol name
 
 We can manually find these records in the GSS table:
 
-```
+```text
 0058d5a0 : 61 63 6b 61 67 65 40 00 1e 00 0e 11 02 00 00 00 : ackage@.........
 0058d5b0 : 10 00 00 00 01 00 45 6e 75 6d 53 79 73 74 65 6d : ......EnumSystem
 0058d5c0 : 47 65 6f 49 44 00 00 00 42 00 0e 11 02 00 00 00 : GeoID...B.......

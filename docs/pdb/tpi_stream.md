@@ -45,7 +45,7 @@ of variable-length type records.
 
 The header:
 
-```
+```c
 // sizeof = 56
 struct TypeStreamHeader {
   uint32_t version;
@@ -67,7 +67,7 @@ struct TypeStreamHeader {
   uint32_t index_offset_buffer_length;
   int32_t  hash_adj_buffer_offset;
   uint32_t hash_adj_buffer_length;
-}
+};
 ```
 
 An example of a Type Stream Header:
@@ -170,12 +170,12 @@ Type Stream after the Type Records, but this has not been observed in practice.
 Type records are variable-length records. Each record begins with a 4-byte
 header, which specifies the length and the "kind" of the record.
 
-```
+```c
 struct TypeRecordHeader {
   uint16_t size;
   uint16_t kind;
   // followed by kind - 2 bytes of kind-specific data
-}
+};
 ```
 
 The size field specifies the size in bytes of the record. The size field does
@@ -315,7 +315,7 @@ hash function is complex because the function depends on the type record kind.
 The Hash Index Substream is stored in the Type Hash Stream. It consists of an
 array of fixed-size records with this definition:
 
-```
+```c
 // sizeof = 8
 struct HashIndexPair {
   uint32_t type_index;

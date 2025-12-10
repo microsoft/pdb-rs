@@ -23,13 +23,13 @@ Line Data is given by `c13_byte_size`.
 
 The C13 Line Data substream contains a sequence of variable-length subsections:
 
-```
+```c
 struct Subsection {
   uint32_t subsection_kind;
   uint32_t subsection_size;
   uint8_t subsection_data[subsection_size];
   uint8_t alignment_padding[];
-}
+};
 ```
 
 If bit 31 of `subsection_kind` is 1 (mask 0x8000_0000), then the subsection
@@ -76,13 +76,13 @@ may contain any number of `DEBUG_S_LINES` subsections. It describes the line
 number mappings for a single "contribution". The subsection data has this
 header:
 
-```
+```c
 struct DebugSLinesHeader {
     uint32_t contribution_offset;       // address of the instruction stream
     uint16_t contribution_section;
     uint16_t contribution_flags;
     uint32_t contribution_size;         // size in the instruction stream
-}
+};
 ```
 
 The `contribution_section` and `contribution_offset` are the COFF section and
@@ -93,7 +93,7 @@ data in the `DebugSLinesHeader` record.
 Immediately after `DebugSLinesHeader` is a sequence of variable-length `Block`
 records:
 
-```
+```c
 // sizeof = dynamic
 struct Block {
     uint32_t file_offset;           // points into DEBUG_S_FILE_CHECKSUMS
@@ -101,7 +101,7 @@ struct Block {
     uint32_t block_size;
     LineRecord lines[num_lines];
     ColumnRecord columns[contribution_flags & HAVE_COLUMNS ? num_lines : 0];
-}
+};
 ```
 
 Each `Block` describes a set of line mappings to a single file. The line
@@ -130,12 +130,12 @@ record contains the pointer to the file name string.
 > Invariant: In the sequence of Block records within a `DEBUG_S_LINES` record,
 > the `Block` `offset` field must be sorted in increasing order.
 
-```
+```c
 // sizeof = 8
 struct LineRecord {
     uint32_t offset;
     uint32_t flags;
-}
+};
 ```
 
 The `offset` field specifies the byte offset from the start of this contribution
@@ -153,12 +153,12 @@ The `flags` field encodes three bit-fields:
 
 # Columns
 
-```
+```c
 // sizeof = 4
 struct ColumnRecord {
     uint16_t start_offset;
     uint16_t end_offset;
-}
+};
 ```
 
 The header of `DEBUG_S_LINES` specifies whether it contains column records, by
@@ -218,7 +218,7 @@ The `DEBUG_S_FILE_CHECKSUMS` subsection contains file checksum entries. Each
 entry identifies a file using an index into another table and contains the
 file's checksum, if any. Each entry has this structure:
 
-```
+```c
 // sizeof = dynamic
 // offset within DEBUG_S_FILE_CHECKSUMS is always aligned at multiple of 4
 struct FileChecksum {
@@ -226,7 +226,7 @@ struct FileChecksum {
     uint8_t checksum_size;
     uint8_t checksum_kind;
     uint8_t checksum[checksum_size];
-}
+};
 ```
 
 `file_name` is a `NameIndex` value which points into the

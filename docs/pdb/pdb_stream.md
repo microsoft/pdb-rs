@@ -23,13 +23,13 @@ contains:
 
 The PDB Information Stream is usually fairly small.
 
-```
+```c
 // sizeof = dynamic
 struct PdbStream {
     PdbStreamHeader header;
     NamedStreams named_streams;
     uint32_t feature_codes[];
-}
+};
 
 // sizeof = dynamic (depends on version)
 struct PdbStreamHeader {
@@ -37,7 +37,7 @@ struct PdbStreamHeader {
     uint32_t signature;
     uint32_t age;
     GUID unique_guid;           // present only in version PDBImpvVC70 and later; see below
-}
+};
 ```
 
 ## Version
@@ -67,7 +67,7 @@ See <https://github.com/microsoft/microsoft-pdb/blob/master/langapi/include/pdb.
 
 The Named Stream Map immediately follows the `PdbStreamHeader` and has this structure:
 
-```
+```c
 struct NamedStreams {
     uint32_t keys_size;                  // The size of the keys data, in bytes
     uint8_t keys_data[keys_size];        // String data for the keys
@@ -82,12 +82,12 @@ struct NamedStreams {
     // The following are obsolete. It is expected that num_name_index is always zero.
     uint32_t num_name_index;
     NameIndex name_indexes[num_name_index];
-}
+};
 
 struct HashEntry {
     uint32_t key;                        // byte offset into `keys` of NUL-terminated string
     uint32_t value;                      // stream index
-}
+};
 ```
 
 `NamedStreams` is a map from a stream name to a stream index. In memory, it is

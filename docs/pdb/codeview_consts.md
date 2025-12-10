@@ -1,6 +1,3 @@
-- [CodeView Constants](#codeview-constants)
-- [`CV_call` - Function Calling Convention](#cv_call---function-calling-convention)
-
 # CodeView Constants
 
 This document specifies constants (named values and enums) that are used by CodeView.

@@ -23,7 +23,7 @@ summing the sizes of the substreams that precede it.
 
 The DBI Sources Substream has this structure:
 
-```
+```c
 struct DbiSourcesSubstream {
    uint16_t num_modules;
    uint16_t num_sources;                        // obsolete; do not read
@@ -36,8 +36,8 @@ struct DbiSourcesSubstream {
 ```
 
 `num_modules` specifies the number of modules in this substream. The order of
-module records in the DBI Modules Substream corresponds to the order of module
-records in the DBI Sources Substream.
+module records in the [DBI Modules Substream](dbi_modules.md) corresponds to the
+order of module records in the DBI Sources Substream.
 
 > Invariant: `num_modules` is equal to the number of `ModuleInfo` records in the
 > [DBI Modules Substream](dbi_modules.md).
@@ -48,8 +48,8 @@ in `module_file_counts`. This is not the number of _unique_ file names; it is
 the length of the `file_offsets` array. `file_offsets` will usually contain
 duplicates because different modules will often include the same header files.
 
-The `num_sources` field is obsolete and must be ignored when reading the DBI
-Sources Substream. In the past, it specified the number of entries in the
+The `num_sources` field is **obsolete** and **must be ignored** when reading the
+DBI Sources Substream. In the past, it specified the number of entries in the
 `file_offsets` array. However, because the field only has 16 bits of precision,
 and many PDBs exist that link together modules that read from more than 2^16
 source files, it can no longer be used as an accurate count of the number of

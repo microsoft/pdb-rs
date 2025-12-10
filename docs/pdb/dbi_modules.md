@@ -19,7 +19,7 @@ records have a fixed-size header and a variable-length tail. The size of DBI
 Module Info record is a multiple of 4, and records always start at a byte offset
 (within the DBI Modules Substream) that is a multiple of 4.
 
-```
+```c
 // variable-length
 struct ModuleInfo {
     uint32_t old_module_index;
@@ -40,7 +40,7 @@ struct ModuleInfo {
     strz module_name;
     strz obj_file;
     uint8_t alignment_padding[];        // 0-3 bytes of alignment padding
-}
+};
 ```
 
 > Invariant: Within the DBI Module Substream, each `ModuleInfo` record starts at

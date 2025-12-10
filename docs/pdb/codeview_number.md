@@ -53,8 +53,9 @@ Leaf   | Leaf Type       | Size<br>(bytes) | Description
 0x801b | `LF_UTF8STRING` | \* | UTF-8 NUL-terminated string
 
 In this table, the "Size (Bytes)" column specifies the number of bytes that
-follow the leaf value; the size does not count the number of bytes in the leaf
-value itself.
+_follow_ the leaf value; the size does not count the number of bytes in the leaf
+value itself. For example, the total size of an `LF_ULONG` number is 6 bytes,
+not 4 bytes.
 
 There is no leaf value for an unsigned 8-bit value because all unsigned 8-bit
 values can be stored directly in _leaf_.

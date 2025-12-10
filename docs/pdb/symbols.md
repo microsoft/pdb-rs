@@ -180,7 +180,7 @@ module stream. However, a linked executable may contain modules from different
 tools, and so it is legal for some modules to use `S_COMPILE2` and others to use
 `S_COMPILE3`.
 
-```
+```c
 struct Compile2 {
     uint32_t flags;
     uint16_t machine;
@@ -191,7 +191,7 @@ struct Compile2 {
     uint16_t minor_version;
     uint16_t build_version;
     strz name;
-}
+};
 
 struct Compile3 {
     uint32_t flags;
@@ -205,7 +205,7 @@ struct Compile3 {
     uint16_t build_version;
     uint16_t qfe_version;
     strz name;
-}
+};
 ```
 
 `flags` contains language and per-module attributes, encoded in these bit fields:
@@ -255,11 +255,11 @@ Value  | Language
 
 # `S_OBJNAME` (0x1101) - Object Name
 
-```
+```c
 struct ObjectName {
     uint32_t signature;
     strz name;
-}
+};
 ```
 
 `signature` is a robust signature that will change every time that the module
@@ -270,10 +270,10 @@ upon module name and contents.
 
 # `S_UNAMESPACE` (0x1124) - Using Namespace
 
-```
+```c
 struct UsingNamespace {
     strz namespace;
-}
+};
 ```
 
 This symbol is used to indicate that the compiler has added a namespace to the
@@ -286,13 +286,13 @@ symbol record.
 
 # `S_ANNOTATION` (0x1019) - Annotation
 
-```
+```c
 struct Annotation {
     uint32_t offset;
     uint16_t section;
     uint16_t count;
     strz strings[count];
-}
+};
 ```
 
 This symbol stores annotations that point to a specific location in code
@@ -342,10 +342,10 @@ This symbol can appear only within module symbol streams.
 
 # `S_BUILDINFO` (0x114c) - Build Info
 
-```
+```c
 struct BuildInfoSym {
     ItemId id;
-}
+};
 ```
 
 This record associates the current module with an
@@ -357,7 +357,7 @@ The `BuildInfoSym` record does not directly contain the build information; use
 
 ## `S_UDT` (0x1108) - User-Defined Type
 
-```
+```c
 struct Udt {
   TypeIndex type;
   strz name;
@@ -378,13 +378,13 @@ stream and in module symbol streams.
 
 ## `S_LTHREAD32` (0x1112) and `S_GTHREAD32` (0x1113) - Thread Storage
 
-```
+```c
 struct ThreadStorage {
     TypeIndex type;
     uint32_t offset;
     uint16_t segment;
     strz name;
-}
+};
 ```
 
 These symbols are used for data declared with the `__declspec(thread)` or
@@ -397,7 +397,7 @@ streams. They are never nested within another symbol scope.
 
 ## `S_CONSTANT` (0x1107) - Constant
 
-```
+```c
 struct Constant {
   TypeIndex type;
   Number value;
@@ -410,12 +410,12 @@ stream and in module symbol streams.
 
 ## `S_MANCONSTANT` (0x112d) - Managed Constant
 
-```
+```c
 struct ManagedConstant {
     uint32_t metadata_token;
     Number value;
     strz name;
-}
+};
 ```
 
 Defines a named constant whose type is defined by MSIL metadata. This symbol has
@@ -423,13 +423,13 @@ been observed only in module streams.
 
 ## `S_LDATA32` (0x1007) and `S_GDATA32` (0x1008)
 
-```
+```c
 struct Data {
     TypeIndex type;
     uint32_t offset;
     uint16_t segment;
     strz name;
-}
+};
 ```
 
 Describes a global variable. `S_LDATA32` is used for global variables that are
@@ -451,7 +451,7 @@ etc. The procedure definition is terminated with `S_END`.
 
 ## `S_LPROC32` (0x110f) and `S_GPROC32` (0x1110) - Procedure Start
 
-```
+```c
 struct Procedure {
     uint32_t p_parent;
     uint32_t p_end;
@@ -464,7 +464,7 @@ struct Procedure {
     uint16_t segment;
     uint8 flags;
     strz name;
-}
+};
 ```
 
 The `S_LPROC32` and `S_GPROC32` symbols define "free" functions (functions at
@@ -523,7 +523,7 @@ Name           | Bit | Description
 Defines the start of a managed (MSIL) procedure. This symbol definition is
 similar to `S_GDATA32` but uses MSIL tokens instead of `TypeIndex`.
 
-```
+```c
 struct Procedure {
     uint32_t p_parent;
     uint32_t p_end;
@@ -536,12 +536,12 @@ struct Procedure {
     uint16_t segment;
     uint8 flags;
     strz name;
-}
+};
 ```
 
 ## `S_THUNK32` (0x1102) - Thunk Start
 
-```
+```c
 struct Thunk {
     uint32_t p_parent;
     uint32_t p_end;
@@ -552,7 +552,7 @@ struct Thunk {
     uint8_t ordinal;
     strz name;
     // variant data follows
-}
+};
 ```
 
 This record is used to specify any piece of code that exists outside a
@@ -565,7 +565,7 @@ meaning as the fields with the same name within `S_LPROC32`.
 
 ## `S_FRAMEPROC` (0x1012) - Frame Procedure Information
 
-```
+```c
 struct FrameProc {
     uint32_t frame_size;
     uint32_t pad_size;
@@ -574,7 +574,7 @@ struct FrameProc {
     uint32_t exception_handler_offset;
     uint16_t exception_handler_segment;
     uint32_t flags;
-}
+};
 ```
 
 This symbol is used for indicating a variety of extra information regarding a
@@ -598,7 +598,7 @@ Name               | Bits | Description
 
 ## `S_TRAMPOLINE` (0x112c) - Trampoline
 
-```
+```c
 struct Trampoline {
     uint16_t trampoline_kind;
     uint16_t thunk_size;
@@ -606,7 +606,7 @@ struct Trampoline {
     uint32_t target_offset;
     uint16_t thunk_section;
     uint16_t target_section;
-}
+};
 ```
 
 This symbol is emitted only by a linker to indicate a fairly simple and short,
@@ -625,13 +625,13 @@ branch-island thunks.
 
 ## `S_REGREL32` (0x1111) - Register-Relative Local Variable
 
-```
+```c
 struct RegRel {
     uint32_t offset;
     TypeIndex type;
     uint16_t register;
     strz name;
-}
+};
 ```
 
 This symbol specifies symbols that are allocated relative to a register. This
@@ -644,12 +644,12 @@ scopes.
 
 ## `S_LOCAL` (0x113e) - Local Variable
 
-```
+```c
 struct Local {
     TypeIndex type;
     uint32_t flags;
     strz name;
-}
+};
 ```
 
 This symbol defines a local and it must follow by more range descriptions.
@@ -667,17 +667,17 @@ symbol.
 
 A live range of an en-registered variable.
 
-```
+```c
 struct DefRangeRegister {
     uint16_t register;
     RangeAttr attr;
     uint8_t gaps[];
-}
+};
 
 // See cvinfo.h for CV_RANGEATTR
 struct RangeAttr {
     uint16_t bits;
-}
+};
 ```
 
 ### `S_DEFRANGE_FRAMEPOINTER_REL` (0x1142) - Definition Range: Frame-Pointer Relative
@@ -686,7 +686,7 @@ struct RangeAttr {
 
 ## `S_BLOCK32` (0x1103) - Block Start
 
-```
+```c
 struct Block {
     uint32_t p_parent;
     uint32_t p_end;
@@ -694,7 +694,7 @@ struct Block {
     uint32_t offset;
     uint16_t segment;
     strz name;
-}
+};
 ```
 
 This symbol specifies the start of an inner block of lexically scoped symbols.
@@ -706,13 +706,13 @@ that `S_BLOCK32` can only occur within module symbol streams.
 
 ## `S_LABEL32` (0x1105) - Code Label
 
-```
+```c
 struct Label {
     uint32_t offset;
     uint16_t segment;
     uint8_t flags;
     strz name;
-}
+};
 ```
 
 # Global symbols
@@ -722,13 +722,13 @@ Global symbols are stored in the Global Symbol Stream (GSS). See also
 
 ## `S_PUB32` (0x110e) - Public Symbol
 
-```
+```c
 struct PubSym {
     uint32_t flags;
     uint32_t offset;
     uint16_t segment;
     strz name;
-}
+};
 ```
 
 `S_PUB32` should only appear in the GSS.
@@ -739,13 +739,13 @@ Several symbols (e.g. `S_PROCREF`) in the Global Symbol Stream use this
 definition. These symbols point from the GSS into the symbol stream of a
 specific module.
 
-```
+```c
 struct RefSym2 {
     uint32_t name_checksum;
     uint32_t symbol_offset;
     uint16_t module_index;
     strz name;
-}
+};
 ```
 
 `name_checksum` appears to be set to 0 in all records found.

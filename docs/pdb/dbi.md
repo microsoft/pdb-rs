@@ -1,17 +1,69 @@
 - [Debug Information Stream (DBI) (Fixed Stream 3)](#debug-information-stream-dbi-fixed-stream-3)
+  - [DBI Stream Layout](#dbi-stream-layout)
+  - [DBI Stream Header](#dbi-stream-header)
   - [Signature and version](#signature-and-version)
   - [Global symbols](#global-symbols)
   - [Substreams](#substreams)
 - [Determinism](#determinism)
 - [DBI Type Server Map Substream](#dbi-type-server-map-substream)
-- [DBI End-and-Continue Substream](#dbi-end-and-continue-substream)
+- [DBI Edit-and-Continue Substream](#dbi-edit-and-continue-substream)
 
 # Debug Information Stream (DBI) (Fixed Stream 3)
  
 The Debug Information Stream (DBI) contains many important fields and substreams. It is a central data structure for PDBs.
-The DBI Stream begins with the DBI Stream Header:
+
+## DBI Stream Layout
 
 ```
+DBI Stream (Stream 3)
+│
+├─ DBI Stream Header (64 bytes)
+│  ├─ signature, version, age
+│  ├─ global_symbol_index_stream
+│  ├─ public_symbol_index_stream
+│  ├─ global_symbol_stream
+│  └─ substream sizes (module_info_size, section_contributions_size, etc.)
+│
+├─ Modules Substream [module_info_size]
+│  ├─ Module Info 1
+│  ├─ Module Info 2
+│  └─ Module Info N
+│
+├─ Section Contributions Substream [section_contributions_size]
+│  ├─ Section Contribution 1
+│  ├─ Section Contribution 2
+│  └─ ...
+│
+├─ Section Map Substream [section_map_size]
+│  ├─ Section Map Header
+│  └─ Section Map Entries
+│
+├─ Sources Substream [source_info_size]
+│  ├─ Source Info Header
+│  ├─ Module Source Info
+│  └─ Source File Names
+│
+├─ Type Server Map Substream [type_server_map_size] (obsolete)
+│
+├─ Edit-and-Continue Substream [edit_and_continue_size]
+│
+└─ Optional Debug Header Substream [optional_debug_header_size]
+   ├─ FPO Data Stream Index
+   ├─ Exception Data Stream Index
+   ├─ Fixup Data Stream Index
+   ├─ OMap To Source Stream Index
+   ├─ OMap From Source Stream Index
+   ├─ Section Header Data Stream Index
+   ├─ Token RID Map Stream Index
+   ├─ X Data Stream Index
+   └─ P Data Stream Index
+```
+
+## DBI Stream Header
+
+The DBI Stream begins with the DBI Stream Header:
+
+```c
 // sizeof = 64
 struct DbiStreamHeader {
     int32_t signature;
@@ -39,7 +91,8 @@ struct DbiStreamHeader {
 
 ## Signature and version
 
-The signature field is always -1 (0xFFFF_FFFF). The version field specifies which version of the DBI stream is being used:
+The signature field is always -1 (0xFFFF_FFFF). The version field specifies
+which version of the DBI stream is being used:
 
 Value (decimal) | Identifier   | Description
 ----------------|--------------|------------
@@ -104,7 +157,7 @@ substreams is a multiple of 4:
 * Sources
 * Type Server Map
 
-```
+```c
 struct DbiStream {
     DbiStreamHeader header;
     uint8_t modules               [module_info_size];
@@ -117,11 +170,20 @@ struct DbiStream {
 }
 ```
 
+> Encoders should guarantee that _all_ DBI Substreams have a size that is a
+> multiple of 4, even the `edit_and_continue` and `optional_debug_header`
+> substreams. It is believed that these substreams also have alignment
+> requirements.
+
 The DBI Substreams immediately follow the DBI stream header. Note that the order
 of the substreams is similar but not identical to the order of the corresponding
 "size" fields. The last two substreams, `edit_and_continue` and
 `optional_debug_header_size`, have different orders for the "size" fields and
 the corresponding substream.
+
+> NOTE: Pay careful attention to the order of the `edit_and_continue` and
+> `optional_debug_header` substreams! The order of the _size_ fields is
+> different from the order of the substream contents.
 
 The byte offset of each substream is found by adding the size and offset of the
 preceding substream. The byte offset of the first substream (the Module Info

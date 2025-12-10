@@ -41,12 +41,12 @@ This file describes the type records used by CodeView.
 
 Type records are variable-length records. Each record begins with a 4-byte header which specifies the length and the "kind" of the record.
 
-```
+```c
 struct TypeRecordHeader {
   uint16_t size;
   uint16_t kind;
   // followed by kind - 2 bytes of kind-specific data
-}
+};
 ```
 
 The `size` field specifies the size in bytes of the record. The `size` field _does not_ count the `size` field itself, but it _does_ count the `kind` field and the payload bytes.
@@ -93,11 +93,11 @@ These are the top-level type record kinds. These records can be pointed-to by sy
 
 ## `LF_MODIFIER` (0x1001)
 
-```
+```c
 struct Modifier {
     TypeIndex index;
     uint16_t attribute;
-}
+};
 ```
 
 This record modifies another type record by qualifying it with `const`, `volatile`, or `unaligned` modifiers.
@@ -146,7 +146,7 @@ The `attribute` field contains several bit fields:
 
 The `ptrtype` bit field can take these values:
 
-```
+```c
 enum CV_ptrtype {
     CV_PTR_NEAR         = 0x00, // 16 bit pointer
     CV_PTR_FAR          = 0x01, // 16:16 far pointer
@@ -162,12 +162,12 @@ enum CV_ptrtype {
     CV_PTR_FAR32        = 0x0b, // 16:32 pointer
     CV_PTR_64           = 0x0c, // 64 bit pointer
     CV_PTR_UNUSEDPTR    = 0x0d, // first unused pointer type
-}
+};
 ```
 
 The `ptrmode` bit field can take these values:
 
-```
+```c
 enum CV_ptrmode {
     CV_PTR_MODE_PTR      = 0x00, // "normal" pointer, e.g. `FOO *`
     CV_PTR_MODE_REF      = 0x01, // "old" reference, e.g. `FOO &`
@@ -175,7 +175,7 @@ enum CV_ptrmode {
     CV_PTR_MODE_PMEM     = 0x02, // pointer to data member
     CV_PTR_MODE_PMFUNC   = 0x03, // pointer to member function
     CV_PTR_MODE_RVREF    = 0x04, // r-value reference, e.g. `FOO &&`
-}
+};
 ```
 
 The data after the `Pointer` structure depends on `ptrtype`, and is called the "variant data".
@@ -188,11 +188,11 @@ If the pointer is based on a type (`ptrtype == CV_PTR_BASE_TYPE`), then the vari
 
 If the pointer is a pointer to a data member, then the variant data has this structure:
 
-```
+```c
 struct PointerToDataMemberVariant {
     TypeIndex class;        // The pointed-to class
     uint16_t format;
-}
+};
 ```
 
 where `format` has one of these values:
@@ -220,13 +220,13 @@ TODO: convert these; they are quite complicated
 
 ## `LF_ARRAY` (0x1503)
 
-```
+```c
 struct Array {
     TypeIndex element_type;
     TypeIndex index_type;
     Number length;
     strz name;
-}
+};
 ```
 
 Specifies an array type. The array type has a fixed size.
@@ -243,7 +243,7 @@ Specifies an array type. The array type has a fixed size.
 
 This record is used for `LF_CLASS`, `LF_STRUCTURE`, and `LF_INTERFACE`.
 
-```
+```c
 struct Class {
     uint16_t count;
     uint16_t property;
@@ -253,7 +253,7 @@ struct Class {
     Number length;
     strz name;
     strz unique_name;     // present only if `hasuniquename` is set in `property`
-}
+};
 ```
 
 `count` specifies the number of members defined on the class (or structure). This includes base classes (if any), data members (static and non-static), non-static data fields, member functions (static and non-static), friend declarations, etc. The `count` should not be considered authoritative; it can be used as an allocation hint, but it is possible for a class to have more than 65,535 fields.
@@ -279,26 +279,26 @@ Name           | Bits  | Description
 
 The `hfa` bitfield is defined by this enum:
 
-```
+```c
 enum CV_HFA {
     none = 0,
     float = 1,
     double = 2,
     other = 3,
-}
+};
 ```
 
 HFA (Homogeneous Floating-point Aggregate) is a concept defined by ARM architectures. See [Overview of ARM64 ABI conventions](https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170).
 
 The `CV_MOCOM_UDT` bitfield is defined by this enum:
 
-```
+```c
 enum CV_MOCOM_UDT {
     none = 0,
     ref = 1,
     value = 2,
     interface = 3,
-}
+};
 ```
 
 
@@ -316,7 +316,7 @@ If `hasuniquename` is set then the `unique_name` field is present and immediatel
 
 ## `LF_UNION` (0x1506)
 
-```
+```c
 struct Union {
     uint16_t count;
     uint16_t property;
@@ -324,7 +324,7 @@ struct Union {
     Number length;
     strz name;
     strz unique_name;     // present only if `hasuniquename` is set in `property`
-}
+};
 ```
 
 Defines a `union` type. All fields of this record have the same meaning as the corresponding fields defined on the `LF_CLASS` record.
@@ -333,7 +333,7 @@ The `LF_UNION` record is similar to `LF_CLASS`, but does not support inheritance
 
 ## `LF_ENUM` (0x1507)
 
-```
+```c
 struct Enum {
     uint16_t count;
     uint16_t property;
@@ -341,7 +341,7 @@ struct Enum {
     TypeIndex fields;
     strz name;
     strz unique_name;     // present only if `hasuniquename` is set in `property`
-}
+};
 ```
 
 Defines an `enum` type. The `count`, `property`, `fields`, `name`, and `unique_name` fields have the same meaning as the corresponding fields defined on the `LF_CLASS` record.
@@ -352,14 +352,14 @@ When C/C++ compilers emit this record, the field list will contain only `LF_ENUM
 
 ## `LF_PROCEDURE` (0x1008)
 
-```
+```c
 struct Procedure {
     TypeIndex return_value_type;
     uint8_t calling_convention;
     uint8_t reserved;
     uint16_t num_params;
     TypeIndex arg_list;
-}
+};
 ```
 
 Defines the type of a function or of a static method. Instance methods use the `LF_MFUNCTION` record.
@@ -370,7 +370,7 @@ Defines the type of a function or of a static method. Instance methods use the `
 
 ## `LF_MFUNCTION` (0x1009)
 
-```
+```c
 struct MFunction {
     TypeIndex return_value_type;
     TypeIndex class;
@@ -380,7 +380,7 @@ struct MFunction {
     uint16_t num_params;
     TypeIndex arg_list;
     uint32_t this_adjust;
-}
+};
 ```
 
 Defines the type of a non-static instance method. The `return_value_type`, `calling_convention`, `num_params`, and `arg_list` values have the same meaning as the fields with same name defined on `LF_PROCEDURE`.
@@ -393,11 +393,11 @@ The `class` field specifies the type of the class that defines the method.
 
 ## `LF_VTSHAPE` (0x000a)
 
-```
+```c
 struct VTShape {
     uint16_t count;
     // An array of 4-bit descriptors follow, whose size is given by 'count'
-}
+};
 ```
 
 Defines the format of a virtual function table. This record is accessed by the `vfunctabptr` in the member list of the class which introduces the virtual function. The `vfunctabptr` is defined either by the `LF_VFUNCTAB` or `LF_VFUNCOFF` member record.  If `LF_VFUNCTAB` record is used, then `vfunctabptr` is at the address point of the class.  If `LF_VFUNCOFF` record is used, then `vfunctabptr` is at the specified offset from the class address point.  The underlying type of the pointer is a `VTShape` type record.  This record describes how to interpret the memory at the location pointed to by the virtual function table pointer.
@@ -417,11 +417,11 @@ Value       | Description
 
 ## `LF_VFTPATH` (0x100d)
 
-```
+```c
 struct VFTPath {
     uint32_t count;
     TypeIndex bases[count];
-}
+};
 ```
 
 Describes the path to the virtual function table.
@@ -432,71 +432,111 @@ Describes the path to the virtual function table.
 
 This type is only present in compiler PDBs and debug information embedded in object files. It is not present in linker PDBs.
 
-```
+```c
 struct Precomp {
     uint32_t start;
     uint32_t count;
     uint32_t signature;
     strz name;
-}
+};
 ```
 
-This record specifies that the type records are included from the precompiled types contained in another module in the executable.  A module that contains this type record is considered to be a user of the precompiled types.  When emitting to a COFF object the section name must be `.debug$P` rather than `.debug$T`.  All other attributes should be the same.
+This record specifies that the type records are included from the precompiled
+types contained in another module in the executable. A module that contains this
+type record is considered to be a user of the precompiled types. When emitting
+to a COFF object the section name must be `.debug$P` rather than `.debug$T`. All
+other attributes should be the same.
 
-`start` is the starting type index that is included.  This number must correspond to the current type index in the current module.
+`start` is the starting type index that is included. This number must correspond
+to the current type index in the current module.
 
-`count` is the count of the number of type indices included. After including the precompiled types, the type index must be `start + count`.
+`count` is the count of the number of type indices included. After including the
+precompiled types, the type index must be `start + count`.
 
-`signature` is the signature for the precompiled types being referenced by this module.  The signature will be checked against the signature in the `S_OBJNAME` symbol record and the `LF_ENDPRECOMP` type record contained in the `.debug$T` table of the creator of the precompiled types.  The signature check is used to detect recompilation of the supplier of the precompiled types without recompilation of all of the users of the precompiled types.  The method for computing the signature is unspecified.  It should be sufficiently robust to detect failures to recompile.
+`signature` is the signature for the precompiled types being referenced by this
+module. The signature will be checked against the signature in the `S_OBJNAME`
+symbol record and the `LF_ENDPRECOMP` type record contained in the `.debug$T`
+table of the creator of the precompiled types. The signature check is used to
+detect recompilation of the supplier of the precompiled types without
+recompilation of all of the users of the precompiled types. The method for
+computing the signature is unspecified. It should be sufficiently robust to
+detect failures to recompile.
 
-`name` is the full path name of the module containing the precompiled types.  This name must match the module name in the `S_OBJNAME` symbol emitted by the compiler for the object file containing the precompiled types.
+`name` is the full path name of the module containing the precompiled types.
+This name must match the module name in the `S_OBJNAME` symbol emitted by the
+compiler for the object file containing the precompiled types.
 
 ## `LF_ENDPRECOMP` (0x0014) - End of Precompiled Types 
 
-This record specifies that the preceding type records in this module can be referenced by another module in the executable.  A module that contains this type record is considered to be the creator of the precompiled types.  The subsection index for the `.debug$T` segment for a precompiled types creator is emitted as `.debug$P` instead of `.debug$T` so that the packing processing can pack the precompiled types creators before the users.
+This record specifies that the preceding type records in this module can be
+referenced by another module in the executable. A module that contains this type
+record is considered to be the creator of the precompiled types. The subsection
+index for the `.debug$T` segment for a precompiled types creator is emitted as
+`.debug$P` instead of `.debug$T` so that the packing processing can pack the
+precompiled types creators before the users.
 
-Precompiled types must be emitted as the first type records within the `.debug$T` segment and must be self-contained.  That is, they cannot reference a type record whose index is greater than or equal to the type index of the `LF_ENDPRECOMP` type record.
+Precompiled types must be emitted as the first type records within the
+`.debug$T` segment and must be self-contained. That is, they cannot reference a
+type record whose index is greater than or equal to the type index of the
+`LF_ENDPRECOMP` type record.
 
-```
+```c
 struct EndPrecompiledTypes {
     uint32_t signature;
-}
+};
 ```
 
-`signature` is the signature of the precompiled types.  The signatures in the `S_OBJNAME` symbol record, the `LF_PRECOMP` type record and this signature must match.
+`signature` is the signature of the precompiled types. The signatures in the
+`S_OBJNAME` symbol record, the `LF_PRECOMP` type record and this signature must
+match.
 
 # Records referenced from other type records
 
-These records define parts of types, but they do not define types. For example, `LF_ARGLIST` specifies the argument list for a procedure, but the argument list alone does not specify a procedure type.
+These records define parts of types, but they do not define types. For example,
+`LF_ARGLIST` specifies the argument list for a procedure, but the argument list
+alone does not specify a procedure type.
 
-None of the records described in this section should be pointed-to by records outside of the type stream (TPI Stream).
+None of the records described in this section should be pointed-to by records
+outside of the type stream (TPI Stream).
 
 ## `LF_SKIP` (0x1200)
 
-This record reserve space within a type stream but does not contain any information. The payload for this record can be non-empty, but its contents are ignored.
+This record reserve space within a type stream but does not contain any
+information. The payload for this record can be non-empty, but its contents are
+ignored.
 
 This record should never be referenced by any other record.
 
 ## `LF_ARGLIST` (0x1201) - Argument List
 
-```
+```c
 struct ArgList {
     uint32_t arg_count;
     TypeIndex args[arg_count];
-}
+};
 ```
 
 Specifies the arguments for `LF_PROCEDURE` or `LF_MFUNCTION`.
 
-This record should only be pointed-to by `LF_PROCEDURE` and `LF_MFUNCTION`, with the TPI stream.
+This record should only be pointed-to by `LF_PROCEDURE` and `LF_MFUNCTION`, with
+the TPI stream.
 
 ## `LF_FIELDLIST` (0x1203) - Field List
 
-The `LF_FIELDLIST` record contains a list of fields defined on a type. The type can be `LF_CLASS`, `LF_STRUCTURE`, `LF_INTERFACE`, `LF_UNION`, or `LF_ENUM`.
+The `LF_FIELDLIST` record contains a list of fields defined on a type. The type
+can be `LF_CLASS`, `LF_STRUCTURE`, `LF_INTERFACE`, `LF_UNION`, or `LF_ENUM`.
 
-Each field within an `LF_FIELDLIST` record uses a leaf value to identify the kind of field. However, the leaf values are disjoint from those used for type records. Also, the field records do not use the same header as that used for type records. The length of each field is not stored; it is implied by the leaf value.  For this reason, decoders must know how to decode all possible fields, because if the decoder does not recognize a field then it cannot know the size of the field.
+Each field within an `LF_FIELDLIST` record uses a leaf value to identify the
+kind of field. However, the leaf values are disjoint from those used for type
+records. Also, the field records do not use the same header as that used for
+type records. The length of each field is not stored; it is implied by the leaf
+value. For this reason, decoders must know how to decode all possible fields,
+because if the decoder does not recognize a field then it cannot know the size
+of the field.
 
-This table summarizes the different field kinds. They use the same `LF_XXX` naming convention, but these values are disjoint from the `LF_XXX` values used for type records and should not be confused with them.
+This table summarizes the different field kinds. They use the same `LF_XXX`
+naming convention, but these values are disjoint from the `LF_XXX` values used
+for type records and should not be confused with them.
 
 After the summary, each field is described in detail.
 
@@ -521,15 +561,16 @@ Value  | Name               | Description
 
 ## `LF_BITFIELD` (0x1205) - Bit-field
 
-```
+```c
 struct BitField {
     TypeIndex type;
     uint8_t length;
     uint8_t position;
-}
+};
 ```
 
-`type` is the type of the field that contains the bitfield. For example, `T_ULONG`.
+`type` is the type of the field that contains the bitfield. For example,
+`T_ULONG`.
 
 `length` is the length of the bitfield, in bits.
 
@@ -537,24 +578,25 @@ struct BitField {
 
 ## `LF_METHODLIST` (0x1206) - Method List
 
-```
+```c
 struct MethodList {
     MethodEntry methods[];
-}
+};
 
 struct MethodEntry {
     uint16_t attribute;
     uint16_t padding;
     TypeIndex type;
     uint32_t vtab_offset;     // This field is only present if 'attribute' introduces a new vtable slot
-}
+};
 ```
 
 ## `LF_REFSYM` (0x020c) - Referenced Symbol
 
 # ID records
 
-These records can only be placed in the IPI Stream. They cannot be placed in the TPI Stream.
+These records can only be placed in the IPI Stream. They cannot be placed in the
+TPI Stream.
 
 Value  | Name               | Description
 -------|--------------------|------------
@@ -566,28 +608,43 @@ Value  | Name               | Description
 
 ## `LF_FUNC_ID` (0x1601)
 
-```
+```c
 struct FuncId {
     ItemId scope;
     TypeIndex func_type;
     strz name;
     uint64_t decorated_name_hash;       // optional; may not be present
-}
+};
 ```
 
-Identifies a function. This is used for global functions, regardless of linkage visibility. It is not used for member functions.
+Identifies a function. This is used for global functions, regardless of linkage
+visibility. It is not used for member functions.
 
 > TODO: What actually uses this record?
 
-`scope` specifies the scope that contains this function definition. It is 0 for the global scope. If it is non-zero, then it points to an `LF_STRING` record that gives the scope. For C++, the scope is a C++ namespace. In C++, if the scope contains nested namespaces, e.g. `namespace foo { namespace bar { ... } }`, then the `LF_STRING` record will contain the namespaces, separated by `::`, e.g. `foo::bar`.
+`scope` specifies the scope that contains this function definition. It is 0 for
+the global scope. If it is non-zero, then it points to an `LF_STRING` record
+that gives the scope. For C++, the scope is a C++ namespace. In C++, if the
+scope contains nested namespaces, e.g. `namespace foo { namespace bar { ... }
+}`, then the `LF_STRING` record will contain the namespaces, separated by `::`,
+e.g. `foo::bar`.
 
 `func_type` specifies the function signature type.
 
 `name` is the undecorated name of the function, e.g. `CreateWindowExW`.
 
-`decorated_name_hash` is a hash of the full decorated name of a function. This field is optional; it was added as a later extension to the `LF_FUNC_ID` record. Because symbol records are required to have a size that is a multiple of 4, and because `LF_FUNC_ID` records contain a NUL-terminated string, it may be necessary to insert padding bytes at the end of the record.  However, we need to be able to distinguish between padding bytes and the presence of `decorated_name_hash`.
+`decorated_name_hash` is a hash of the full decorated name of a function. This
+field is optional; it was added as a later extension to the `LF_FUNC_ID` record.
+Because symbol records are required to have a size that is a multiple of 4, and
+because `LF_FUNC_ID` records contain a NUL-terminated string, it may be
+necessary to insert padding bytes at the end of the record. However, we need to
+be able to distinguish between padding bytes and the presence of
+`decorated_name_hash`.
 
-To do so, decode the record up to and including the `name` field. If the size of the remaining data is at least 8 bytes, then `decorated_name_hash` is present and should be decoded. The remainder of the record should be padded (as all symbol records are padded) to a multiple of 4 bytes.
+To do so, decode the record up to and including the `name` field. If the size of
+the remaining data is at least 8 bytes, then `decorated_name_hash` is present
+and should be decoded. The remainder of the record should be padded (as all
+symbol records are padded) to a multiple of 4 bytes.
 
 > TODO: clarify what hash function is used for `decorated_name_hash`.
 
@@ -603,7 +660,8 @@ To do so, decode the record up to and including the `name` field. If the size of
 * `type` is 0x1046
 * `name` is `RtlCaptureContext`
 * `decorated_name_hash` is 0x0d82ab95_2c6da132
-* Note the presence of the `f2 f1` padding bytes at the end of the record. They are not part of `decorated_name_hash`.
+* Note the presence of the `f2 f1` padding bytes at the end of the record. They
+  are not part of `decorated_name_hash`.
 
 ```
 00000000 : 06 10 00 00 78 13 00 00 43 72 65 61 74 65 43 61 : ....x...CreateCa
@@ -611,30 +669,38 @@ To do so, decode the record up to and including the `name` field. If the size of
 00000020 : 85 cd 21 f1                                     : ..!.
 ```
 
-* `scope` is 0x0610 and points to an `LF_STRING_ID` record whose value is `DWriteCore::ApiImpl`.
+* `scope` is 0x0610 and points to an `LF_STRING_ID` record whose value is
+  `DWriteCore::ApiImpl`.
 * `type` is 0x1378
 * `name` is `CreateCacheContext`.
 * `decorated_name_hash` is 0x21cd852b_271056dd.
-* Note the presence of the `f1` padding byte at the end of the record. It is not part of `decorated_name_hash`.
+* Note the presence of the `f1` padding byte at the end of the record. It is not
+  part of `decorated_name_hash`.
 
 ## `LF_MFUNC_ID` (0x1602)
 
-```
+```c
 struct MFuncId {
     TypeIndex parent_type;
     TypeIndex func_type;
     strz name;
     uint64_t decorated_name_hash;       // optional; may not be present
-}
+};
 ```
 
-Identifies a member function. This includes both static and non-static member functions.
+Identifies a member function. This includes both static and non-static member
+functions.
 
-`parent_type` specifies the type (`LF_CLASS`, `LF_STRUCTURE`, etc.) that defines the member function.
+`parent_type` specifies the type (`LF_CLASS`, `LF_STRUCTURE`, etc.) that defines
+the member function.
 
 `func_type` specifies the function signature type.
 
-`name` is the undecorated name of the function, e.g. `AddRef`. For special functions, such as constructors and conversion operations, each language has its own conventions for how to encode those names. The following is a non-exhaustive list of the special function names that have been observed in `LF_MFUNC_ID` records:
+`name` is the undecorated name of the function, e.g. `AddRef`. For special
+functions, such as constructors and conversion operations, each language has its
+own conventions for how to encode those names. The following is a non-exhaustive
+list of the special function names that have been observed in `LF_MFUNC_ID`
+records:
 
 * `{ctor}` - constructors
 * `{dtor}` - destructors
@@ -645,7 +711,8 @@ Identifies a member function. This includes both static and non-static member fu
 * `operator!=`
 * `operator++`
 
-`decorated_name_hash` has the same meaning as in the `LF_FUNC_ID` record, including its interaction with padding bytes.
+`decorated_name_hash` has the same meaning as in the `LF_FUNC_ID` record,
+including its interaction with padding bytes.
 
 ### Example
 
@@ -659,37 +726,61 @@ Identifies a member function. This includes both static and non-static member fu
 * `func_type` is 0x10a3
 * `name` is `GetNextEventSourceObjectId`
 * `decorated_name_hash` is 0x43c443ac_bcd44846
-* Note the presence of the `f1` padding byte at the end of the record. It is not part of `decorated_name_hash`.
+* Note the presence of the `f1` padding byte at the end of the record. It is not
+  part of `decorated_name_hash`.
 
 ## `LF_BUILDINFO` (0x1603)
 
-```
+```c
 struct BuildInfo {
     ItemId cwd;
     ItemId build_tool;
     ItemId source_file;
     ItemId pdb_file;
     ItemId args;
-}
+};
 ```
 
-Contains information about the environment and arguments to an invocation of a tool or compiler.
+Contains information about the environment and arguments to an invocation of a
+tool or compiler.
 
-Unlike most records, this record can be truncated after any field. The record can also be seen as a single array of type `ItemId`, with meanings assigned to each fixed array index.
+Unlike most records, this record can be truncated after any field. The record
+can also be seen as a single array of type `ItemId`, with meanings assigned to
+each fixed array index.
 
-Each field in `BuildInfo` is an `ItemId` that refers to an `LF_STRING_ID` or `LF_SUBSTR_LIST` record. See `LF_SUBSTR_LIST` for details on how string records are concatenated to form whole strings.
+Each field in `BuildInfo` is an `ItemId` that refers to an `LF_STRING_ID` or
+`LF_SUBSTR_LIST` record. See `LF_SUBSTR_LIST` for details on how string records
+are concatenated to form whole strings.
 
-Each module stream may contain at most one [`S_BUILDINFO`](symbols.md#s_buildinfo-0x114c---build-info) record. If present, the `S_BUILDINFO` contains the `ItemId` that points to the `LF_BUILDINFO` record in the IPI Stream. This is the only way to associate a module with an `LF_BUILDINFO` record.
+Each module stream may contain at most one
+[`S_BUILDINFO`](symbols.md#s_buildinfo-0x114c---build-info) record. If present,
+the `S_BUILDINFO` contains the `ItemId` that points to the `LF_BUILDINFO` record
+in the IPI Stream. This is the only way to associate a module with an
+`LF_BUILDINFO` record.
 
 * `cwd` - The current directory when the tool ran.
+
 * `build_tool` - The path to the tool executable, e.g. `d:\...\cl.exe`.
-* `source_file` - The primary source file that was passed to the tool. For C/C++, this is usually the source file that was passed on the command-line to the compiler. For Rust, this is the path to the root module source file.
-* `pdb_file` - The path to the compiler PDB (not linker PDB), if applicable. For MSVC, this will only be non-empty if the compiler was invoked with `/Zi` or `/ZI`. See: [Debug Information Format](https://learn.microsoft.com/en-us/cpp/build/reference/z7-zi-zi-debug-information-format)
+
+* `source_file` - The primary source file that was passed to the tool. For
+  C/C++, this is usually the source file that was passed on the command-line to
+  the compiler. For Rust, this is the path to the root module source file.
+
+* `pdb_file` - The path to the compiler PDB (not linker PDB), if applicable. For
+  MSVC, this will only be non-empty if the compiler was invoked with `/Zi` or
+  `/ZI`. See: [Debug Information
+  Format](https://learn.microsoft.com/en-us/cpp/build/reference/z7-zi-zi-debug-information-format)
+
 * `args` - Command-line arguments that were passed to the tool.
 
-> TODO: It appears that MSVC replaces response file arguments (e.g. `@d:\foo\args.rsp`) with their contents, when generating the string records that `LF_BUILDINFO` points to. However, we should confirm (or disprove) this.
+> TODO: It appears that MSVC replaces response file arguments (e.g.
+> `@d:\foo\args.rsp`) with their contents, when generating the string records
+> that `LF_BUILDINFO` points to. However, we should confirm (or disprove) this.
 
-Fields in `LF_BUILDINFO` may be absent entirely (because the structure is too small to contain the field), may have a value of 0, or may point to an empty `LF_STRING_ID` record. Decoders should make very few assumptions about the information in this record.
+Fields in `LF_BUILDINFO` may be absent entirely (because the structure is too
+small to contain the field), may have a value of 0, or may point to an empty
+`LF_STRING_ID` record. Decoders should make very few assumptions about the
+information in this record.
 
 ### Example
 
@@ -706,10 +797,10 @@ Fields in `LF_BUILDINFO` may be absent entirely (because the structure is too sm
 
 ## `LF_SUBSTR_LIST` (0x1604)
 
-```
+```c
 struct SubStrList {
     ItemId substrs[];
-}
+};
 ```
 
 Contains a list of `ItemId` values that point to `LF_STRING_ID` records. The items in the `substr` list should be dereferenced and concatenated into one large string, in the order implied by `substr`. This is similar to a [Rope](https://en.wikipedia.org/wiki/Rope_(data_structure)).
@@ -736,7 +827,8 @@ This record contains 9 `ItemId` values, all of which point to `LF_STRING_ID` rec
 * `clude\" -external:I\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliary\\VS\\include\" -external:I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\ucrt\" -external:I\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\VC\\Auxiliar`
 * `y\\VS\\UnitTest\\include\" -external:I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\um\" -external:I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\shared\" -external:I\"C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.19041.0\\winrt\"`
 
-As you can see, command-line arguments are split among different `LF_STRING_ID` records.
+As you can see, command-line arguments are split among different `LF_STRING_ID`
+records.
 
 > TODO: It is not known whether `LF_SUBSTR_ID` can point to yet more `LF_SUBSTR_ID` records, forming a tree. This has not been observed in Windows PDBs.
 
@@ -754,7 +846,9 @@ Contains one string. `LF_STRING_ID` records are pointed-to by these kinds of rec
 * `LF_SUBSTR_ID`
 * `LF_FUNC_ID`
 
-Each `LF_STRING_ID` directly contains a string. Some records (such as `LF_FUNC_ID`) simply always use `LF_STRING_ID`, while others appear to use `LF_STRING_ID` or `LF_SUBSTR_LIST`, in the same field.
+Each `LF_STRING_ID` directly contains a string. Some records (such as
+`LF_FUNC_ID`) simply always use `LF_STRING_ID`, while others appear to use
+`LF_STRING_ID` or `LF_SUBSTR_LIST`, in the same field.
 
 > TODO: What is the `id` field used for?
 
@@ -762,21 +856,24 @@ Each `LF_STRING_ID` directly contains a string. Some records (such as `LF_FUNC_I
 
 ## `LF_UDT_SRC_LINE` (0x1606) - UDT Source Line
 
-```
+```c
 struct UdtSrcLine {
     TypeIndex type;
     NameIndex file_name;
     uint32_t line;
-}
+};
 ```
 
-`LF_UDT_SRC_LINE` specifies the source location for the definition of a user-defined type (UDT).
+`LF_UDT_SRC_LINE` specifies the source location for the definition of a
+user-defined type (UDT).
 
-Source code comments in `cvinfo.h` imply that this record is generated by the compiler, not the linker.
+Source code comments in `cvinfo.h` imply that this record is generated by the
+compiler, not the linker.
 
 `type` is the type being described.
 
-`file_name` points into the [Names Stream](names_stream.md) and specifies the file name.
+`file_name` points into the [Names Stream](names_stream.md) and specifies the
+file name.
 
 `line` is the 1-based line number of the definition of the UDT.
 
@@ -791,9 +888,12 @@ struct UdtModSrcLine {
 }
 ```
 
-`LF_UDT_MOD_SRC_LINE` specifies the source location for the definition of a user-defined type (UDT). This record is the same as `LF_MOD_SRC_LINE` except that it adds a `module_index` field.
+`LF_UDT_MOD_SRC_LINE` specifies the source location for the definition of a
+user-defined type (UDT). This record is the same as `LF_MOD_SRC_LINE` except
+that it adds a `module_index` field.
 
-Source code comments in `cvinfo.h` imply that this record is generated by the linker, not the compiler.
+Source code comments in `cvinfo.h` imply that this record is generated by the
+linker, not the compiler.
 
 `type` is the type being described.
 
@@ -803,6 +903,11 @@ Source code comments in `cvinfo.h` imply that this record is generated by the li
 
 `module_index` is the module index of a module which defined this type.
 
-> TODO: There's a big problem here!  What is the proper value for `module_index` if a type was defined in more than one module? It is expected that _most_ types are defined in more than one module. If the linker collects `LF_UDT_SRC_LINE` records from different modules that point to the same `TypeIndex`, which one does it pick?  The choice is likely non-deterministic.
+> TODO: There's a big problem here! What is the proper value for `module_index`
+> if a type was defined in more than one module? It is expected that _most_
+> types are defined in more than one module. If the linker collects
+> `LF_UDT_SRC_LINE` records from different modules that point to the same
+> `TypeIndex`, which one does it pick? The choice is likely non-deterministic.
 >
-> For determinism, should we squash `module_index` and set it to some fixed value?  What actually reads `module_index`?
+> For determinism, should we squash `module_index` and set it to some fixed
+> value? What actually reads `module_index`?

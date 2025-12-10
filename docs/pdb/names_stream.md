@@ -18,7 +18,7 @@ the Named Streams section. The key is `/names`.
 
 The Names Stream has this structure:
 
-```
+```c
 struct NamesStream {
     uint32_t signature;
     uint32_t version;
@@ -29,7 +29,7 @@ struct NamesStream {
     uint32_t num_hashes;                // 'cit' in nmt.h
     NameIndex hash_table[num_hashes];   // `mphashni` in nmt.h
     uint32_t num_names;                 // 'cni' in nmt.h 
-}
+};
 ```
 
 The `signature` field should always be 0xEFFE_EFFE. The `version` field can take

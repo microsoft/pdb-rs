@@ -1,15 +1,10 @@
 # References
 
-This document intends to bring together many of the existing resources that
-describe PDB, and to describe the file format at a level of detail that it could
-be implemented without reference to other documents.
+This document brings together many of the existing resources that describe PDB
+and describes the file format at a level of detail sufficient for implementing
+some tools.
 
 The primary sources for this document:
-
-* The LLVM project provides The PDB File Format. This web site covers some of
-  the basics of PDB, enough to write a simple PDB reader for a subset of the
-  information in PDBs. It is nowhere near comprehensive. Some of the information
-  in this web site is incorrect.
 
 * Microsoft published a GitHub repository:
   <https://github.com/microsoft/microsoft-pdb>. This contains a snapshot of some
@@ -19,20 +14,40 @@ The primary sources for this document:
 
   The following paths with the `microsoft-pdb` repo contain useful information:
 
-  + `langapi/include/cvinfo.h` – Many essential definitions for CodeView debug info, including the `LF_*` and `S_*` constants and structures which define the fixed-size portion of many type and symbol records.
+  + `langapi/include/cvinfo.h` – Many essential definitions for CodeView debug
+    info, including the `LF_*` and `S_*` constants and structures which define
+    the fixed-size portion of many type and symbol records.
+  
   + `langapi/include/cvexefmt.h` – CodeView definitions for executables.
-  + `langapi/include/pdb.h` – The API for the PDB reader/writer library. This is an implementation detail and does not contain descriptions of the file structures. However, it is useful for seeing the operations defined by the implementation.
+  
+  + `langapi/include/pdb.h` – The API for the PDB reader/writer library. This is
+    an implementation detail and does not contain descriptions of the file
+    structures. However, it is useful for seeing the operations defined by the
+    implementation.
+  
   + `PDB/src/tools/cvdump/dumppdb.cpp` – Dumps information in PDBs.
+  
   + `PDB/dbi/pdb.cpp` – The PDB reader/writer library.
-  + `PDB/dbi/dbi.cpp` and `dbi.h` – Code which can read the Debug Information (DBI) Stream.
-  + `PDB/dbi/gsi.cpp` and `gsi.h` – Code which can read the Global Symbol Index (GSI) Stream.
-  + `PDB/dbi/mod.cpp` and `mod.h` – Code which can read Module Information Streams (aka `mod` or `modi` streams).
+  
+  + `PDB/dbi/dbi.cpp` and `dbi.h` – Code which can read the Debug Information
+    (DBI) Stream.
+  
+  + `PDB/dbi/gsi.cpp` and `gsi.h` – Code which can read the Global Symbol Index
+    (GSI) Stream.
+  
+  + `PDB/dbi/mod.cpp` and `mod.h` – Code which can read Module Information
+    Streams (aka `mod` or `modi` streams).
 
   As a resource, this repository is useful but incomplete. It does not describe
-  all of the information in PDBs, and it does not describe invariants or
+  all of the information in PDBs and it does not describe invariants or
   relationships. Still, it has been a valuable resource for the external
   developers who created the LLVM web site, and various other tools for reading
   PDBs.
+
+* The LLVM Project provides [The PDB File Format](https://llvm.org/docs/PDB/index.html).
+  This web site covers some of the basics of PDB, enough to write a simple PDB
+  reader for a subset of the information in PDBs. It is not comprehensive. Some
+  of the information in this web site is incorrect.
 
 * The <https://github.com/willglynn/pdb> repository. This is an open source
   library (MIT and Apache dual-licensed), implemented in Rust, which can read
@@ -42,23 +57,27 @@ The primary sources for this document:
   source library (BSD 2-clause), implemented in C++, which can read some
   information from PDBs.
 
-* [LLVM-PDB] "The PDB File Format": Describes the PDB File Format, using
-  information from public Microsoft documentation.
+* The [microsoft-pdb](https://github.com/microsoft/microsoft-pdb) repository.
+  Contains documentation and implementation for PDB and CodeView. In many ways,
+  this is the most authoritative public _implementation_ resource for PDB,
+  but it is not a document and not a reference. The repository was provided as
+  a resource by Microsoft, primarily as an aid for the LLVM Project. The source
+  code in it is not complete (not buildable) and the repository has been
+  archived.
 
-* [MS-PDB] github.com/microsoft/microsoft-pdb: Contains some documentation on
-  the PDB file format. Also contains source code for CodeView records, the MSPDB
-  library, and header files that list many important PDB/CodeView definitions.
+  In the `microsoft-pdb` repository, the `cvinfo.h` header contains many
+  CodeView definitions but does not document their semantics.
 
 * [CODEVIEW] The CodeView specification for type records and symbol records.
   This information has been published by Microsoft previously, but is not
   currently offered.
 
-* <https://en.wikipedia.org/wiki/CodeView>
+* <https://en.wikipedia.org/wiki/Program_database>
 
-* In [MS-PDB], the `cvinfo.h` header contains all of the relevant definitions, but
-  does not document their semantics.
+* [2016 LLVM Developers' Meeting: R. Kleckner "CodeView, the MS Debug Info Format in LLVM](https://www.youtube.com/watch?v=5twzd06NqGU)
 
-* LLVM presentation on CodeView: CodeView in LLVM
+* Microsoft published `MS_Symbol_Type_v1.0.pdf` in 2004, which contains
+  extensive documentation on the CodeView type and symbol records. It has been
+  archived repeatedly on the Internet.
 
-* Microsoft published `MS_Symbol_Type_v1.0.pdf` in 2004, which contains extensive documentation on the CodeView type and symbol records. It has been archived repeatedly on the Internet.
   * Example: <https://github.com/mfichman/jogo/blob/master/notes/MS_Symbol_Type_v1.0.pdf>

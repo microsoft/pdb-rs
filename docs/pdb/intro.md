@@ -8,28 +8,26 @@ to reach determinism.
 
 ## Non-authoritative
 
-This document (and all related documents in this repository) are
-**non-authoritative** decriptions of PDB, CodeView, and the data structures used
-by them.
+This document is a **non-authoritative** decriptions of PDB, CodeView, and the
+data structures used by them.
 
 ## Publicly-sourced information
 
-With the exception of MSFZ, all of the information described in this document
-comes from existing documents and source code published by Microsoft. This
-document does not describe any trade secrets or confidential intellectual
-property of Microsoft; all of it has been made public by Microsoft in other
-forms.
+All of the information described in this document comes from existing documents
+and source code published by Microsoft. This document does not describe any
+trade secrets or confidential intellectual property of Microsoft; all of it has
+been made public by Microsoft in other forms.
 
 ## Goals and Scope
 
 The PDB file format is an essential part of development workflows for Microsoft
-and the developer community that uses Microsoft platforms. Unfortunately, there
-is little internal documentation for PDB, and even less public documentation.
-This document is intended to describe the structure of PDBs, clearly and
-unambiguously, to a degree that it can serve as a primary reference for
-implementation of tools that work with PDBs.
+and the developer community that uses Microsoft platforms. Unfortunately,
+documentation for PDB is inconsistent and sparse. This document is intended to
+describe the structure of PDBs, clearly and unambiguously, to a degree that it
+can serve as a primary reference for implementation of tools that work with
+PDBs.
 
-This document should (eventually) be sufficient for developers to implement
+This document should be sufficient for developers to implement _some_
 PDB-related tools without reference to other documents or sources.
 Unfortunately, that level of detail will not be feasible for some of the debug
 records, but nonetheless the aim of this document is to be as comprehensive as
@@ -40,9 +38,9 @@ These goals are in scope for this document:
 * Describing the PDB/MSF container file format, including how streams are stored
   on disk, how the 2-phase commit protocol works, how the Free Page Map works,
   and how to correctly create or modify a PDB.
-* Describing the set of well-known streams in the PDB. Each stream should be
-  described at a level of detail sufficient for implementing a decoder or
-  encoder, without reference to other implementations.
+* Describing the well-known streams in the PDB. Each stream should be described
+  at a level of detail sufficient for implementing a decoder or encoder, without
+  reference to other implementations.
 * Describing (or referencing) the set of CodeView type and symbol records that
   are produced by current-generation MSVC and LLVM tools (circa 2023). LLVM is
   explicitly in-scope because Microsoft makes extensive use of LLVM-based
@@ -85,24 +83,14 @@ be explicitly called out in invariants.
 # Determinism and Normalization 
 
 A goal of this document is to achieve determinism in PDBs. There are many
-benefits to determinism (aka reproducible builds). See:
-[Reproducible builds on Wikipedia](https://en.wikipedia.org/wiki/Reproducible_builds).
+benefits to determinism (aka reproducible builds).
+
+> See: [Reproducible builds on Wikipedia](https://en.wikipedia.org/wiki/Reproducible_builds).
 
 When a compiler produces an executable (assuming the compiler is deterministic),
-the corresponding PDB should also be deterministic. Currently, this is not true
-for the MSVC linker. The MSVC linker uses multiple threads to accelerate linking
-(and compilation, when LTCG is active), and linker performance is a vital part
-of the development workflow for Microsoft and its customers.
+the corresponding PDB should also be deterministic.
 
-DevDiv conducted their own investigation into PDB determinism. Their conclusion
-was that the best approach was to continue to allow the linker to produce
-non-deterministic PDBs, and then to add a post-processing step that constructed
-a deterministic PDB from non-deterministic inputs. This would allow the linker
-to continue to work as it does, and would have only a modest performance impact.
-It is also much easier to reconstruct determinism when all input information is
-available at once, rather than trying to achieve determinism incrementally.
-
-Throughout this document, as the file structures are described, each section
+Throughout this document, as the file structures are described, many sections
 will also specify what rules could be used to impose a deterministic order on a
 given file structure. For example, a table might contain records that could
 occur in any order. A determinism requirement would state one arbitrary sorting

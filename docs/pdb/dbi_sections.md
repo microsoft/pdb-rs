@@ -80,10 +80,10 @@ depending on the version field in the header.
 > Invariant: The size of the DBI Section Contributions Substream is a multiple
 > of 4. The size may be 0, indicating an empty substream.
 
-```
+```c
 struct SectionContribSubstreamHeader {
     uint32_t version;
-}
+};
 ```
 
 `version` specifies the version of this structure:
@@ -97,11 +97,11 @@ Name            | Value expression       | Value
 
 All observed PDBs have used the `DBISCImpvV60` version. It uses `SectionContrib` for the records that follow `SectionContribSubstreamHeader`:
 
-```
+```c
 struct SectionContribSubstream {
     uint32_t version;
     SectionContrib contribs[];      // when version == DBISCImpvV60
-}
+};
 
 // sizeof = 28
 struct SectionContrib {
@@ -114,7 +114,7 @@ struct SectionContrib {
     uint16_t padding2;
     uint32_t data_crc;
     uint32_t reloc_crc;
-}
+};
 ```
 
 ## Version `DBISCImpV2`
@@ -123,11 +123,11 @@ This version appears not to be used; no PDBs have been found that use
 `DBISCImpV2`. It uses `SectionContrib2` for the records that follow
 `SectionContribSubstreamHeader`:
 
-```
+```c
 struct SectionContribSubstream {
     uint32_t version;
     SectionContrib2 contribs[];     // when version == DBISCImpvV2
-}
+};
 
 // sizeof = 32
 struct SectionContrib2 {
