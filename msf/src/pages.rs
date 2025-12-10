@@ -131,9 +131,7 @@ impl<'a> StreamPageMapper<'a> {
 
         assert!(
             transfer_size <= bytes_wanted,
-            "transfer_size = {}, bytes_wanted = {}",
-            transfer_size,
-            bytes_wanted
+            "transfer_size = {transfer_size}, bytes_wanted = {bytes_wanted}"
         );
 
         Some((file_offset, transfer_size))

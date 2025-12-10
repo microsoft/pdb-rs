@@ -135,7 +135,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let out_file_size = file.seek(SeekFrom::End(0))?;
     show_comp_rate("PDB -> PDZ", pdb_metadata.len(), out_file_size);
 
-    println!("{}", summary);
+    println!("{summary}");
 
     // Explicitly close our file handles so that the replace_file() call can succeed.
     drop(pdb);

@@ -138,7 +138,7 @@ impl PdbiStream {
 
     /// Checks whether this PDB has a given feature enabled.
     pub fn has_feature(&self, feature_code: FeatureCode) -> bool {
-        self.features.iter().any(|f| *f == feature_code)
+        self.features.contains(&feature_code)
     }
 }
 

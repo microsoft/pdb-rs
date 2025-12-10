@@ -104,7 +104,7 @@ pub fn dump_type_stream(
             options,
         )?;
 
-        print!("{}", out);
+        print!("{out}");
 
         next_type_index.0 += 1;
 
@@ -166,7 +166,7 @@ pub fn dump_type_record(
             let field_list = t.fixed.field_list.get();
             if let Some(unique_name) = t.unique_name {
                 if unique_name != t.name {
-                    write!(out, " (unique: {})", unique_name)?;
+                    write!(out, " (unique: {unique_name})")?;
                 }
             }
             if field_list.0 != 0 {
@@ -180,7 +180,7 @@ pub fn dump_type_record(
             write!(out, " {}", t.name)?;
             if let Some(unique_name) = t.unique_name {
                 if unique_name != t.name {
-                    write!(out, " (unique: {})", unique_name)?;
+                    write!(out, " (unique: {unique_name})")?;
                 }
             }
         }
@@ -190,7 +190,7 @@ pub fn dump_type_record(
             write!(out, " {}", t.name)?;
             if let Some(unique_name) = t.unique_name {
                 if unique_name != t.name {
-                    write!(out, " (unique: {})", unique_name)?;
+                    write!(out, " (unique: {unique_name})")?;
                 }
             }
         }
@@ -345,7 +345,7 @@ pub fn dump_type_record(
             let line = t.line.get();
             if let Some(names) = names {
                 if let Ok(s) = names.get_string(src) {
-                    writeln!(out, "    (line {line:6}) {}", s)?;
+                    writeln!(out, "    (line {line:6}) {s}")?;
                 } else {
                     writeln!(out, "    (line {line:6}) ?? {src:?}")?;
                 }
@@ -363,7 +363,7 @@ pub fn dump_type_record(
             let line = t.line.get();
             if let Some(names) = names {
                 if let Ok(s) = names.get_string(src) {
-                    writeln!(out, "    (line {line:6}) {}", s)?;
+                    writeln!(out, "    (line {line:6}) {s}")?;
                 } else {
                     writeln!(out, "    (line {line:6}) ?? {src:?}")?;
                 }
@@ -515,7 +515,7 @@ pub fn dump_item_short(
         return Ok(());
     }
     if context.ipi.is_primitive(TypeIndex(item)) {
-        write!(out, "(error: item = 0x{:x})", item)?;
+        write!(out, "(error: item = 0x{item:x})")?;
         return Ok(());
     }
 
@@ -530,7 +530,7 @@ pub fn dump_item_short(
     let data = item_record.data;
 
     if context.show_type_index {
-        write!(out, "I#{:08x} ", item)?;
+        write!(out, "I#{item:08x} ")?;
     }
 
     write!(out, "{kind:?} : ")?;

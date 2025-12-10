@@ -28,7 +28,7 @@ pub fn find_command(options: &FindOptions) -> Result<()> {
         let addr = u32::from_str_radix(hex_str, 0x10)?;
 
         if let Some(contrib) = contribs.find(options.section, addr as i32) {
-            println!("Found contribution record:\n{:#?}", contrib);
+            println!("Found contribution record:\n{contrib:#?}");
             println!("Module index = {}", contrib.module_index.get());
         } else {
             println!("No symbol found.");
@@ -83,7 +83,7 @@ pub fn find_name_command(options: &FindNameOptions) -> Result<()> {
                         sym.kind,
                         sym.data,
                     )?;
-                    print!("{}", out);
+                    print!("{out}");
                     found_any = true;
                 }
             }
@@ -97,7 +97,7 @@ pub fn find_name_command(options: &FindNameOptions) -> Result<()> {
         if let Some(sym) = gsi.find_symbol(&gss, BStr::new(&options.name))? {
             let mut out = String::new();
             dump_sym(&mut out, &mut context, 0, sym.kind, sym.data)?;
-            print!("{}", out);
+            print!("{out}");
             return Ok(());
         }
         println!("Symbol not found.");

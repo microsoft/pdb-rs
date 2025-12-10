@@ -109,7 +109,7 @@ impl<'a> Debug for HexDump<'a> {
 
             write_offset(f, pos)?;
             for &b in row.iter() {
-                write!(f, " {:02x}", b)?;
+                write!(f, " {b:02x}")?;
             }
             for _ in 0..(row_len - row.len()) * empty_col_size {
                 f.write_char(' ')?;
@@ -173,7 +173,7 @@ impl<'a> Debug for HexStr<'a> {
             if i != 0 && !self.packed {
                 fmt.write_char(' ')?;
             }
-            write!(fmt, "{:02x}", b)?;
+            write!(fmt, "{b:02x}")?;
         }
 
         Ok(())

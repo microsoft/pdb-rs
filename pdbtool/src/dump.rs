@@ -325,7 +325,7 @@ fn dump_modules(pdb: &Pdb, dbi: &DbiStream, args: ModulesOptions) -> Result<()> 
         );
         println!("    {}", module.obj_file());
         if let Some(stream) = module.stream() {
-            println!("    Stream: {}", stream);
+            println!("    Stream: {stream}");
             let sym_start = 0;
             let sym_byte_size = module.header().sym_byte_size.get();
             let sym_end = sym_byte_size;
@@ -533,7 +533,7 @@ fn dump_dbi(pdb: &Pdb, options: DbiOptions) -> Result<()> {
                     println!("error: stream '{name}' out of range: {stream}");
                     continue;
                 }
-                let stream_len = pdb.stream_len(stream as u32);
+                let stream_len = pdb.stream_len(stream);
 
                 println!("    {name:<20} : stream {stream:6}, len {stream_len:6}");
             }

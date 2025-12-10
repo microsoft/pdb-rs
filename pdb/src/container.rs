@@ -138,7 +138,7 @@ impl<'a, F: ReadAt> StreamReader<'a, F> {
     pub fn stream_size(&self) -> u64 {
         match self {
             Self::Msf(s) => s.len() as u64,
-            Self::Msfz(s) => s.stream_size() as u64,
+            Self::Msfz(s) => s.stream_size(),
         }
     }
 }

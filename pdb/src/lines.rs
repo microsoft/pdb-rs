@@ -485,7 +485,7 @@ impl std::fmt::Debug for LineRecord {
 
         let delta_line_end = self.delta_line_end();
         if delta_line_end != 0 {
-            write!(fmt, "..+{}", delta_line_end)?;
+            write!(fmt, "..+{delta_line_end}")?;
         }
 
         if self.statement() {

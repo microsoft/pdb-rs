@@ -45,14 +45,14 @@ pub fn dump_sym(
     }
 
     if context.show_record_offsets {
-        write!(out, "{:08x} : ", record_offset)?;
+        write!(out, "{record_offset:08x} : ")?;
     }
 
     if context.scope_depth > 0 {
         write!(out, "{}", indent(context.scope_depth * 2))?;
     }
 
-    write!(out, "{:?}: ", kind)?;
+    write!(out, "{kind:?}: ")?;
 
     match SymData::parse(kind, data)? {
         // TODO: S_CALLEES is using a different kind of TypeIndex value.
@@ -143,7 +143,7 @@ pub fn dump_sym(
         SymData::Annotation(ann) => {
             writeln!(out, "{}", ann.fixed.offset)?;
             for s in ann.iter_strings() {
-                writeln!(out, "    {}", s)?;
+                writeln!(out, "    {s}")?;
             }
         }
 
@@ -391,7 +391,7 @@ pub fn dump_symbol_stream(
             sym.kind,
             sym.data,
         )?;
-        print!("{}", out);
+        print!("{out}");
 
         if show_bytes {
             let record_bytes = &symbol_records[record_range.clone()];
@@ -463,7 +463,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
             }
         }
 
-        println!("Module #{}", module_index);
+        println!("Module #{module_index}");
         println!("-------------------");
         println!();
 
@@ -512,7 +512,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
                         global_sym.kind,
                         global_sym.data,
                     )?;
-                    print!("{}", out);
+                    print!("{out}");
                 }
             } else {
                 println!("(none)");
@@ -553,7 +553,7 @@ pub fn dump_gsi(p: &Pdb) -> Result<()> {
         out.clear();
         // TODO: show the correct record offset, instead of 0
         dump_sym(&mut out, &mut context, 0, sym.kind, sym.data)?;
-        println!("{}", out);
+        println!("{out}");
     }
 
     println!();
@@ -578,7 +578,7 @@ pub fn dump_psi(p: &Pdb) -> Result<()> {
         out.clear();
         // TODO: show the correct record offset, instead of 0
         dump_sym(&mut out, &mut context, 0, sym.kind, sym.data)?;
-        println!("{}", out);
+        println!("{out}");
     }
 
     println!();

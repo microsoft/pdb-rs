@@ -19,7 +19,7 @@ fn run_command(mut cmd: Command) {
         s.push_str(arg.to_str().unwrap());
     }
 
-    println!("Running: {}", s);
+    println!("Running: {s}");
 
     let status = cmd.status().expect("Failed to execute command");
 
@@ -200,7 +200,6 @@ fn dbi_case(name: &str, original_dbi_data: &[u8]) {
         let mut pdb = Msf::create(&pdb_file_name, Default::default()).unwrap();
         let mut sw = pdb.write_stream(Stream::DBI.into()).unwrap();
         sw.write_all(original_dbi_data).unwrap();
-        drop(sw);
         pdb.commit().unwrap();
     }
 

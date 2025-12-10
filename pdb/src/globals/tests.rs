@@ -103,7 +103,7 @@ fn build_and_search_globals() {
 
         println!("Dumping names from GSI:");
         for name_sym in gsi.names().iter(&gss) {
-            println!("{:?}", name_sym);
+            println!("{name_sym:?}");
         }
 
         let gsi_names = gsi.names();

@@ -74,9 +74,9 @@ pub fn dump_dbi_sources(
             .file_name_offsets()
             .get(file_index as usize)
         {
-            println!("File name offset: 0x{:x}", offset);
+            println!("File name offset: 0x{offset:x}");
             let file_name = sources_substream.get_source_file_name_at(offset.get())?;
-            println!("{}", file_name);
+            println!("{file_name}");
         } else {
             println!(
                 "File index {file_index} is out of range. Number of files: {}",
@@ -105,7 +105,7 @@ pub fn dump_dbi_sources(
                         if options.indexes {
                             println!("    [{:08x}] : {}", name_offset.get(), name);
                         } else {
-                            println!("    {}", name);
+                            println!("    {name}");
                         }
                     }
                     Err(e) => {

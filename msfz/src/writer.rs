@@ -44,12 +44,12 @@ impl std::fmt::Debug for FragmentLocation {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Uncompressed { file_offset } => {
-                write!(f, "uncompressed at 0x{:06x}", file_offset)
+                write!(f, "uncompressed at 0x{file_offset:06x}")
             }
             Self::Compressed {
                 chunk_index,
                 offset_within_chunk,
-            } => write!(f, "chunk {} : 0x{:04x}", chunk_index, offset_within_chunk),
+            } => write!(f, "chunk {chunk_index} : 0x{offset_within_chunk:04x}"),
         }
     }
 }

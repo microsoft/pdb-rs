@@ -167,9 +167,9 @@ pub(crate) fn dump_sections(pdb: &Pdb, options: DumpSectionsOptions) -> anyhow::
     let modules: Vec<ModuleInfo<'_>> = modules.iter().collect();
 
     // Read modules for all symbols.
-    let mut module_symbols: Vec<Vec<u32>> = Vec::with_capacity(modules.iter().count());
+    let mut module_symbols: Vec<Vec<u32>> = Vec::with_capacity(modules.len());
     for module in modules.iter() {
-        let syms = pdb.read_module_symbols(&module)?;
+        let syms = pdb.read_module_symbols(module)?;
         module_symbols.push(syms);
     }
 
