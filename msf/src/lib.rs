@@ -61,9 +61,9 @@ use std::io::{Read, Seek, SeekFrom};
 use std::mem::size_of;
 use std::path::Path;
 use sync_file::{RandomAccessFile, ReadAt, WriteAt};
-use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
-use self::pages::{num_pages_for_stream_size, PageAllocator};
+use self::pages::{PageAllocator, num_pages_for_stream_size};
 
 /// Identifies a page number in the MSF file. Not to be confused with `StreamPage`.
 type Page = u32;

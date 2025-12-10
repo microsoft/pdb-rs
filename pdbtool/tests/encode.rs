@@ -1,4 +1,4 @@
-use ms_pdb::dbi::{DbiStreamHeader, DBI_STREAM_HEADER_LEN, DBI_STREAM_VERSION_V110};
+use ms_pdb::dbi::{DBI_STREAM_HEADER_LEN, DBI_STREAM_VERSION_V110, DbiStreamHeader};
 use ms_pdb::msf::Msf;
 use ms_pdb::msfz::Msfz;
 use ms_pdb::{Stream, StreamIndexU16};

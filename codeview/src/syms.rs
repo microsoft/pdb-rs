@@ -19,7 +19,7 @@ use bitflags::bitflags;
 use bstr::BStr;
 use std::fmt::Debug;
 use std::mem::size_of;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32};
+use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
 /// This header is shared by many records that can start a symbol scope.
 #[derive(IntoBytes, FromBytes, Unaligned, Immutable, KnownLayout, Default, Clone, Debug)]
@@ -1405,6 +1405,42 @@ impl<'a> Parse<'a> for CoffGroup<'a> {
     }
 }
 
+/// For `S_SECTION`
+#[derive(Clone, Debug)]
+pub struct Section<'a> {
+    /// The fixed-size header
+    pub fixed: &'a SectionFixed,
+    /// The name of the section
+    pub name: &'a BStr,
+}
+
+/// The fixed header of `S_SECTION` symbols.
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+pub struct SectionFixed {
+    /// Section number
+    pub section: U16<LE>,
+    /// Alignment of this section (power of 2)
+    pub align: u8,
+    /// Reserved
+    pub reserved: u8,
+    /// RVA of this section base
+    pub rva: U32<LE>,
+    /// Size in bytes of this section
+    pub cb: U32<LE>,
+    /// Section characteristics (bit flags)
+    pub characteristics: U32<LE>,
+}
+
+impl<'a> Parse<'a> for Section<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            fixed: p.get()?,
+            name: p.strz()?,
+        })
+    }
+}
+
 /// Parsed data from a symbol record
 #[derive(Clone, Debug)]
 #[allow(missing_docs)]
@@ -1446,6 +1482,7 @@ pub enum SymData<'a> {
     HotPatchFunc(HotPatchFunc<'a>),
     CoffGroup(CoffGroup<'a>),
     ArmSwitchTable(&'a ArmSwitchTable),
+    Section(Section<'a>),
 }
 
 impl<'a> SymData<'a> {
@@ -1510,6 +1547,8 @@ impl<'a> SymData<'a> {
             SymKind::S_ANNOTATION => Self::Annotation(p.parse()?),
             SymKind::S_HOTPATCHFUNC => Self::HotPatchFunc(p.parse()?),
             SymKind::S_ARMSWITCHTABLE => Self::ArmSwitchTable(p.get()?),
+            SymKind::S_COFFGROUP => Self::CoffGroup(p.parse()?),
+            SymKind::S_SECTION => Self::Section(p.parse()?),
 
             _ => Self::Unknown,
         })

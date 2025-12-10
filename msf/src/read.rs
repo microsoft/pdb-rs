@@ -49,10 +49,7 @@ pub(super) fn read_stream_core<F: ReadAt>(
 
         trace!(
             stream,
-            stream_pos,
-            transfer_size,
-            file_offset,
-            "reading stream data"
+            stream_pos, transfer_size, file_offset, "reading stream data"
         );
 
         file.read_exact_at(dst_this_transfer, file_offset)?;

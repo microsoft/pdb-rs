@@ -43,7 +43,7 @@ pub use container::{Container, StreamReader};
 pub use ms_codeview::{self as codeview, syms, types};
 pub use ms_coff::{self as coff, IMAGE_SECTION_HEADER};
 pub use msfz::StreamData;
-pub use stream_index::{Stream, StreamIndexIsNilError, StreamIndexU16, NIL_STREAM_INDEX};
+pub use stream_index::{NIL_STREAM_INDEX, Stream, StreamIndexIsNilError, StreamIndexU16};
 pub use sync_file::{RandomAccessFile, ReadAt, WriteAt};
 
 use anyhow::bail;
@@ -58,8 +58,8 @@ use std::path::Path;
 use syms::{Pub, Sym};
 use zerocopy::{FromZeros, IntoBytes};
 
-use crate::dbi::optional_dbg::OptionalDebugHeaders;
 use crate::dbi::ModuleInfo;
+use crate::dbi::optional_dbg::OptionalDebugHeaders;
 
 #[cfg(test)]
 #[static_init::dynamic]
@@ -128,7 +128,7 @@ impl<F: ReadAt> Pdb<F> {
     /// It also reads the stream directory, so it knows how to find each of the streams
     /// and the pages of the streams.
     fn from_file_access(file: F, access_mode: AccessMode) -> anyhow::Result<Box<Self>> {
-        use crate::taster::{what_flavor, Flavor};
+        use crate::taster::{Flavor, what_flavor};
 
         let Some(flavor) = what_flavor(&file)? else {
             bail!("The file is not a recognized PDB or PDZ format.");

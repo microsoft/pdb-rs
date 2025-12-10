@@ -485,7 +485,7 @@ impl<'a, F: Write + Seek> Write for StreamWriter<'a, F> {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::InvalidInput,
                     "The input is too large for an MSFZ stream.",
-                ))
+                ));
             }
         };
 

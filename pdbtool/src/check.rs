@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use ms_pdb::{Pdb, RandomAccessFile};
 use std::path::{Path, PathBuf};
 use tracing::{error, info, warn};
@@ -118,7 +118,7 @@ fn check_one_err(
 ) -> Result<()> {
     let f = RandomAccessFile::open(file_name)?;
 
-    use ms_pdb::taster::{what_flavor, Flavor};
+    use ms_pdb::taster::{Flavor, what_flavor};
     match what_flavor(&f)? {
         Some(Flavor::Pdb | Flavor::Pdz) => {}
 

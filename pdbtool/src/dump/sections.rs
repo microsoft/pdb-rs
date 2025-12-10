@@ -406,12 +406,12 @@ pub(crate) fn dump_sections(pdb: &Pdb, options: DumpSectionsOptions) -> anyhow::
                     .wrapping_add(g.offset_segment.offset());
 
                 println!(
-                        "g {off_seg} rva: {group_virtual_address:08x} + {vsize:08x} : {rwx} :     {name:<30}  {desc}",
-                        off_seg = g.offset_segment,
-                        rwx = Rwx(section.characteristics),
-                        vsize = g.size,
-                        name = g.name
-                    );
+                    "g {off_seg} rva: {group_virtual_address:08x} + {vsize:08x} : {rwx} :     {name:<30}  {desc}",
+                    off_seg = g.offset_segment,
+                    rwx = Rwx(section.characteristics),
+                    vsize = g.size,
+                    name = g.name
+                );
 
                 // If requested, show contribs in this section.
                 show_contribs_in(section_num, section_rva, g.offset_segment.offset(), g.size);

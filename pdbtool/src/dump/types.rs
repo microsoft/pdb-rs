@@ -3,7 +3,7 @@ use ms_pdb::names::NameIndex;
 use ms_pdb::tpi::TypeStreamKind;
 use ms_pdb::types::fields::Field;
 use ms_pdb::types::primitive::dump_primitive_type_index;
-use ms_pdb::types::{ItemId, Leaf, TypeData, TypeIndex, UdtProperties, BUILD_INFO_ARG_NAMES};
+use ms_pdb::types::{BUILD_INFO_ARG_NAMES, ItemId, Leaf, TypeData, TypeIndex, UdtProperties};
 
 #[derive(clap::Parser)]
 pub struct DumpTypeStreamOptions {

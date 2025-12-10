@@ -11,7 +11,7 @@ use bstr::BStr;
 use ms_codeview::parser::{Parser, ParserMut};
 use std::mem::size_of;
 use tracing::{debug, debug_span, error, info, trace, warn};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U32};
+use zerocopy::{FromBytes, I32, Immutable, IntoBytes, KnownLayout, LE, U32, Unaligned};
 
 /// This is the size used for calculating hash indices. It was the size of the in-memory form
 /// of the hash records, on 32-bit machines. It is not the same as the length of the hash records
@@ -143,7 +143,9 @@ impl NameTable {
                 }
 
                 if hash_records_size % size_of::<HashRecord>() != 0 {
-                    warn!("GSI/PSI name table contains hash table with a length that is not a multiple of the hash record size.");
+                    warn!(
+                        "GSI/PSI name table contains hash table with a length that is not a multiple of the hash record size."
+                    );
                 }
                 let num_hash_records = hash_records_size / size_of::<HashRecord>();
                 let hash_records_slice: &[HashRecord] =
@@ -199,8 +201,7 @@ impl NameTable {
         for (bucket_index, hash_index_window) in self.hash_buckets.windows(2).enumerate() {
             trace!(
                 "Checking hash bucket #{bucket_index}, hash records at {} .. {}",
-                hash_index_window[0],
-                hash_index_window[1]
+                hash_index_window[0], hash_index_window[1]
             );
             let Some(bucket_hash_records) = self
                 .hash_records
@@ -341,11 +342,7 @@ impl<'a> Iterator for NameTableIter<'a> {
 /// The values are hard-coded. 0x1000 is used for normal PDBs and 0x3ffff is used for "mini PDBs".
 /// Mini PDBs are produced using the `/DEBUG:FASTLINK` linker option.
 pub fn get_v1_default_bucket(minimal_dbg_info: bool) -> usize {
-    if minimal_dbg_info {
-        0x3ffff
-    } else {
-        0x1000
-    }
+    if minimal_dbg_info { 0x3ffff } else { 0x1000 }
 }
 
 /// Expands a compressed bucket. Returns a vector of offsets.
@@ -434,7 +431,10 @@ fn expand_buckets(
 
         // Add offsets for previous buckets, which were all empty.
         if hash_buckets.len() < bucket_index {
-            trace!("    bucket: 0x{:08x} .. 0x{bucket_index:08x} : range is empty, pushing offset: 0x{offset:8x} {offset:10}", hash_buckets.len());
+            trace!(
+                "    bucket: 0x{:08x} .. 0x{bucket_index:08x} : range is empty, pushing offset: 0x{offset:8x} {offset:10}",
+                hash_buckets.len()
+            );
             hash_buckets.resize(bucket_index, offset);
         }
         trace!(

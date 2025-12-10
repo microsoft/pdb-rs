@@ -27,10 +27,10 @@
 //! * <https://github.com/microsoft/microsoft-pdb/blob/805655a28bd8198004be2ac27e6e0290121a5e89/langapi/include/pdb.h#L860>
 
 use crate::dbi::optional_dbg::{OptionalDebugHeaders, OptionalDebugStream};
-use crate::{get_or_init_err, Stream};
 use crate::{Container, NIL_STREAM_INDEX};
+use crate::{Stream, get_or_init_err};
 use crate::{StreamIndexIsNilError, StreamIndexU16};
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use ms_codeview::parser::{Parser, ParserError, ParserMut};
 use ms_coff::IMAGE_SECTION_HEADER;
 use std::mem::size_of;
@@ -38,7 +38,7 @@ use std::ops::Range;
 use sync_file::ReadAt;
 use tracing::{error, warn};
 use zerocopy::{
-    FromBytes, FromZeros, Immutable, IntoBytes, KnownLayout, Unaligned, I32, LE, U16, U32,
+    FromBytes, FromZeros, I32, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned,
 };
 
 #[cfg(doc)]
@@ -438,7 +438,9 @@ impl<StreamData: AsRef<[u8]>> DbiStream<StreamData> {
             if let Ok(slice) = <[U16<LE>]>::mut_from_bytes(substream_bytes) {
                 Ok(slice)
             } else {
-                bail!("The Optional Debug Header substream within the DBI stream is malformed (length is not valid).");
+                bail!(
+                    "The Optional Debug Header substream within the DBI stream is malformed (length is not valid)."
+                );
             }
         }
     }
@@ -625,7 +627,8 @@ pub fn validate_dbi_stream(stream_data: &[u8]) -> anyhow::Result<()> {
 
     let sources = DbiSourcesSubstream::parse(dbi_stream.source_info())?;
     if sources.num_modules() != num_modules {
-        bail!("Number of modules found in Sources substream ({}) does not match number of Module Info structs found in Modules substream ({}).",
+        bail!(
+            "Number of modules found in Sources substream ({}) does not match number of Module Info structs found in Modules substream ({}).",
             sources.num_modules(),
             num_modules
         );

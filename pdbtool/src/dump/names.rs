@@ -93,8 +93,7 @@ pub fn dump_names(pdb: &Pdb, options: DumpNamesOptions) -> anyhow::Result<()> {
         } else {
             println!(
                 "error: Number of hashes used is {}, which is not equal to the total number of strings ({}).",
-                num_hashes_used,
-                names_stream.num_strings
+                num_hashes_used, names_stream.num_strings
             );
         }
     }

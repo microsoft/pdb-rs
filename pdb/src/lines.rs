@@ -11,12 +11,12 @@ pub use subsection::*;
 
 use crate::codeview::syms::OffsetSegment;
 use crate::names::NameIndex;
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use ms_codeview::parser::{Parser, ParserError, ParserMut};
 use ms_codeview::{HasRestLen, IteratorWithRangesExt};
 use std::mem::{size_of, take};
 use tracing::{trace, warn};
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
 /// Enumerates the kind of subsections found in C13 Line Data.
 ///
@@ -128,7 +128,9 @@ impl<'a> LineData<'a> {
             for subsection in self.subsections() {
                 match subsection.kind {
                     SubsectionKind::LINES => {
-                        bail!("This C13 Line Data substream contains LINES subsections, but does not contain a FILE_CHECKSUMS subsection.");
+                        bail!(
+                            "This C13 Line Data substream contains LINES subsections, but does not contain a FILE_CHECKSUMS subsection."
+                        );
                     }
                     _ => {}
                 }
@@ -626,7 +628,9 @@ pub fn fixup_c13_line_data(
                             block.header.file_index = U32::new(new);
                         }
                         Err(_) => {
-                            bail!("DEBUG_S_LINES section contains invalid file index: {old_file_index}");
+                            bail!(
+                                "DEBUG_S_LINES section contains invalid file index: {old_file_index}"
+                            );
                         }
                     }
                 }

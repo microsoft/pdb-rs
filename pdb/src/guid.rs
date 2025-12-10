@@ -2,7 +2,7 @@
 
 use std::fmt::Debug;
 use uuid::Uuid;
-use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, Unaligned, LE, U16, U32};
+use zerocopy::{FromBytes, Immutable, IntoBytes, KnownLayout, LE, U16, U32, Unaligned};
 
 /// Standard Windows type
 #[repr(C)]

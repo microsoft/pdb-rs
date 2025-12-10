@@ -862,7 +862,9 @@ impl<F> Msf<F> {
 
     fn check_can_add_stream(&self) -> anyhow::Result<()> {
         if self.stream_sizes.len() as u32 >= self.max_streams {
-            bail!("A new stream cannot be created because the maximum number of streams has been reached.");
+            bail!(
+                "A new stream cannot be created because the maximum number of streams has been reached."
+            );
         }
         Ok(())
     }

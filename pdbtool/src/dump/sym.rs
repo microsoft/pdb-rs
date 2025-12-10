@@ -266,6 +266,7 @@ pub fn dump_sym(
                 group.fixed.cb.get()
             )?;
         }
+
         SymData::ArmSwitchTable(table) => {
             writeln!(out)?;
             writeln!(
@@ -281,6 +282,17 @@ pub fn dump_sym(
             writeln!(out, "    base location:               {}", table.base())?;
             writeln!(out, "    branch instruction location: {}", table.branch())?;
             writeln!(out, "    jump table location:         {}", table.table())?;
+        }
+
+        SymData::Section(section) => {
+            write!(
+                out,
+                "section {:4}, rva {:#08x}, size {:#08x} : {:?}",
+                section.fixed.section.get(),
+                section.fixed.rva.get(),
+                section.fixed.cb.get(),
+                section.name
+            )?;
         }
     }
 

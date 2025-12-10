@@ -1,8 +1,8 @@
 use crate::pdz::util::*;
-use anyhow::{bail, Context, Result};
-use ms_pdb::dbi::{DbiStreamHeader, DBI_STREAM_HEADER_LEN};
+use anyhow::{Context, Result, bail};
+use ms_pdb::dbi::{DBI_STREAM_HEADER_LEN, DbiStreamHeader};
 use ms_pdb::msf::Msf;
-use ms_pdb::msfz::{MsfzFinishOptions, MsfzWriter, StreamWriter, MIN_FILE_SIZE_16K};
+use ms_pdb::msfz::{MIN_FILE_SIZE_16K, MsfzFinishOptions, MsfzWriter, StreamWriter};
 use ms_pdb::{RandomAccessFile, Stream};
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
@@ -47,7 +47,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let input_file = RandomAccessFile::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
 
-    use ms_pdb::taster::{what_flavor, Flavor};
+    use ms_pdb::taster::{Flavor, what_flavor};
 
     if let Ok(flavor) = what_flavor(&input_file) {
         if flavor != Some(Flavor::Pdb) {
