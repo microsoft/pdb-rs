@@ -118,7 +118,7 @@ sym_kinds! {
     0x1134, S_DEFRANGE_2005;
     0x1135, S_DEFRANGE2_2005;
     0x1136, S_SECTION;
-    0x1137, S_COFFGROUP; // defined in module symbol streams in the "* Linker *" special module
+    0x1137, S_COFFGROUP;
     0x1138, S_EXPORT;
     0x1139, S_CALLSITEINFO;
     0x113a, S_FRAMECOOKIE;

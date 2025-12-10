@@ -1,6 +1,6 @@
 [package]
 name = "ms-codeview"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 description = "Definitions for use with CodeView debugging symbols"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -20,5 +20,5 @@ zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
 
 [dependencies.ms-coff]
+version = "0.1.0"
 path = "../coff"
-#version = "0.1.0"

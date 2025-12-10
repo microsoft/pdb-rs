@@ -357,7 +357,7 @@ dependencies = [
 
 [[package]]
 name = "ms-codeview"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -384,7 +384,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -498,7 +498,7 @@ dependencies = [
 
 [[package]]
 name = "pdbtool"
-version = "0.1.14"
+version = "0.1.15"
 dependencies = [
  "anyhow",
  "bitvec",

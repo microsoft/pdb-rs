@@ -2,6 +2,14 @@
 name = "ms-coff"
 version = "0.1.0"
 edition = "2024"
+description = "Definitions for Windows COFF binaries"
+authors = ["Arlie Davis <ardavis@microsoft.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
+categories = ["parsing", "development-tools", "development-tools::debugging"]
+
+[lib]
+doctest = false
 
 [dependencies]
 bitflags.workspace = true
