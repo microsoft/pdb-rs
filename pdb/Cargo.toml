@@ -1,7 +1,7 @@
 [package]
 name = "ms-pdb"
 version = "0.1.15"
-edition = "2021"
+edition = "2024"
 description = "Reads Microsoft Program Database (PDB) files"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
@@ -27,7 +27,7 @@ zerocopy = { workspace = true, features = ["alloc", "derive"] }
 zerocopy-derive.workspace = true
 
 [dependencies.ms-codeview]
-version = "0.1.4"
+version = "0.1.5"
 path = "../codeview"
 
 [dependencies.ms-coff]
@@ -35,11 +35,11 @@ version = "0.1.0"
 path = "../coff"
 
 [dependencies.ms-pdb-msf]
-version = "0.1.5"
+version = "0.1.6"
 path = "../msf"
 
 [dependencies.ms-pdb-msfz]
-version = "0.1.7"
+version = "0.1.8"
 path = "../msfz"
 
 [dev-dependencies]

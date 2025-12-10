@@ -1,7 +1,7 @@
 [package]
 name = "ms-pdb-msfz"
-version = "0.1.7"
-edition = "2021"
+version = "0.1.8"
+edition = "2024"
 description = "Reads Compressed Multi-Stream Files, which is part of the Microsoft PDB file format"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
 license = "MIT OR Apache-2.0"
