@@ -12,7 +12,7 @@ jobs:
           - windows-latest
           - ubuntu-latest
         toolchain:
-          - 1.82
+          - 1.85
     runs-on: ${{ matrix.os }}
     env:
       RUSTFLAGS: -D warnings
