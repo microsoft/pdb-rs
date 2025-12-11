@@ -9,5 +9,12 @@ struct ArgList {
 
 Specifies the arguments for `LF_PROCEDURE` or `LF_MFUNCTION`.
 
-This record should only be pointed-to by `LF_PROCEDURE` and `LF_MFUNCTION`, with
-the TPI stream.
+This record should only be pointed-to by `LF_PROCEDURE` and `LF_MFUNCTION`,
+within the TPI stream.
+
+> Invariant: Each `LF_ARGLIST` record is pointed-to by exactly one
+> `LF_PROCEDURE` or `LF_MFUNCTION` record, and is pointed-to by the `arg_list`
+> field.
+
+Effectively, the `LF_PROCEDURE` (or `LF_MFUNCTION`) record "owns" the
+`LF_ARGLIST`.

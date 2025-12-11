@@ -1,23 +1,25 @@
+# PDB and CodeView
+
+This document describes the PDB file format. It describes the structure of the
+PDBs with sufficient detail to read, create, and modify PDBs for some purposes.
+It describes the relationships between different sections of the PDB. It also
+describes sources of non-determinism, and a set of normalization rules that may
+be applied to PDBs to reach determinism.
+
+This document is a **non-authoritative** decriptions of PDB, CodeView, and the
+data structures used by them. It is the synthesis of public information drawn from
+many sources.
+
+## Contents
 
 - [Introduction](intro.md)
 - [Terminology](terminology.md) - Lists terms used within this specification.
-- [References](references.md)
 - [Data Types](data_types.md) - Data types that are used within this specification.
-- [MSF](pdb/msf.md) - Describes the Multi-Stream Format (MSF), which is the container format used by PDB. MSF allows PDB to organize its data structures into _streams_.
-- [DBI](pdb/dbi.md) - Describes the Debug Info Stream, a central data structure which points to many other data structures.
-- [Names Stream](pdb/names_stream.md) - Describes the `/names` stream, which contains a set of names (mostly file names) that are referenced by many data structures.
-- Modules
-  - [Module Stream](pdb/module_stream.md) - Describes the struct of Module Streams, which contain module symbols and C13 Line Data.
-  - [C13 Line Data](codeview/line_data.md) - Describes C13 Line Data, which allows debuggers to translate from instruction streams (code) to source locations.
-- [Global Symbols](pdb/globals.md) - Describes the Global Symbol Stream (GSS) and its indexes
-- [IPI Stream](pdb/ipi.md) - Describes the IPI Stream, which contains various ids
-instruction addresses to source locations
-- [Relationships](pdb/relationships.md) - Describes values that "point" from one data structure into another. These relationships must be preserved when PDBs are modified.
-- CodeView symbols and types
-  - [Type Records](codeview/types/types.md) - Describes _type records_ that are stored in the TPI Stream.
-  - [CodeView Number](codeview/number.md) - Describes the `Number` data type,
-    which is used by type and symbol records.
-  - [Primitive types](pdb/primitive_types.md) - Describes primitive types, such as `unsigned long`.
-  - [TPI Stream](pdb/tpi_stream.md) - Describes the TPI Stream, which contains a sequence of related type records.
-  - [Symbols](codeview/symbols/symbols.md) - Describes _symbol records_, which describe data types, procedures, and other language concepts.
-- [Hash Algorithms](pdb/hashing.md) - Describes hash functions used by several hash table algorithms
+- [PDB](pdb/index.md) - Describes Program Database (PDB) files.
+- [CodeView](codeview/codeview.md) - Describes debugging types and symbol records.
+- [Determinism](./determinimsm.md) - Discusses deterministic (reproducible) builds.
+- [References](references.md)
+
+## Maintainers
+
+* Arlie Davis - ardavis@microsoft.com

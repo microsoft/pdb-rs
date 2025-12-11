@@ -26,11 +26,10 @@ decoders must handle misaligned access to those fields, either using unaligned
 memory accesses or must copy the entire record to a buffer that has a guaranteed
 alignment.
 
-The kind field specifies how to interpret a type record. In the PDB
-documentation, this kind field uses the "Leaf Type" enumeration. The details of
-these records are outside of the scope of this document. See these references:
+The `kind` field specifies how to interpret a type record. In the PDB
+documentation, this `kind` field uses the "Leaf Type" enumeration.
 
-# Summary of record kinds
+# Summary of type records
 
 There are three disjoint categories of record kinds:
 
@@ -46,7 +45,7 @@ There are three disjoint categories of record kinds:
 3. `field` category: Records that are part of complex field lists, with
    `LF_FIELDLIST` records. These do not use the `TypeRecordHeader` structure.
 
-Value  | Name              | Category     | Description
+Kind   | Name              | Category     | Description
 -------|-------------------|--------------|------------
 0x1001 | `LF_MODIFIER`     | type         | Modifies a type by applying `volatile`, `const`, or `unaligned` to it
 0x1002 | `LF_POINTER`      | type         | Defines a pointer to another type, e.g. `FOO*`
@@ -67,6 +66,8 @@ Value  | Name              | Category     | Description
 0x1204 | `LF_DERIVED`      | internal     | Specifies classes directly derived from a given class. (Obsolete??)
 0x1205 | `LF_BITFIELDS`    | internal     | Specifies a bitfield within another field
 0x1206 | `LF_METHODLIST`   | internal     | Specifies a list of methods in an overload group (methods that have the same name but differing signatures)
+
+# Summary of item records
 
 # Leaf indices referenced from symbols
 

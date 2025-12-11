@@ -1,5 +1,8 @@
 # `LF_MFUNC_ID` (0x1602)
 
+Identifies a member function. This includes both static and non-static member
+functions.
+
 ```c
 struct MFuncId {
     TypeIndex parent_type;
@@ -8,9 +11,6 @@ struct MFuncId {
     uint64_t decorated_name_hash;       // optional; may not be present
 };
 ```
-
-Identifies a member function. This includes both static and non-static member
-functions.
 
 `parent_type` specifies the type (`LF_CLASS`, `LF_STRUCTURE`, etc.) that defines
 the member function.
@@ -35,7 +35,7 @@ records:
 `decorated_name_hash` has the same meaning as in the `LF_FUNC_ID` record,
 including its interaction with padding bytes.
 
-### Example
+## Example
 
 ```
 00000000 : 7f 10 00 00 a3 10 00 00 47 65 74 4e 65 78 74 45 : ........GetNextE
@@ -47,5 +47,6 @@ including its interaction with padding bytes.
 * `func_type` is 0x10a3
 * `name` is `GetNextEventSourceObjectId`
 * `decorated_name_hash` is 0x43c443ac_bcd44846
-* Note the presence of the `f1` padding byte at the end of the record. It is not
-  part of `decorated_name_hash`.
+
+Note the presence of the `f1` padding byte at the end of the record. It is not
+part of `decorated_name_hash`.

@@ -1,19 +1,20 @@
 # `LF_SUBSTR_LIST` (0x1604)
 
+Contains a list of `ItemId` values that point to `LF_STRING_ID` records.
+
 ```c
 struct SubStrList {
     ItemId substrs[];
 };
 ```
 
-Contains a list of `ItemId` values that point to `LF_STRING_ID` records. The
-items in the `substr` list should be dereferenced and concatenated into one
+The items in the `substrs` list should be dereferenced and concatenated into one
 large string, in the order implied by `substr`. This is similar to a
 [Rope](https://en.wikipedia.org/wiki/Rope_(data_structure)).
 
 The boundaries between the items in `substr` do not have any meaning. The
 divisions are simply necessary in order to keep large strings from overflowing
-the size limitations of the symbol record format.
+the size limitations of the item record format.
 
 ## Example
 
@@ -38,4 +39,6 @@ This record contains 9 `ItemId` values, all of which point to `LF_STRING_ID` rec
 As you can see, command-line arguments are split among different `LF_STRING_ID`
 records.
 
-> TODO: It is not known whether `LF_SUBSTR_ID` can point to yet more `LF_SUBSTR_ID` records, forming a tree. This has not been observed in Windows PDBs.
+> TODO: It is not known whether `LF_SUBSTR_ID` can point to yet more
+> `LF_SUBSTR_ID` records, forming a tree. This has not been observed in Windows
+> PDBs.

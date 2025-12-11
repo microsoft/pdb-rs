@@ -1,5 +1,9 @@
 # `LF_FUNC_ID` (0x1601)
 
+Identifies a function. This is used for global functions, regardless of linkage
+visibility. It is not used for member functions; member functions use
+`LF_MFUNC_ID`.
+
 ```c
 struct FuncId {
     ItemId scope;
@@ -8,9 +12,6 @@ struct FuncId {
     uint64_t decorated_name_hash;       // optional; may not be present
 };
 ```
-
-Identifies a function. This is used for global functions, regardless of linkage
-visibility. It is not used for member functions.
 
 > TODO: What actually uses this record?
 
@@ -40,7 +41,7 @@ symbol records are padded) to a multiple of 4 bytes.
 
 > TODO: clarify what hash function is used for `decorated_name_hash`.
 
-### Examples
+## Examples
 
 ```
 00000000 : 00 00 00 00 80 10 00 00 52 74 6c 43 61 70 74 75 : ........RtlCaptu

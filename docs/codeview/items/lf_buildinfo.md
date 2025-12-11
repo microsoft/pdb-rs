@@ -1,5 +1,7 @@
 # `LF_BUILDINFO` (0x1603)
 
+Describes the environment and arguments to an invocation of a tool or compiler.
+
 ```c
 struct BuildInfo {
     ItemId cwd;
@@ -9,9 +11,6 @@ struct BuildInfo {
     ItemId args;
 };
 ```
-
-Contains information about the environment and arguments to an invocation of a
-tool or compiler.
 
 Unlike most records, this record can be truncated after any field. The record
 can also be seen as a single array of type `ItemId`, with meanings assigned to
@@ -51,7 +50,7 @@ small to contain the field), may have a value of 0, or may point to an empty
 `LF_STRING_ID` record. Decoders should make very few assumptions about the
 information in this record.
 
-### Example
+## Example
 
 ```
 00000000 : 05 00 4c 41 00 00 ed 10 00 00 4d 41 00 00 4e 41 : ..LA......MA..NA
