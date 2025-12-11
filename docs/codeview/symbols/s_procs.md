@@ -72,10 +72,10 @@ symbol record kinds that start a procedure symbol:
 
 * `S_GPROC32`: A global procedure, visible to all modules.
 * `S_LPROC32`: A "local" procedure (i.e.g `static`), visible only within a
-  single * `S_LPROC32_DPC`: A local procedure with DPC semantics (for Windows
-  kernel development)
+    single * `S_LPROC32_DPC`: A local procedure with DPC semantics (for Windows
+    kernel development)
 * `S_LPROC32_DPC_ID`: A local procedure with DPC semantics (for Windows kernel
-  development)
+    development)
 * `S_LPROC32_ST`: A local procedure; older (obsolete) record format.
 * `S_GMANPROC`: A global procedure defined in an MSIL manifest.
 * `S_LMANPROC`: A local procedure defined in an MSIL manifest.
@@ -141,16 +141,16 @@ any. Frame and register variables can still be viewed.
 
 `flags` has these bits:
 
-Name           | Bit | Description
----------------|-----|------------
-`fpo`          | 0   | true if function has frame pointer omitted
-`interrupt`    | 1   | true if function is interrupt routine
-`unused`       | 2   | must be zero
-`never`        | 3   | true if function does not return (eg: exit())
-`unused`       | 4   | must be zero
-`custcall`     | 5   | true if custom calling convention used
-`noinline`     | 6   | true if function marked as noinline
-`optdbginfo`   | 7   | true if function has optimized code debugging info
+| Name         | Bit | Description                                              |
+|--------------|-----|----------------------------------------------------------|
+| `fpo`        | 0   | true if function has frame pointer omitted               |
+| `interrupt`  | 1   | true if function is interrupt routine                    |
+| `unused`     | 2   | must be zero                                             |
+| `never`      | 3   | true if function does not return (eg: exit())            |
+| `unused`     | 4   | must be zero                                             |
+| `custcall`   | 5   | true if custom calling convention used                   |
+| `noinline`   | 6   | true if function marked as noinline                      |
+| `optdbginfo` | 7   | true if function has optimized code debugging info       |
 
 ## `S_LMANPROC` (0x112b) and `S_GMANPROC` (0x112a) - Managed Procedure Start
 
@@ -159,82 +159,29 @@ similar to `S_GDATA32` but uses MSIL tokens instead of `TypeIndex`.
 
 ```c
 struct Procedure {
-    uint32_t p_parent;
-    uint32_t p_end;
-    uint32_t p_next;
-    uint32_t proc_length;
-    uint32_t debug_start;
-    uint32_t debug_end;
-    uint32_t proc_type;         // MSIL token
-    uint32_t offset;
-    uint16_t segment;
-    uint8 flags;
-    strz name;
+        uint32_t p_parent;
+        uint32_t p_end;
+        uint32_t p_next;
+        uint32_t proc_length;
+        uint32_t debug_start;
+        uint32_t debug_end;
+        uint32_t proc_type;         // MSIL token
+        uint32_t offset;
+        uint16_t segment;
+        uint8 flags;
+        strz name;
 };
 ```
 
-## `S_FRAMEPROC` (0x1012) - Frame Procedure Information
+## Nested symbols
 
-```c
-struct FrameProc {
-    uint32_t frame_size;
-    uint32_t pad_size;
-    uint32_t pad_offset;
-    uint32_t save_regs_size;
-    uint32_t exception_handler_offset;
-    uint16_t exception_handler_segment;
-    uint32_t flags;
-};
-```
+Procedures may contain the following nested symbols:
 
-This symbol describes the stack frame layout of the procedure. If any of the
-flags are non-zero, this record should be added to the symbols for that
-procedure.
-
-`flags` describes various attributes of the function:
-
-Name               | Bits | Description
--------------------|------|------------
-`has_alloca`       | 0    | function uses `_alloca()`
-`has_set_jmp`      | 1    | function uses `setjmp()`
-`has_long_jmp`     | 2    | function uses `longjmp()`
-`has_inl_asm`      | 3    | function uses inline asm
-`has_eh`           | 4    | function has EH states
-`inl_spec`         | 5    | function was specified as inline
-`has_seh`          | 6    | function has SEH
-`naked`            | 7    | function is `__declspec(naked)`
-`security_checks`  | 8    | function has buffer security check
-`pad`              | 9-31 | must be zero
-
-## `S_BLOCK32` (0x1103) - Block Start
-
-```c
-struct Block {
-    uint32_t p_parent;
-    uint32_t p_end;
-    uint32_t length;
-    uint32_t offset;
-    uint16_t segment;
-    strz name;
-};
-```
-
-This symbol specifies the start of an inner block of lexically scoped symbols.
-The lexical scope is terminated by a matching `S_END` symbol.
-
-This symbol must be nested (directly or indirectly) within a procedure. It may
-be nested within another `S_BLOCK32` or inline call site. This also implies that
-`S_BLOCK32` can only occur within module symbol streams.
-
-## `S_LABEL32` (0x1105) - Code Label
-
-```c
-struct Label {
-    uint32_t offset;
-    uint16_t segment;
-    uint8_t flags;
-    strz name;
-};
-```
-
-Identifies a named label, such as jump targets within machine code.
+| Hex    | Symbol          | Link                                     | Description
+|--------|-----------------|------------------------------------------|---------------------------
+| 0x1103 | `S_BLOCK32`     | [s_block.md](s_block.md)                 | Block scope
+| 0x114d | `S_INLINESITE`  | [s_inlinesite.md](s_inlinesite.md)       | Inlined code
+| 0x115c | `S_INLINESITE2` | [s_inlinesite2.md](s_inlinesite2.md)     | Inlined code (v2)
+| 0x113e | `S_LOCAL`       | [s_local.md](s_local.md)                 | Local variable
+| 0x1111 | `S_REGREL32`    | [s_regrel32.md](s_regrel32.md)           | Register-relative variable
+| 0x0006 | `S_END`         | [s_end.md](s_end.md)                     | Scope terminator

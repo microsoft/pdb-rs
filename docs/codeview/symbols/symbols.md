@@ -11,20 +11,28 @@
 
 # CodeView Symbols
 
-Many streams encode sequences of CodeView "symbols". Symbols are variable-length records which describe certain elements of high-level languages, such as C, C++, Rust, etc.
+Many streams encode sequences of CodeView "symbols". Symbols are variable-length
+records which describe certain elements of high-level languages, such as C, C++,
+Rust, etc.
 
-The full description of symbols is outside of the scope of this document. See `Debug110.docx` in the MSVC repo.
+CodeView was defined in the 1980s and has been extended and modified in nearly
+every release of MSVC. This document does not describe all of the possible
+symbol record kinds. Instead, it focuses on symbols used by modern compilers
+(including, but not limited to, MSVC and LLVM).
 
 # Symbol record framing
 
-A "symbol stream" is a sequence of variable-length symbol records. Each symbol record starts with a 4-byte header, which is followed by the payload for that symbol. The 4-byte header specifies the size of the symbol payload and a 16-bit "symbol kind," which specifies how to interpret this symbol record.
+A "symbol stream" is a sequence of variable-length symbol records. Each symbol
+record starts with a 4-byte header, which is followed by the payload for that
+symbol. The 4-byte header specifies the size of the symbol payload and a 16-bit
+"symbol kind," which specifies how to interpret this symbol record.
 
 Each symbol record has this structure:
 
-```
+```c
 struct SymbolRecord {
-  uint16_t size;
-  uint16_t kind;
+  uint16_t size;              // size of the entire record (including header)
+  uint16_t kind;              // S_GPROC32, S_ANNOTATION, etc.
   uint8_t payload[size - 2];
 };
 ```
@@ -33,6 +41,9 @@ The `size` field specifies the size in bytes of this record, excluding the
 `size` field itself, but including the size of the `kind` and payload fields.
 Because the `size` field includes the size of the `kind` field, the smallest
 legal value for `size` is 2.
+
+We use the term `kind` to identify the meaning and structure of symbols instead
+of `type` to avoid confusion with `TypeIndex` and CodeView type descriptions.
 
 The starting offset of each symbol record is required to be aligned to a
 multiple of 4. The size of each symbol record, including the size, kind, and
@@ -73,20 +84,50 @@ kind of symbol may appear in the Global Symbol Stream and/or the Module Symbol
 Stream, and whether the symbol can be used as a "root" scope or can only be used
 within a nested symbol scope. These terms will be explained in later sections.
 
-Code (Hex) | Name        | Global? | Module (Root)? | Module (Nested)? | Description
------------|----------------|------|------|--------|--------
-`0006`     | `S_END`        | No   | No   |   Yes  | Ends a nested scope
-`1101`     | `S_OBJNAME`    | No   | Yes  |   No   | Gives the name of the object file
-`1102`     | `S_FRAMEPROC`  | No   | No   |   Yes  | Always nested within `S_GPROC` or `S_LPROC`, describes some attributes of a procedure
-`1103`     | `S_BLOCK32`    | No   | No   |   Yes  | Describes a block of code within a procedure
-`1105`     | `S_LABEL32`    | No   | No   |   Yes  | Nested within procedures, defines a code label
-`1107`     | `S_CONSTANT`   | Yes  | Yes  |   No   | Defines a constant
-`1108`     | `S_UDT`        | Yes  | Yes  |   No   | Defines a user-defined type (struct, enum, etc.)
-`110C`     | `S_LDATA32`    | No   | Yes  |   No   | Describes global data with private module visibility
-`110F`     | `S_LPROC32`    | No   | Yes  |   No   | A procedure that is private to a module
-`1110`     | `S_GPROC32`    | No   | Yes  |   No   | A procedure that has global linkage. The procedure is defined by exactly one module.
-`1111`     | `S_REGREL32`   | No   | No   |   Yes  | 
-`1112`     | `S_LTHREAD32`  | No   | Yes  |   No   | 
+Code (Hex) | Name                                     | Location      | Details                            | Description
+-----------|------------------------------------------|---------------|------------------------------------|------------
+`0006`     | `S_END`                                  | module        | [s_end.md](s_end.md)               | Ends a nested scope
+`1007`     | `S_GDATA32`                              | global        | [s_data.md](s_data.md)             | Global data with external linkage
+`1008`     | `S_LDATA32`                              | global/module | [s_data.md](s_data.md)             | Global data with private module visibility
+`1012`     | `S_FRAMEPROC`                            | module        | [s_frameproc.md](s_frameproc.md)   | Frame procedure information
+`1019`     | `S_ANNOTATION`                           | module        | [s_annotation.md](s_annotation.md) | Annotation
+`1101`     | `S_OBJNAME`                              | module        | [s_objname.md](s_objname.md)       | Gives the name of the object file
+`1102`     | `S_THUNK32`                              | module        | [s_thunk.md](s_thunk.md)           | Code outside a procedure (thunk)
+`1103`     | `S_BLOCK32`                              | module        | [s_block.md](s_block.md)           | Block of code within a procedure
+`1105`     | `S_LABEL32`                              | module        | [s_label.md](s_label.md)           | Code label within procedures
+`1107`     | `S_CONSTANT`                             | global/module | [s_constant.md](s_constant.md)     | Named constant
+`1108`     | `S_UDT`                                  | global/module | [s_udt.md](s_udt.md)               | User-defined type (struct, enum, etc.)
+`110E`     | `S_PUB32`                                | global        | [s_pub.md](s_pub.md)               | Public symbol
+`110F`     | `S_LPROC32`                              | module        | [s_procs.md](s_procs.md)           | Procedure private to a module
+`1110`     | `S_GPROC32`                              | module        | [s_procs.md](s_procs.md)           | Procedure with global linkage
+`1111`     | `S_REGREL32`                             | module        | [s_local.md](s_local.md)           | Register-relative local variable
+`1112`     | `S_LTHREAD32`                            | global/module | [s_thread.md](s_thread.md)         | Thread-local storage (module-local)
+`1113`     | `S_GTHREAD32`                            | global/module | [s_thread.md](s_thread.md)         | Thread-local storage (global)
+`1116`     | `S_COMPILE2`                             | module        | [s_compile.md](s_compile.md)       | Compiler version and flags
+`1124`     | `S_UNAMESPACE`                           | module        | [s_namespace.md](s_namespace.md)   | Using namespace
+`1125`     | `S_PROCREF`                              | global        | [s_refsyms.md](s_refsyms.md)       | Procedure reference
+`1126`     | `S_DATAREF`                              | global        | [s_refsyms.md](s_refsyms.md)       | Data reference
+`1127`     | `S_LPROCREF`                             | global        | [s_refsyms.md](s_refsyms.md)       | Local procedure reference
+`1128`     | `S_ANNOTATIONREF`                        | global        | [s_refsyms.md](s_refsyms.md)       | Annotation reference
+`1129`     | `S_TOKENREF`                             | global        | [s_refsyms.md](s_refsyms.md)       | MSIL token reference
+`112A`     | `S_GMANPROC`                             | module        | [s_procs.md](s_procs.md)           | Managed procedure with global linkage
+`112B`     | `S_LMANPROC`                             | module        | [s_procs.md](s_procs.md)           | Managed procedure with module-local linkage
+`112C`     | `S_TRAMPOLINE`                           | module        | [s_trampoline.md](s_trampoline.md) | Trampoline
+`112D`     | `S_MANCONSTANT`                          | module        | [s_constant.md](s_constant.md)     | Managed constant
+`1137`     | `S_COFFGROUP`                            | module        | [s_coffgroup.md](s_coffgroup.md)   | COFF group (subsection)
+`113C`     | `S_COMPILE3`                             | module        | [s_compile.md](s_compile.md)       | Compiler version and flags (extended)
+`113E`     | `S_LOCAL`                                | module        | [s_local.md](s_local.md)           | Local variable
+`113F`     | `S_DEFRANGE`                             | module        | [s_local.md](s_local.md)           | Define range for local variable
+`1140`     | `S_DEFRANGE_SUBFIELD`                    | module        | [s_local.md](s_local.md)           | Define range with offset in parent variable
+`1141`     | `S_DEFRANGE_REGISTER`                    | module        | [s_local.md](s_local.md)           | Define range for enregistered variable
+`1142`     | `S_DEFRANGE_FRAMEPOINTER_REL`            | module        | [s_local.md](s_local.md)           | Define range for frame-pointer relative variable
+`1143`     | `S_DEFRANGE_SUBFIELD_REGISTER`           | module        | [s_local.md](s_local.md)           | Define range for sub-field register
+`1144`     | `S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE` | module        | [s_local.md](s_local.md)           | Define range for frame-pointer relative variable (full scope)
+`1145`     | `S_DEFRANGE_REGISTER_REL`                | module        | [s_local.md](s_local.md)           | Define range for register-relative variable
+`114C`     | `S_BUILDINFO`                            | module        | [s_buildinfo.md](s_buildinfo.md)   | Build info
+`114D`     | `S_INLINESITE`                           | module        | [s_inlinesite.md](s_inlinesite.md) | Inline site
+`1159`     | `S_ARMSWITCHTABLE`                       | module        | [s_armswitchtable.md](s_armswitchtable.md) | ARM switch table (jump table)
+`115C`     | `S_INLINESITE2`                          | module        | [s_inlinesite.md](s_inlinesite.md) | Inline site (version 2) 
 
 # Nested Symbol Scopes
 
@@ -133,22 +174,7 @@ Many symbol records contain `TypeIndex` values. `TypeIndex` is an alias for
 `uint32_t`. `TypeIndex` values point into the Type Database (TPI Stream), or
 identify primitive (intrinsic) types.
 
-# `S_END` (0x0006) - End of Scope
-
-The `S_END` record terminates a nested scope. Nested scopes are created by
-`S_LPROC32`, `S_GPROC32`, `S_THUNK32`, `S_INLINESITE`, etc. For a complete list
-of symbols that start a nested scope, see Nested Scopes.
-
-The `S_END` symbol has no payload.
-
-This symbol can appear only within module symbol streams.
-
-# Defining data and data types
-
-## `S_VFTABLE32` (0x100c) - Virtual Function Table Path
-
-> TODO: Is this obsolete? It is not found in any Windows PDB.
-
+See [Types](../types/types.md).
 
 # Global symbols
 
