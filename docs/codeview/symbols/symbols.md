@@ -104,6 +104,7 @@ Code (Hex) | Name                                     | Location      | Details 
 `112C`     | `S_TRAMPOLINE`                           | module        | [s_trampoline.md](s_trampoline.md) | Trampoline
 `112D`     | `S_MANCONSTANT`                          | module        | [s_constant.md](s_constant.md)     | Managed constant
 `1137`     | `S_COFFGROUP`                            | module        | [s_coffgroup.md](s_coffgroup.md)   | COFF group (subsection)
+`1136`     | `S_SECTION`                              | module        | [s_section.md](s_section.md)       | COFF section in a PE executable
 `113C`     | `S_COMPILE3`                             | module        | [s_compile.md](s_compile.md)       | Compiler version and flags (extended)
 `113E`     | `S_LOCAL`                                | module        | [s_local.md](s_local.md)           | Local variable
 `113F`     | `S_DEFRANGE`                             | module        | [s_local.md](s_local.md)           | Define range for local variable
