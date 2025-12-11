@@ -1,4 +1,4 @@
-## `LF_ENDPRECOMP` (0x0014) - End of Precompiled Types 
+# `LF_ENDPRECOMP` (0x0014) - End of Precompiled Types 
 
 This record specifies that the preceding type records in this module can be
 referenced by another module in the executable. A module that contains this type

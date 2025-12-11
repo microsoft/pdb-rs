@@ -1,5 +1,4 @@
-
-## `S_LTHREAD32` (0x1112) and `S_GTHREAD32` (0x1113) - Thread Storage
+# `S_LTHREAD32` (0x1112) and `S_GTHREAD32` (0x1113) - Thread Storage
 
 ```c
 struct ThreadStorage {

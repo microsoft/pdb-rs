@@ -1,7 +1,7 @@
+# `LF_PRECOMP` (0x1509)
 
-## `LF_PRECOMP` (0x1509)
-
-This type is only present in compiler PDBs and debug information embedded in object files. It is not present in linker PDBs.
+This type is only present in compiler PDBs and debug information embedded in
+object files. It is not present in linker PDBs.
 
 ```c
 struct Precomp {

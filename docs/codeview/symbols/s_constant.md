@@ -1,5 +1,4 @@
-
-## `S_CONSTANT` (0x1107) - Constant
+# `S_CONSTANT` (0x1107) - Constant
 
 ```c
 struct Constant {

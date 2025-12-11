@@ -1,13 +1,14 @@
-## `LF_STRING_ID` (0x1605)
+# `LF_STRING_ID` (0x1605)
 
-```
+```c
 struct StringId {
     ItemId id;
     strz text;
-}
+};
 ```
 
-Contains one string. `LF_STRING_ID` records are pointed-to by these kinds of records:
+Contains one string. `LF_STRING_ID` records are pointed-to by these kinds of
+records:
 
 * `LF_SUBSTR_ID`
 * `LF_FUNC_ID`

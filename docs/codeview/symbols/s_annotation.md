@@ -1,4 +1,3 @@
-
 # `S_ANNOTATION` (0x1019) - Annotation
 
 ```c

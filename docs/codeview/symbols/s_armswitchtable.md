@@ -1,4 +1,4 @@
-## `S_ARMSWITCHTABLE` (0x1159) - ARM Switch Table
+# `S_ARMSWITCHTABLE` (0x1159) - ARM Switch Table
 
 ```c
 struct ArmSwitchTable {

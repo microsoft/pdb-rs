@@ -74,7 +74,12 @@ The primary sources for this document:
 
 * <https://en.wikipedia.org/wiki/Program_database>
 
-* [2016 LLVM Developers' Meeting: R. Kleckner "CodeView, the MS Debug Info Format in LLVM](https://www.youtube.com/watch?v=5twzd06NqGU)
+* [CodeView, the MS debug info format, in LLVM](https://llvm.org/devmtg/2016-11/Slides/Kleckner-CodeViewInLLVM.pdf)
+
+  (Reid Kleckner) Describes the progress and status of the LLVM Project's effort to support
+  CodeView and PDB.
+
+  [Reid's YouTube talk at 2016 LLVM Developers' Meeting](https://www.youtube.com/watch?v=5twzd06NqGU)
 
 * Microsoft published `MS_Symbol_Type_v1.0.pdf` in 2004, which contains
   extensive documentation on the CodeView type and symbol records. It has been

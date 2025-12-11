@@ -1,4 +1,4 @@
-## `LF_MFUNCTION` (0x1009)
+# `LF_MFUNCTION` (0x1009)
 
 ```c
 struct MFunction {

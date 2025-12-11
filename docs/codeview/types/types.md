@@ -1,29 +1,9 @@
-- [CodeView Type Records](#codeview-type-records)
-- [Summary of record kinds](#summary-of-record-kinds)
-- [Leaf indices referenced from symbols](#leaf-indices-referenced-from-symbols)
-  - [`LF_ARGLIST` (0x1201) - Argument List](#lf_arglist-0x1201---argument-list)
-  - [`LF_FIELDLIST` (0x1203) - Field List](#lf_fieldlist-0x1203---field-list)
-  - [`LF_BITFIELD` (0x1205) - Bit-field](#lf_bitfield-0x1205---bit-field)
-  - [`LF_METHODLIST` (0x1206) - Method List](#lf_methodlist-0x1206---method-list)
-  - [`LF_REFSYM` (0x020c) - Referenced Symbol](#lf_refsym-0x020c---referenced-symbol)
-- [ID records](#id-records)
-  - [`LF_FUNC_ID` (0x1601)](#lf_func_id-0x1601)
-    - [Examples](#examples)
-  - [`LF_MFUNC_ID` (0x1602)](#lf_mfunc_id-0x1602)
-    - [Example](#example)
-  - [`LF_BUILDINFO` (0x1603)](#lf_buildinfo-0x1603)
-    - [Example](#example-1)
-  - [`LF_SUBSTR_LIST` (0x1604)](#lf_substr_list-0x1604)
-    - [Example](#example-2)
-  - [`LF_STRING_ID` (0x1605)](#lf_string_id-0x1605)
-  - [`LF_UDT_SRC_LINE` (0x1606) - UDT Source Line](#lf_udt_src_line-0x1606---udt-source-line)
-  - [`LF_UDT_MOD_SRC_LINE` (0x1607) - UDT Source Line in Module](#lf_udt_mod_src_line-0x1607---udt-source-line-in-module)
-
 # CodeView Type Records
 
 This file describes the type records used by CodeView.
 
-Type records are variable-length records. Each record begins with a 4-byte header which specifies the length and the "kind" of the record.
+Type records are variable-length records. Each record begins with a 4-byte
+header which specifies the length and the "kind" of the record.
 
 ```c
 struct TypeRecordHeader {
@@ -33,21 +13,38 @@ struct TypeRecordHeader {
 };
 ```
 
-The `size` field specifies the size in bytes of the record. The `size` field _does not_ count the `size` field itself, but it _does_ count the `kind` field and the payload bytes.
+The `size` field specifies the size in bytes of the record. The `size` field
+_does not_ count the `size` field itself, but it _does_ count the `kind` field
+and the payload bytes.
 
-> Invariant: The `size` field is a multiple of 2 and is greater than or equal to 2.
+> Invariant: The `size` field is a multiple of 2 and is greater than or equal to
+> 2.
 
-Type records are aligned at 2-byte boundaries. Unfortunately, many type records contain fields that have 4-byte alignment, such as `uint32_t`. Encoders and decoders must handle misaligned access to those fields, either using unaligned memory accesses or must copy the entire record to a buffer that has a guaranteed alignment.
+Type records are aligned at 2-byte boundaries. Unfortunately, many type records
+contain fields that have 4-byte alignment, such as `uint32_t`. Encoders and
+decoders must handle misaligned access to those fields, either using unaligned
+memory accesses or must copy the entire record to a buffer that has a guaranteed
+alignment.
 
-The kind field specifies how to interpret a type record. In the PDB documentation, this kind field uses the "Leaf Type" enumeration. The details of these records are outside of the scope of this document. See these references:
+The kind field specifies how to interpret a type record. In the PDB
+documentation, this kind field uses the "Leaf Type" enumeration. The details of
+these records are outside of the scope of this document. See these references:
 
 # Summary of record kinds
 
 There are three disjoint categories of record kinds:
 
-1. `type` category: Records that are pointed-to by other parts of the PDB file, such as symbol records. These are the "top-level" type records. These records define a complete type, which is what allows them to be used by symbol records.
-2. `internal` category: Records that are pointed-to by other type records. These records allow complex type definitions to be defined, with hierarchical internal structure. These records form part of types, but are not themselves complete types. For example, `LF_METHODLIST` gives a list of methods, but is not attached to any single type.
-3. `field` category: Records that are part of complex field lists, with `LF_FIELDLIST` records. These do not use the `TypeRecordHeader` structure.
+1. `type` category: Records that are pointed-to by other parts of the PDB file,
+   such as symbol records. These are the "top-level" type records. These records
+   define a complete type, which is what allows them to be used by symbol
+   records.
+2. `internal` category: Records that are pointed-to by other type records. These
+   records allow complex type definitions to be defined, with hierarchical
+   internal structure. These records form part of types, but are not themselves
+   complete types. For example, `LF_METHODLIST` gives a list of methods, but is
+   not attached to any single type.
+3. `field` category: Records that are part of complex field lists, with
+   `LF_FIELDLIST` records. These do not use the `TypeRecordHeader` structure.
 
 Value  | Name              | Category     | Description
 -------|-------------------|--------------|------------
@@ -73,4 +70,5 @@ Value  | Name              | Category     | Description
 
 # Leaf indices referenced from symbols
 
-These are the top-level type record kinds. These records can be pointed-to by symbol records, or by other top-level type records. They define types.
+These are the top-level type record kinds. These records can be pointed-to by
+symbol records, or by other top-level type records. They define types.

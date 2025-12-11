@@ -1,4 +1,4 @@
-## `S_BLOCK32` (0x1103) - Block Start
+# `S_BLOCK32` (0x1103) - Block Start
 
 Describes the start of an inner block of lexically scoped symbols within a
 [Procedure](./s_procs.md). The lexical scope is terminated by a matching `S_END`

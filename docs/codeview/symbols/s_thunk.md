@@ -1,4 +1,4 @@
-## `S_THUNK32` (0x1102) - Thunk Start
+# `S_THUNK32` (0x1102) - Thunk Start
 
 ```c
 struct Thunk {

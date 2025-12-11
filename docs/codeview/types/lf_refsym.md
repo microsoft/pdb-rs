@@ -1,4 +1,4 @@
-## `LF_REFSYM` (0x020c) - Referenced Symbol
+# `LF_REFSYM` (0x020c) - Referenced Symbol
 
 # ID records
 

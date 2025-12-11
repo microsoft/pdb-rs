@@ -106,7 +106,7 @@ sizes and representations. Each Number value is at least 2 bytes in size. These
 first 2 bytes specify either an immediate value or specify the encoding to use
 for the entire value.
 
-See: [Numbers](codeview/codeview_number.md)
+See: [Numbers](codeview/number.md)
 
 ## Example of using `Number`:
 

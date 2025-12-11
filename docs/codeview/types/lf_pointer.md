@@ -1,6 +1,7 @@
-## `LF_POINTER` (0x1002)
+# `LF_POINTER` (0x1002)
 
-Defines a type that is a pointer to another type. This is used for C-style pointers, such as `FOO *`, as well as C++ references such as `FOO &`.
+Defines a type that is a pointer to another type. This is used for C-style
+pointers, such as `FOO *`, as well as C++ references such as `FOO &`.
 
 ```
 struct Pointer {
@@ -65,11 +66,13 @@ The data after the `Pointer` structure depends on `ptrtype`, and is called the "
 
 ### Variant data for pointer to type
 
-If the pointer is based on a type (`ptrtype == CV_PTR_BASE_TYPE`), then the variant data consists of a single `TypeIndex`.
+If the pointer is based on a type (`ptrtype == CV_PTR_BASE_TYPE`), then the
+variant data consists of a single `TypeIndex`.
 
 ### Variant data for pointer to data member
 
-If the pointer is a pointer to a data member, then the variant data has this structure:
+If the pointer is a pointer to a data member, then the variant data has this
+structure:
 
 ```c
 struct PointerToDataMemberVariant {
@@ -97,6 +100,8 @@ where `format` has one of these values:
 12       | 16:32 method nonvirtual bases with multiple address points
 13       | 16:32 method with virtual bases
 
-The pointer to data member and pointer to method have the following formats in memory.  In the following descriptions of the format and value of the NULL pointer, `*` means any value.
+The pointer to data member and pointer to method have the following formats in
+memory. In the following descriptions of the format and value of the NULL
+pointer, `*` means any value.
 
-TODO: convert these; they are quite complicated
+> TODO: convert these; they are quite complicated

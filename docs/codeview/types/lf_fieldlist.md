@@ -1,5 +1,4 @@
-
-## `LF_FIELDLIST` (0x1203) - Field List
+# `LF_FIELDLIST` (0x1203) - Field List
 
 The `LF_FIELDLIST` record contains a list of fields defined on a type. The type
 can be `LF_CLASS`, `LF_STRUCTURE`, `LF_INTERFACE`, `LF_UNION`, or `LF_ENUM`.

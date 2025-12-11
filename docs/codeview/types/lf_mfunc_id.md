@@ -1,4 +1,4 @@
-## `LF_MFUNC_ID` (0x1602)
+# `LF_MFUNC_ID` (0x1602)
 
 ```c
 struct MFuncId {

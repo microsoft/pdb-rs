@@ -1,4 +1,4 @@
-## `S_FRAMEPROC` (0x1012) - Frame Procedure Information
+# `S_FRAMEPROC` (0x1012) - Frame Procedure Information
 
 Describes the stack frame layout of a [Procedure](./s_procs.md). 
 

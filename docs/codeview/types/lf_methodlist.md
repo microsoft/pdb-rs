@@ -1,4 +1,4 @@
-## `LF_METHODLIST` (0x1206) - Method List
+# `LF_METHODLIST` (0x1206) - Method List
 
 ```c
 struct MethodList {

@@ -1,4 +1,4 @@
-## `LF_VFTPATH` (0x100d)
+# `LF_VFTPATH` (0x100d)
 
 ```c
 struct VFTPath {
@@ -9,4 +9,5 @@ struct VFTPath {
 
 Describes the path to the virtual function table.
 
-> TODO: Is this record actually used?  We do not see any instances of this in Windows PDBs.
+> TODO: Is this record actually used? We do not see any instances of this in
+> Windows PDBs.

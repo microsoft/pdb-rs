@@ -1,5 +1,4 @@
-
-## `LF_FUNC_ID` (0x1601)
+# `LF_FUNC_ID` (0x1601)
 
 ```c
 struct FuncId {

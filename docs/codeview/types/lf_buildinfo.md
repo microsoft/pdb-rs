@@ -1,5 +1,4 @@
-
-## `LF_BUILDINFO` (0x1603)
+# `LF_BUILDINFO` (0x1603)
 
 ```c
 struct BuildInfo {

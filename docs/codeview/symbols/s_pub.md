@@ -1,4 +1,4 @@
-## `S_PUB32` (0x110e) - Public Symbol
+# `S_PUB32` (0x110e) - Public Symbol
 
 ```c
 struct PubSym {

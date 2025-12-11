@@ -1,4 +1,4 @@
-## `S_COFFGROUP` (0x1137) - COFF Group
+# `S_COFFGROUP` (0x1137) - COFF Group
 
 ```c
 struct CoffGroup {

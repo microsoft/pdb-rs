@@ -1,4 +1,4 @@
-## `LF_ENUM` (0x1507)
+# `LF_ENUM` (0x1507)
 
 ```c
 struct Enum {

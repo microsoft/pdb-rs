@@ -1,6 +1,7 @@
 # CodeView Constants
 
-This document specifies constants (named values and enums) that are used by CodeView.
+This document specifies constants (named values and enums) that are used by
+CodeView.
 
 The values in this file come from these sources:
 
@@ -9,7 +10,8 @@ The values in this file come from these sources:
 
 # `CV_call` - Function Calling Convention
 
-`CV_call` specifies the calling convention of the procedure. It can take one of the following values:
+`CV_call` specifies the calling convention of the procedure. It can take one of
+the following values:
 
 ```
 enum CV_call : uint8_t {

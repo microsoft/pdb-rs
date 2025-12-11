@@ -1,4 +1,4 @@
-## `LF_SUBSTR_LIST` (0x1604)
+# `LF_SUBSTR_LIST` (0x1604)
 
 ```c
 struct SubStrList {
@@ -6,11 +6,16 @@ struct SubStrList {
 };
 ```
 
-Contains a list of `ItemId` values that point to `LF_STRING_ID` records. The items in the `substr` list should be dereferenced and concatenated into one large string, in the order implied by `substr`. This is similar to a [Rope](https://en.wikipedia.org/wiki/Rope_(data_structure)).
+Contains a list of `ItemId` values that point to `LF_STRING_ID` records. The
+items in the `substr` list should be dereferenced and concatenated into one
+large string, in the order implied by `substr`. This is similar to a
+[Rope](https://en.wikipedia.org/wiki/Rope_(data_structure)).
 
-The boundaries between the items in `substr` do not have any meaning. The divisions are simply necessary in order to keep large strings from overflowing the size limitations of the symbol record format.
+The boundaries between the items in `substr` do not have any meaning. The
+divisions are simply necessary in order to keep large strings from overflowing
+the size limitations of the symbol record format.
 
-### Example
+## Example
 
 ```
 00000000 : 09 00 00 00 f1 10 00 00 f2 10 00 00 f3 10 00 00 : ................

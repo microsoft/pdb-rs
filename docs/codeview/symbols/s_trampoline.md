@@ -1,4 +1,4 @@
-## `S_TRAMPOLINE` (0x112c) - Trampoline
+# `S_TRAMPOLINE` (0x112c) - Trampoline
 
 ```c
 struct Trampoline {

@@ -1,14 +1,3 @@
-- [CodeView Symbols](#codeview-symbols)
-- [Symbol record framing](#symbol-record-framing)
-- [Symbol Streams: Global vs. Module](#symbol-streams-global-vs-module)
-- [Symbols Summary](#symbols-summary)
-- [Nested Symbol Scopes](#nested-symbol-scopes)
-- [TypeIndex: Pointers into the Type Database (TPI)](#typeindex-pointers-into-the-type-database-tpi)
-- [`S_END` (0x0006) - End of Scope](#s_end-0x0006---end-of-scope)
-- [Defining data and data types](#defining-data-and-data-types)
-  - [`S_VFTABLE32` (0x100c) - Virtual Function Table Path](#s_vftable32-0x100c---virtual-function-table-path)
-- [Global symbols](#global-symbols)
-
 # CodeView Symbols
 
 Many streams encode sequences of CodeView "symbols". Symbols are variable-length

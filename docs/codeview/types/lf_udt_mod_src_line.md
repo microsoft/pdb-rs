@@ -1,4 +1,4 @@
-## `LF_UDT_MOD_SRC_LINE` (0x1607) - UDT Source Line in Module
+# `LF_UDT_MOD_SRC_LINE` (0x1607) - UDT Source Line in Module
 
 ```c
 struct UdtModSrcLine {
@@ -18,8 +18,8 @@ linker, not the compiler.
 
 `type` is the type being described.
 
-`file_name` points into the [Names Stream](../../pdb/names_stream.md) and specifies the
-file name.
+`file_name` points into the [Names Stream](../../pdb/names_stream.md) and
+specifies the file name.
 
 `line` is the 1-based line number of the definition of the UDT.
 

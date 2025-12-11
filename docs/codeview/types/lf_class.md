@@ -1,5 +1,4 @@
-
-## `LF_CLASS` (0x1504) and related
+# `LF_CLASS` (0x1504) and related
 
 This record is used for `LF_CLASS`, `LF_STRUCTURE`, and `LF_INTERFACE`.
 

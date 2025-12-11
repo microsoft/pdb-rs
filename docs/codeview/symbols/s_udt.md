@@ -1,4 +1,4 @@
-## `S_UDT` (0x1108) - User-Defined Type
+# `S_UDT` (0x1108) - User-Defined Type
 
 ```c
 struct Udt {
@@ -18,4 +18,3 @@ stream, but in rare cases can also be found in a module symbol stream.
 The `name` field of the `S_UDT` symbol record should be equal to the name field
 of the pointed-to type. The `S_UDT` symbol can appear in the global symbol
 stream and in module symbol streams.
-

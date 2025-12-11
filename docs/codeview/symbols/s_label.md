@@ -1,4 +1,4 @@
-## `S_LABEL32` (0x1105) - Code Label
+# `S_LABEL32` (0x1105) - Code Label
 
 ```c
 struct Label {
