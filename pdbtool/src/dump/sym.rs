@@ -175,6 +175,10 @@ pub fn dump_sym(
             write!(out, " {}", local.name)?;
         }
 
+        SymData::DefRange(def_range) => {
+            write!(out, " program: {}", def_range.fixed.program.get())?;
+        }
+
         SymData::DefRangeFramePointerRel(def_range) => {
             write!(
                 out,
