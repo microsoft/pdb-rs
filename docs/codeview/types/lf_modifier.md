@@ -1,14 +1,18 @@
 # `LF_MODIFIER` (0x1001)
 
+Modifies another type record by qualifying it with `const`, `volatile`, or
+`unaligned` modifiers.
+
+For example, `const char *` would be described with an `LF_MODIFIER` type
+(applied to the primitive type `T_CHAR`), and a `LF_POINTER` type that points to
+the `LD_MODIFIER`.
+
 ```c
 struct Modifier {
     TypeIndex index;
     uint16_t attribute;
 };
 ```
-
-This record modifies another type record by qualifying it with `const`,
-`volatile`, or `unaligned` modifiers.
 
 `index` identifies the type that this type is based on.
 

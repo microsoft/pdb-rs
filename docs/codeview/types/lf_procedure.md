@@ -16,7 +16,7 @@ struct Procedure {
 `return_value_type` specifies the return value type, e.g. `T_VOID` for `void`.
 
 `calling_convention` specifies the calling convention of the procedure. See
-[`CV_call`](../codeview_consts.md#cv_call---function-calling-convention).
+[`CV_call`](../calling_convention.md).
 
 `arg_list` points to an [`LF_ARGLIST`](./lf_arglist.md) record, which describes the arguments
 of the procedure type.

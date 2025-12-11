@@ -3,12 +3,12 @@
 Defines a type that is a pointer to another type. This is used for C-style
 pointers, such as `FOO *`, as well as C++ references such as `FOO &`.
 
-```
+```c
 struct Pointer {
     TypeIndex type;        // The type that is being pointed-to
     uint32_t attributes;   // Flags; see below
     // more data follows; structure depends on attributes
-}
+};
 ```
 
 The `attribute` field contains several bit fields:
@@ -30,37 +30,33 @@ The `attribute` field contains several bit fields:
 
 The `ptrtype` bit field can take these values:
 
-```c
-enum CV_ptrtype {
-    CV_PTR_NEAR         = 0x00, // 16 bit pointer
-    CV_PTR_FAR          = 0x01, // 16:16 far pointer
-    CV_PTR_HUGE         = 0x02, // 16:16 huge pointer
-    CV_PTR_BASE_SEG     = 0x03, // based on segment
-    CV_PTR_BASE_VAL     = 0x04, // based on value of base
-    CV_PTR_BASE_SEGVAL  = 0x05, // based on segment value of base
-    CV_PTR_BASE_ADDR    = 0x06, // based on address of base
-    CV_PTR_BASE_SEGADDR = 0x07, // based on segment address of base
-    CV_PTR_BASE_TYPE    = 0x08, // based on type
-    CV_PTR_BASE_SELF    = 0x09, // based on self
-    CV_PTR_NEAR32       = 0x0a, // 32 bit pointer
-    CV_PTR_FAR32        = 0x0b, // 16:32 pointer
-    CV_PTR_64           = 0x0c, // 64 bit pointer
-    CV_PTR_UNUSEDPTR    = 0x0d, // first unused pointer type
-};
-```
+Value | Name           | Description
+------|----------------|---------------------------------------
+0x00  | `NEAR`         | 16 bit pointer
+0x01  | `FAR`          | 16:16 far pointer
+0x02  | `HUGE`         | 16:16 huge pointer
+0x03  | `BASE_SEG`     | based on segment
+0x04  | `BASE_VAL`     | based on value of base
+0x05  | `BASE_SEGVAL`  | based on segment value of base
+0x06  | `BASE_ADDR`    | based on address of base
+0x07  | `BASE_SEGADDR` | based on segment address of base
+0x08  | `BASE_TYPE`    | based on type
+0x09  | `BASE_SELF`    | based on self
+0x0a  | `NEAR32`       | 32 bit pointer
+0x0b  | `FAR32`        | 16:32 pointer
+0x0c  | `64`           | 64 bit pointer
+0x0d  | `UNUSEDPTR`    | first unused pointer type
 
 The `ptrmode` bit field can take these values:
 
-```c
-enum CV_ptrmode {
-    CV_PTR_MODE_PTR      = 0x00, // "normal" pointer, e.g. `FOO *`
-    CV_PTR_MODE_REF      = 0x01, // "old" reference, e.g. `FOO &`
-    CV_PTR_MODE_LVREF    = 0x01, // l-value reference, e.g. `FOO &`
-    CV_PTR_MODE_PMEM     = 0x02, // pointer to data member
-    CV_PTR_MODE_PMFUNC   = 0x03, // pointer to member function
-    CV_PTR_MODE_RVREF    = 0x04, // r-value reference, e.g. `FOO &&`
-};
-```
+Value | Name      | Description
+------|-----------|---------------------------------------
+0x00  | `PTR`     | "normal" pointer, e.g. `FOO *`
+0x01  | `REF`     | "old" reference, e.g. `FOO &`
+0x01  | `LVREF`   | l-value reference, e.g. `FOO &`
+0x02  | `PMEM`    | pointer to data member
+0x03  | `PMFUNC`  | pointer to member function
+0x04  | `RVREF`   | r-value reference, e.g. `FOO &&`
 
 The data after the `Pointer` structure depends on `ptrtype`, and is called the "variant data".
 
@@ -85,11 +81,11 @@ where `format` has one of these values:
 
 `format` | Description
 ---------|------------
-0        | 16:16 data for class with no virtual functions or virtual bases. 
-1        | 16:16 data for class with virtual functions.  
-2        | 16:16 data for class with virtual bases.  
+0        | 16:16 data for class with no virtual functions or virtual bases.
+1        | 16:16 data for class with virtual functions.
+2        | 16:16 data for class with virtual bases.
 3        | 16:32 data for classes w/wo virtual functions and no virtual bases
-4        | 16:32 data for class with virtual bases.  
+4        | 16:32 data for class with virtual bases.
 5        | 16:16 near method nonvirtual bases with single address point
 6        | 16:16 near method nonvirtual bases with multiple address points
 7        | 16:16 near method with virtual bases

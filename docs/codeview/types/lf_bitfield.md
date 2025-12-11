@@ -1,5 +1,7 @@
 ## `LF_BITFIELD` (0x1205) - Bit-field
 
+Describes a bitfield within a structure.
+
 ```c
 struct BitField {
     TypeIndex type;

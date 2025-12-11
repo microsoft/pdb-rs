@@ -1,5 +1,7 @@
 # `LF_VTSHAPE` (0x000a)
 
+Defines the format of a virtual function table.
+
 ```c
 struct VTShape {
     uint16_t count;
@@ -7,15 +9,14 @@ struct VTShape {
 };
 ```
 
-Defines the format of a virtual function table. This record is accessed by the
-`vfunctabptr` in the member list of the class which introduces the virtual
-function. The `vfunctabptr` is defined either by the `LF_VFUNCTAB` or
-`LF_VFUNCOFF` member record. If `LF_VFUNCTAB` record is used, then `vfunctabptr`
-is at the address point of the class. If `LF_VFUNCOFF` record is used, then
-`vfunctabptr` is at the specified offset from the class address point. The
-underlying type of the pointer is a `VTShape` type record. This record describes
-how to interpret the memory at the location pointed to by the virtual function
-table pointer.
+This record is accessed by the `vfunctabptr` in the member list of the class
+which introduces the virtual function. The `vfunctabptr` is defined either by
+the `LF_VFUNCTAB` or `LF_VFUNCOFF` member record. If `LF_VFUNCTAB` record is
+used, then `vfunctabptr` is at the address point of the class. If `LF_VFUNCOFF`
+record is used, then `vfunctabptr` is at the specified offset from the class
+address point. The underlying type of the pointer is a `VTShape` type record.
+This record describes how to interpret the memory at the location pointed to by
+the virtual function table pointer.
 
 `count` specifies the number of descriptors. Each value in `descriptor`
 describes an entry in the virtual function table. Each descriptor is 4 bits and
