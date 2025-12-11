@@ -24,7 +24,7 @@ symbols stream and indexed views of the global symbols:
 
 * The Global Symbol Stream (GSS) contains the global symbol records. These are
   encoded using the CodeView symbol stream format, which is described in
-  [Symbols](symbols.md).
+  [Symbols](../codeview/symbols/symbols.md).
 
 * The Global Symbol Index (GSI) contains a name-to-symbol lookup table for a
   certain set global symbol kinds; that set will be described below. The GSI
@@ -48,7 +48,7 @@ performance.
 
 The Global Symbol Stream contains a sequence of variable-length symbol records.
 This stream does not have a header; all of the stream data consists of CodeView
-symbol records. See [Symbols](symbols.md) for the framing of the records and the
+symbol records. See [Symbols](../codeview/symbols/symbols.md) for the framing of the records and the
 description of their structure.
 
 > Invariant: The size of the Global Symbol Stream is a multiple of 4.
@@ -201,7 +201,7 @@ struct DecompressedHashBuckets {
 
 `num_buckets` is a parameter that is chosen when the hash table is constructed.
 Unfortunately, this parameter is **not** stored in the Name Table. The value is
-a function of bit flags stored in the [PDB Information Stream](pdb_stream.md).
+a function of bit flags stored in the [PDB Information Stream](pdbi_stream.md).
 
 # Example Name Table Header
 

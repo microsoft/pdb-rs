@@ -1,4 +1,4 @@
-# Procedures: `S_LPROC32` (0x110F), `S_GPROC32` (0x1110)
+# Procedures: `S_LPROC32` (0x110F), `S_GPROC32` (0x1110), and more
 
 Procedures (executable code such as functions and methods) are defined using a
 variety of symbols records. Procedures are described by a _sequence_ of symbol
@@ -40,8 +40,6 @@ we will use "procedure symbol" or `G_PROC32` to clarify the distinction between
 the procedure (the actual executable code), the root symbol record, or the
 tree of records associated with the procedure.
 
-TODO: insert nesting diagram example
-
 Example:
 
 ```text
@@ -59,19 +57,25 @@ S_GPROC32: paint_house
 
 This shows the nesting relationship of the scopes.
 
+Procedure symbols are stored in module streams. They are never stored in the
+Global Symbol Stream. However, the Global Symbol Stream may contain references
+to procedure symbols; see [RefSym](s_refsyms.md).
+
 ## Local variables
 
-See [Local variables](locals.md).
+See [Local variables](s_local.md).
 
-## Root Procedure Symbol Records
+## Procedure Start Records
 
-Each procedure symbol begins with a _root procedure record_. There are several
-symbol record kinds that can begin a procedure symbol. Briefly:
+Each procedure symbol begins with a _procedure start_ record. There are several
+symbol record kinds that start a procedure symbol:
 
-module.
 * `S_GPROC32`: A global procedure, visible to all modules.
-* `S_LPROC32`: A "local" procedure (i.e.g `static`), visible only within a single * `S_LPROC32_DPC`: A local procedure with DPC semantics (for Windows kernel development)
-* `S_LPROC32_DPC_ID`: A local procedure with DPC semantics (for Windows kernel development)
+* `S_LPROC32`: A "local" procedure (i.e.g `static`), visible only within a
+  single * `S_LPROC32_DPC`: A local procedure with DPC semantics (for Windows
+  kernel development)
+* `S_LPROC32_DPC_ID`: A local procedure with DPC semantics (for Windows kernel
+  development)
 * `S_LPROC32_ST`: A local procedure; older (obsolete) record format.
 * `S_GMANPROC`: A global procedure defined in an MSIL manifest.
 * `S_LMANPROC`: A local procedure defined in an MSIL manifest.
@@ -183,9 +187,9 @@ struct FrameProc {
 };
 ```
 
-This symbol is used for indicating a variety of extra information regarding a
-procedure and its stack frame. If any of the flags are non-zero, this record
-should be added to the symbols for that procedure.
+This symbol describes the stack frame layout of the procedure. If any of the
+flags are non-zero, this record should be added to the symbols for that
+procedure.
 
 `flags` describes various attributes of the function:
 
@@ -201,8 +205,6 @@ Name               | Bits | Description
 `naked`            | 7    | function is `__declspec(naked)`
 `security_checks`  | 8    | function has buffer security check
 `pad`              | 9-31 | must be zero
-
-
 
 ## `S_BLOCK32` (0x1103) - Block Start
 
@@ -220,9 +222,9 @@ struct Block {
 This symbol specifies the start of an inner block of lexically scoped symbols.
 The lexical scope is terminated by a matching `S_END` symbol.
 
-This symbol must be nested within a procedure definition (`S_LPROC32`, etc.). It
-may be nested within another `S_BLOCK32` or inline call site. This also implies
-that `S_BLOCK32` can only occur within module symbol streams.
+This symbol must be nested (directly or indirectly) within a procedure. It may
+be nested within another `S_BLOCK32` or inline call site. This also implies that
+`S_BLOCK32` can only occur within module symbol streams.
 
 ## `S_LABEL32` (0x1105) - Code Label
 

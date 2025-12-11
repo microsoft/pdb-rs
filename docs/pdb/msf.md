@@ -552,7 +552,7 @@ deterministics order.
 The MSF Container format enables the storage of streams, which store the
 significant data of a PDB. This lists some of the important streams in a PDB:
 
-* [PDB Information Stream](pdbi_info.md) - Contains global information about the
+* [PDB Information Stream](pdbi_stream.md) - Contains global information about the
   PDB. This is usually the first stream that any tool reads. It provides the
   binding key (unique GUID, age), PDB version number, and contains the Named
   Streams Table.
@@ -660,7 +660,7 @@ the first few entries from `stream_sizes`:
 File Offset | Stream | `stream_sizes[i]` | Num pages needed for this stream | Description
 ------------|--------|-------------------|----------------------------------|------------
 051a3004    | 0      | 000166e0          | 00017                            | "Old Stream Directory"
-051a3008    | 1      | 000000db          | 00001                            | [PDB Stream](pdb_stream.md)
+051a3008    | 1      | 000000db          | 00001                            | [PDB Stream](pdbi_stream.md)
 051a300c    | 2      | 00ed6d64          | 00ed7                            | [TPI Stream](tpi_stream.md)
 051a3010    | 3      | 0038f1a2          | 00390                            | [DBI Stream](dbi.md)
 051a3014    | 4      | 003a5a70          | 003a6                            | [IPI Stream](ipi.md)

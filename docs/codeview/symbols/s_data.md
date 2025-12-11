@@ -9,12 +9,16 @@ struct Data {
 };
 ```
 
-`S_GDATA32` describes a global variable, usually with external visibility
-across all translation units.  For example, `int g_foo;` would be described
-with an `S_GDATA32` record.
+`S_GDATA32` describes a global variable, usually with external visibility across
+all translation units. For example, `int g_foo;` would be described with an
+`S_GDATA32` record. `S_GDATA32` records are stored in the Global Symbol Stream,
+never in module symbol streams.
 
 `S_LDATA32` describes a variable whose lifetime duration is global, but whose
-visibility is limited to a single module.
+visibility is limited to a single module. `S_LDATA32` rercords can be stored in
+either the Global Symbol Stream or in module symbol streams. (It is not clear
+why the linker decides the place `S_LDATA32` in global vs. module symbol
+streams.)
 
 In C, `static` variables are described using `S_LDATA32`. Example:
 

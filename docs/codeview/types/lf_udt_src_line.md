@@ -16,7 +16,7 @@ compiler, not the linker.
 
 `type` is the type being described.
 
-`file_name` points into the [Names Stream](names_stream.md) and specifies the
+`file_name` points into the [Names Stream](../../pdb/names_stream.md) and specifies the
 file name.
 
 `line` is the 1-based line number of the definition of the UDT.

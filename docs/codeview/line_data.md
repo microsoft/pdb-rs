@@ -231,7 +231,7 @@ struct FileChecksum {
 ```
 
 `file_name` is a `NameIndex` value which points into the
-[Names Stream](names_stream.md).
+[Names Stream](../pdb/names_stream.md).
 
 `checksum_kind` identifies the algorithm which computed the checksum.
 `checksum_size` is the size in bytes of the checksum. The following table lists

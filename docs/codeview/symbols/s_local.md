@@ -102,7 +102,11 @@ struct RangeAttr {
 
 ### `S_DEFRANGE_FRAMEPOINTER_REL` (0x1142) - Definition Range: Frame-Pointer Relative
 
+> TODO
+
 ### `S_DEFRANGE_SUBFIELD_REGISTER` (0x1143) - Definition Range: Sub-Field Register
+
+> TODO
 
 ### `S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE` (0x1144) - Definition Range: Frame-Pointer Relative, Full Scope
 
@@ -115,3 +119,5 @@ struct DefRangeFramePointerRelFullScope {
 ```
 
 ### `S_DEFRANGE_REGISTER_REL` (0x1145) - Definition Range: Register-Relative
+
+> TODO

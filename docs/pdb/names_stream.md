@@ -75,7 +75,7 @@ values. If the `NameIndex` table is modified (existing strings are moved), then
 the `NameIndex` values that point to them will need to be updated to point to
 the new location.
 
-* [C13 Line Data](line_data.md), File Checksums Subsection. Each File Checksum
+* [C13 Line Data](../codeview/line_data.md), File Checksums Subsection. Each File Checksum
   contains a `NameIndex` for the file name.
 * `LF_UDT_SRC_LINE` and `LF_MOD_UDT_SRC_LINE` records (in the IPI Stream)
   contain `NameIndex` values that point to file names.

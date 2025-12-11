@@ -153,4 +153,4 @@ This symbol can appear only within module symbol streams.
 # Global symbols
 
 Global symbols are stored in the Global Symbol Stream (GSS). See also
-[Global Symbols](globals.md).
+[Global Symbols](../../pdb/globals.md).

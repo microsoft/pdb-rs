@@ -12,6 +12,8 @@ struct Constant {
 Defines a named constant. This symbol can appear in both the global symbol
 stream and in module symbol streams.
 
+See [Number](../codeview_number.md) for the encoding of `value`.
+
 ## `S_MANCONSTANT` (0x112d) - Managed Constant
 
 ```c
