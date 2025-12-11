@@ -21,7 +21,7 @@ Each field in `BuildInfo` is an `ItemId` that refers to an `LF_STRING_ID` or
 are concatenated to form whole strings.
 
 Each module stream may contain at most one
-[`S_BUILDINFO`](symbols.md#s_buildinfo-0x114c---build-info) record. If present,
+[`S_BUILDINFO`](../symbols/symbols.md#s_buildinfo-0x114c---build-info) record. If present,
 the `S_BUILDINFO` contains the `ItemId` that points to the `LF_BUILDINFO` record
 in the IPI Stream. This is the only way to associate a module with an
 `LF_BUILDINFO` record.

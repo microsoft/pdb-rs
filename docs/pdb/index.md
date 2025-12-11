@@ -99,7 +99,7 @@ instruction addresses to source locations
 
 ## Relationships
 
-[Relationships](pdb/relationships.md) describes values that "point" from one
+[Relationships](relationships.md) describes values that "point" from one
 data structure into another. These relationships must be preserved when PDBs are
 modified.
 

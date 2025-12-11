@@ -13,8 +13,6 @@ struct FuncId {
 };
 ```
 
-> TODO: What actually uses this record?
-
 `scope` specifies the scope that contains this function definition. It is 0 for
 the global scope. If it is non-zero, then it points to an `LF_STRING` record
 that gives the scope. For C++, the scope is a C++ namespace. In C++, if the

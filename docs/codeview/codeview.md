@@ -18,7 +18,7 @@ CodeView data structures may be stored in several places:
 
 This directory contains documents that describe these parts of Code View:
 
-* [Primitive Types](primitives.md) describes how primitive types, such as `int`,
+* [Primitive Types](primitive_types.md) describes how primitive types, such as `int`,
   `char`, `void` are represented
 
 * [Types](types/types.md) describes how composed (non-primitive) types are

@@ -25,19 +25,19 @@ These are the integer types used in this document:
 Name        | Usage
 ------------|------
 `uint8_t`   | (obvious)
-`uint16_t`  |   
-`uint32_t`  |   
-`uint64_t`  |   
-`int8_t`    | 
-`int16_t`   |  
-`int32_t`   |  
-`int64_t`   |  
+`uint16_t`  |
+`uint32_t`  |
+`uint64_t`  |
+`int8_t`    |
+`int16_t`   |
+`int32_t`   |
+`int64_t`   |
 `char8_t`   | 8-bit value used for encoding code units of UTF-8 strings.
- 
+
 # GUID
 
 The well-known `GUID` type is imported from Windows. It is a 16-byte quantity.
- 
+
 # Embedded arrays
 
 Variable-length arrays may be directly embedded within a structure. It is not
@@ -132,9 +132,9 @@ which is described later in this document, or refers to a primitive (well-known
 `ItemId` refers to a record within the IPI Stream, or to `NIL` (no record). The
 value of `NIL` is zero. `ItemId` counts records, not bytes.
 
-See [`ItemId`](ipi.md#itemid).
+See [`ItemId`](pdb/ipi.md#itemid).
 
 # `NameIndex`
 
  `NameIndex` is an alias for `uint32_t` which points into the [Names
- Stream](names_stream.md).
+ Stream](pdb/names_stream.md).

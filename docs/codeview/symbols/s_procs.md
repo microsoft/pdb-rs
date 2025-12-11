@@ -181,7 +181,7 @@ Procedures may contain the following nested symbols:
 |--------|-----------------|------------------------------------------|---------------------------
 | 0x1103 | `S_BLOCK32`     | [s_block.md](s_block.md)                 | Block scope
 | 0x114d | `S_INLINESITE`  | [s_inlinesite.md](s_inlinesite.md)       | Inlined code
-| 0x115c | `S_INLINESITE2` | [s_inlinesite2.md](s_inlinesite2.md)     | Inlined code (v2)
+| 0x115c | `S_INLINESITE2` | [s_inlinesite.md](s_inlinesite.md)       | Inlined code (v2)
 | 0x113e | `S_LOCAL`       | [s_local.md](s_local.md)                 | Local variable
-| 0x1111 | `S_REGREL32`    | [s_regrel32.md](s_regrel32.md)           | Register-relative variable
+| 0x1111 | `S_REGREL32`    | [s_local.md](s_local.md)                 | Register-relative variable
 | 0x0006 | `S_END`         | [s_end.md](s_end.md)                     | Scope terminator

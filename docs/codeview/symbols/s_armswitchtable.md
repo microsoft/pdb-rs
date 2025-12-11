@@ -1,5 +1,11 @@
 # `S_ARMSWITCHTABLE` (0x1159) - ARM Switch Table
 
+Describes a switch table (jump table), which is used to implement `switch`
+statements or similar control flow constructs.
+
+MSVC generates this symbol only when targeting ARM64. LLVM generates this symbol
+for all target architectures.
+
 ```c
 struct ArmSwitchTable {
     uint32_t offset_base;
@@ -12,14 +18,6 @@ struct ArmSwitchTable {
     uint32_t num_entries;
 };
 ```
-
-This symbol describes a switch table (jump table), which is used to implement
-`switch` statements or similar control flow constructs.
-
-MSVC generates this symbol only when targeting ARM64. LLVM generates this symbol
-for all target architectures.
-
-## Fields
 
 `offset_base` is the section-relative offset to the base address for switch
 offsets. This is the base address of the target of the jump. The value stored

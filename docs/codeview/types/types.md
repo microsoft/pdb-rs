@@ -6,10 +6,10 @@ Type records are variable-length records. Each record begins with a 4-byte
 header which specifies the length and the "kind" of the record.
 
 ```c
-struct TypeRecordHeader {
+struct TypeRecord {
   uint16_t size;
   uint16_t kind;
-  // followed by kind - 2 bytes of kind-specific data
+  uint8_t payload[size - 2];
 };
 ```
 

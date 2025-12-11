@@ -17,7 +17,7 @@ many sources.
 - [Data Types](data_types.md) - Data types that are used within this specification.
 - [PDB](pdb/index.md) - Describes Program Database (PDB) files.
 - [CodeView](codeview/codeview.md) - Describes debugging types and symbol records.
-- [Determinism](./determinimsm.md) - Discusses deterministic (reproducible) builds.
+- [Determinism](./determinism.md) - Discusses deterministic (reproducible) builds.
 - [References](references.md)
 
 ## Maintainers

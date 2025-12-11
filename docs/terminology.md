@@ -23,7 +23,7 @@ executable
 : A sequence of symbol records that describe global functions, types, annotations, etc. This is an "index" of the per-module symbols, or in PDBs that have been stripped, this is the only description of global symbols.
 
 interval
-: A fixed-size group of pages in the MSF, which have 2 pages reserved for the Free Page Maps (FPM1 and FPM2). See [Free Page Map](msf.md#free-page-map).
+: A fixed-size group of pages in the MSF, which have 2 pages reserved for the Free Page Maps (FPM1 and FPM2). See [Free Page Map](pdb/msf.md#free-page-map).
 
 module index
 : A `uint16_t` value that identifies a module within a PDB. The order of the records in the [DBI Modules Substream](pdb/dbi_modules.md) determines the range and meaning of the module index. Module indexes are 0-based. The value 0xffff is reserved and cannot identify a valid module.

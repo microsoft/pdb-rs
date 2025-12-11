@@ -89,7 +89,7 @@ These are the reference symbols:
 * `S_TOKENREF` - Refers to one of several symbol records that identify MSIL
   tokens
 
-These symbols use the [`RefSym2`](symbols.md#refsym2-structure) record
+These symbols use the [`RefSym2`](../codeview/symbols/s_refsyms.md) record
 definition.
 
 These records allow an application to find a symbol definition using the name of
@@ -315,7 +315,7 @@ To encode the `hash_buckets` region, you must know the number of hash buckets
 (`num_buckets`). It is not stored directly in the Name Table, or even in the GSI
 Header. Instead, it is determined by the presence of the `MinimalDebugInfo`
 feature code in the PDB Information Stream. See
-[Feature Codes](pdb_stream.md#feature-codes). If the `MinimalDebugInfo` feature
+[Feature Codes](pdbi_stream.md#feature-codes). If the `MinimalDebugInfo` feature
 is _absent_, then the value of `num_buckets` is 0x1000. If the
 `MinimalDebugInfo` feature is _present_, then the value of `num_buckets` is
 0x3ffff.
