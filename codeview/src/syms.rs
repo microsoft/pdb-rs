@@ -725,6 +725,33 @@ pub struct LVarAddrGap {
     pub range_size: U16<LE>,
 }
 
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+#[allow(missing_docs)]
+pub struct DefRangeFixed {
+    /// DIA program to evaluate the value of the symbol
+    pub program: U32<LE>,
+
+    pub range: LVarAddrRange,
+    // gaps: [LVAddrGap]
+}
+
+/// `S_DEFRANGE`
+#[allow(missing_docs)]
+#[derive(Clone, Debug)]
+pub struct DefRange<'a> {
+    pub fixed: &'a DefRangeFixed,
+    pub gaps: &'a [LVarAddrGap],
+}
+
+impl<'a> Parse<'a> for DefRange<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        let fixed = p.get()?;
+        let gaps = p.slice(p.len() / size_of::<LVarAddrGap>())?;
+        Ok(Self { fixed, gaps })
+    }
+}
+
 /// `S_DEFRANGE_FRAMEPOINTER_REL`: A live range of frame variable
 #[repr(C)]
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
@@ -1461,6 +1488,7 @@ pub enum SymData<'a> {
     RegRel(RegRel<'a>),
     Block(Block<'a>),
     Local(Local<'a>),
+    DefRange(DefRange<'a>),
     DefRangeFramePointerRel(DefRangeSymFramePointerRel<'a>),
     DefRangeRegister(DefRangeRegister<'a>),
     DefRangeRegisterRel(DefRangeRegisterRel<'a>),
@@ -1524,6 +1552,7 @@ impl<'a> SymData<'a> {
             SymKind::S_REGREL32 => Self::RegRel(p.parse()?),
             SymKind::S_BLOCK32 => Self::Block(p.parse()?),
             SymKind::S_LOCAL => Self::Local(p.parse()?),
+            SymKind::S_DEFRANGE => Self::DefRange(p.parse()?),
             SymKind::S_DEFRANGE_FRAMEPOINTER_REL => Self::DefRangeFramePointerRel(p.parse()?),
             SymKind::S_DEFRANGE_REGISTER => Self::DefRangeRegister(p.parse()?),
             SymKind::S_DEFRANGE_REGISTER_REL => Self::DefRangeRegisterRel(p.parse()?),
