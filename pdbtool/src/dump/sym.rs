@@ -155,7 +155,6 @@ pub fn dump_sym(
             write!(
                 out,
                 "{arch_reg} + 0x{offset:x}, ",
-                // reg_rel.fixed.register.get(),
                 offset = reg_rel.fixed.offset.get()
             )?;
             ty_ref(out, context, reg_rel.fixed.ty.get());
