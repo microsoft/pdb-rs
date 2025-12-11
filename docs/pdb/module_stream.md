@@ -42,10 +42,10 @@ Module Streams may contain line number information, which describes the mapping
 between source locations and instruction streams.
 
 `c11_lines` contains C11 Line Data. C11 Line Data is obsolete and will not be
-specified in this document. This field is expected to be empty in all modern
+described in this document. `c11_byte_size` is expected to be zero in all modern
 PDBs.
 
-`c13_lines` contains C13 Line Data. See [C13 Line Data](line_data.md) for the
+`c13_lines` contains C13 Line Data. See [C13 Line Data](../codeview/line_data.md) for the
 specification of the contents of this substream.
 
 # Module Symbols

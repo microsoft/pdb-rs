@@ -56,7 +56,8 @@ Name                           | Value | Description
 `DEBUG_S_XFGHASH_TYPE`         |  0xFF | 
 `DEBUG_S_XFGHASH_VIRTUAL`      | 0x100 | 
 
-There is no defined order for the subsections; subsections may appear in any order.
+There is no defined order for the subsections; subsections may appear in any
+order.
 
 > Determinism: Sort the subsections of the Line Data table. Place the
 > `DEBUG_S_FILE_CHECKSUMS` record before all `DEBUG_S_LINES` subsections. Sort
