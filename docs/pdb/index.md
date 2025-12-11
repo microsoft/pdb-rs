@@ -94,8 +94,8 @@ instruction addresses to source locations
 
 ## Hash Algorithms
 
-- [Hash Algorithms](hashing.md) - Describes hash functions used by several PDB
-  tables and records
+[Hash Algorithms](hashing.md) describes hash functions used by several PDB
+tables and records
 
 ## Relationships
 
@@ -105,4 +105,5 @@ modified.
 
 ## Mini PDB (obsolete)
 
-[mini_pdb.md](mini_pdb.md) - Mini PDBs (fast PDBs) generated with `/DEBUG:FASTLINK`
+[mini_pdb.md](mini_pdb.md) - Mini PDBs (fast PDBs) generated with
+`/DEBUG:FASTLINK`

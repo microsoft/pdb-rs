@@ -61,23 +61,21 @@ in the TPI. See [`LF_FIELDLIST`](./lf_fieldlist.md).
 
 Kind   | Name                                     | Category | Description
 -------|------------------------------------------|----------|------------
+0x000a | [`LF_VTSHAPE`](lf_vtshape.md)            | internal | Shape of a virtual function table
+0x0014 | [`LF_ENDPRECOMP`](lf_endprecomp.md)      | special  | Specifies end of precompiled types
 0x1001 | [`LF_MODIFIER`](lf_modifier.md)          | type     | Modifies a type by applying `volatile`, `const`, or `unaligned` to it
 0x1002 | [`LF_POINTER`](lf_pointer.md)            | type     | Defines a pointer to another type, e.g. `FOO*`
+0x1008 | [`LF_PROCEDURE`](lf_procedure.md)        | type     | A function signature type
+0x1009 | [`LF_MFUNCTION`](lf_mfunction.md)        | type     | A member function signature type
 0x1502 | [`LF_ARRAY`](lf_array.md)                | type     | A fixed-size array, e.g. `char FOO[100]`
 0x1504 | [`LF_CLASS`](lf_class.md)                | type     | A `class` definition
 0x1505 | [`LF_STRUCTURE`](lf_class.md)            | type     | A `struct` definition
 0x1506 | [`LF_UNION`](lf_union.md)                | type     | A `union` definition
 0x1507 | [`LF_ENUM`](lf_enum.md)                  | type     | An `enum` definition
-0x1008 | [`LF_PROCEDURE`](lf_procedure.md)        | type     | A function signature type
-0x1009 | [`LF_MFUNCTION`](lf_mfunction.md)        | type     | A member function signature type
-0x000a | [`LF_VTSHAPE`](lf_vtshape.md)            | ??       | Shape of a virtual function table
-0x100d | [`LF_VFTPATH`](lf_vftpath.md)            | ??       | Path to the virtual function table
 0x1509 | [`LF_PRECOMP`](lf_precomp.md)            | special  | Specifies types come from precompiled module
-0x0014 | [`LF_ENDPRECOMP`](lf_endprecomp.md)      | special  | Specifies end of precompiled types
 0x1200 | [`LF_SKIP`](lf_skip.md)                  | internal | Reserves space in the type stream, but contains no information
 0x1201 | [`LF_ARGLIST`](lf_arglist.md)            | internal | Specifies arguments for `LF_PROCEDURE` or `LF_MFUNCTION`
 0x1203 | [`LF_FIELDLIST`](lf_fieldlist.md)        | internal | Contains field records for `LF_CLASS`, `LF_STRUCTURE`, `LF_ENUM`, etc.
-0x1204 | `LF_DERIVED`                             | internal | Specifies classes directly derived from a given class. (obsolete)
 0x1205 | [`LF_BITFIELDS`](lf_bitfield.md)         | internal | Specifies a bitfield within another field
 0x1206 | [`LF_METHODLIST`](lf_methodlist.md)      | internal | Specifies a list of methods in an overload group (methods that have the same name but differing signatures)
 

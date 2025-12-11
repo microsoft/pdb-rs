@@ -17,38 +17,38 @@ for type records and should not be confused with them.
 
 After the summary, each field is described in detail.
 
-| Value  | Name               | Description                                                      |
-|--------|--------------------|------------------------------------------------------------------|
-| 0x040b | `LF_FRIENDCLS`     | A friend class                                                   |
-| 0x1400 | `LF_BCLASS`        | A non-virtual (real) base class of a class.                     |
-| 0x1401 | `LF_VBCLASS`       | A directly-inherited virtual base class.                        |
-| 0x1402 | `LF_IVBCLASS`      | An indirectly-inherited virtual base class.                     |
-| 0x1404 | `LF_INDEX`         | An index to another `LF_FIELDLIST` which contains more fields   |
-| 0x1409 | `LF_VFUNCTAB`      | A virtual function table pointer                                 |
-| 0x140c | `LF_VFUNCOFF`      | A virtual function table pointer at a non-zero offset           |
-| 0x1502 | `LF_ENUMERATE`     | An enumerator (named constant) defined on an `LF_ENUM` type     |
-| 0x150c | `LF_FRIENDFCN`     | A friend function                                                |
-| 0x150d | `LF_MEMBER`        | A non-static data member (field)                                |
-| 0x150e | `LF_STMEMBER`      | A static data member (static field)                             |
-| 0x150f | `LF_METHOD`        | A single method of a class, or a pointer to a `LF_METHODLIST`   |
-| 0x1510 | `LF_NESTEDTYPE`    | A nested type                                                    |
-| 0x1511 | `LF_ONEMETHOD`     | A single non-overloaded method                                  |
-| 0x1512 | `LF_NESTEDTYPEX`   | Nested type extended definition                                  |
+Value  | Name               | Description
+-------|--------------------|-----------------------------------------------------------------
+0x040b | `LF_FRIENDCLS`     | A friend class
+0x1400 | `LF_BCLASS`        | A non-virtual (real) base class of a class.
+0x1401 | `LF_VBCLASS`       | A directly-inherited virtual base class.
+0x1402 | `LF_IVBCLASS`      | An indirectly-inherited virtual base class.
+0x1404 | `LF_INDEX`         | An index to another `LF_FIELDLIST` which contains more fields
+0x1409 | `LF_VFUNCTAB`      | A virtual function table pointer
+0x140c | `LF_VFUNCOFF`      | A virtual function table pointer at a non-zero offset
+0x1502 | `LF_ENUMERATE`     | An enumerator (named constant) defined on an `LF_ENUM` type
+0x150c | `LF_FRIENDFCN`     | A friend function
+0x150d | `LF_MEMBER`        | A non-static data member (field)
+0x150e | `LF_STMEMBER`      | A static data member (static field)
+0x150f | `LF_METHOD`        | A single method of a class, or a pointer to a `LF_METHODLIST`
+0x1510 | `LF_NESTEDTYPE`    | A nested type
+0x1511 | `LF_ONEMETHOD`     | A single non-overloaded method
+0x1512 | `LF_NESTEDTYPEX`   | Nested type extended definition
 
 ## Field Attribute Structure
 
 Many field types include an `attr` field that describes access protection and other properties. This is a 16-bit value with the following bit fields:
 
-| Bits  | Field        | Description                                                  |
-|-------|--------------|--------------------------------------------------------------|
-| 0-1   | `access`     | Access protection: 1=private, 2=protected, 3=public        |
-| 2-4   | `mprop`      | Method properties (see below)                               |
-| 5     | `pseudo`     | Compiler-generated function that doesn't exist              |
-| 6     | `noinherit`  | Class cannot be inherited                                    |
-| 7     | `noconstruct`| Class cannot be constructed                                  |
-| 8     | `compgenx`   | Compiler-generated function that does exist                 |
-| 9     | `sealed`     | Method cannot be overridden                                 |
-| 10-15 | `unused`     | Unused bits                                                  |
+Bits  | Field        | Description
+------|--------------|-------------------------------------------------------------
+0-1   | `access`     | Access protection: 1=private, 2=protected, 3=public
+2-4   | `mprop`      | Method properties (see below)
+5     | `pseudo`     | Compiler-generated function that doesn't exist
+6     | `noinherit`  | Class cannot be inherited
+7     | `noconstruct`| Class cannot be constructed
+8     | `compgenx`   | Compiler-generated function that does exist
+9     | `sealed`     | Method cannot be overridden
+10-15 | `unused`     | Unused bits
 
 The `mprop` field (bits 2-4) encodes method properties:
 - 0: Non-virtual method
