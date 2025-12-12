@@ -28,6 +28,21 @@ Database (PDB) files. All of the code is in Rust.
   `ms-pdb` crate -- it provides methods for reading specific PDB data
   structures, such as debug symbols, line mappings, module records, etc.
 
+* The `pdbtool` crate is a standalone command-line tool for reading PDB files
+  and for doing some minor edits to PDB files. It also supports transcoding
+  to PDZ (MSFZ).  It can be installed directly from Cargo:
+
+```bash
+cargo install pdbtool
+```
+
+## PDB and CodeView Documentation
+
+[PDB and CodeView Documentation](./docs/index.md) is a synthesis of public
+resources on PDB and CodeView descriptions. It describes the structure of PDB
+files and many CodeView data structures with enough detail to implement some
+useful tools.
+
 ## All information in this implementation is based on publicly-available information
 
 With the exception of MSFZ, this implementation is based solely on public
