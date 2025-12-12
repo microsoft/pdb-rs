@@ -73,51 +73,51 @@ kind of symbol may appear in the Global Symbol Stream and/or the Module Symbol
 Stream, and whether the symbol can be used as a "root" scope or can only be used
 within a nested symbol scope. These terms will be explained in later sections.
 
-Code (Hex) | Name                                     | Location      | Details                            | Description
------------|------------------------------------------|---------------|------------------------------------|------------
-`0006`     | `S_END`                                  | module        | [s_end.md](s_end.md)               | Ends a nested scope
-`1007`     | `S_GDATA32`                              | global        | [s_data.md](s_data.md)             | Global data with external linkage
-`1008`     | `S_LDATA32`                              | global/module | [s_data.md](s_data.md)             | Global data with private module visibility
-`1012`     | `S_FRAMEPROC`                            | module        | [s_frameproc.md](s_frameproc.md)   | Frame procedure information
-`1019`     | `S_ANNOTATION`                           | module        | [s_annotation.md](s_annotation.md) | Annotation
-`1101`     | `S_OBJNAME`                              | module        | [s_objname.md](s_objname.md)       | Gives the name of the object file
-`1102`     | `S_THUNK32`                              | module        | [s_thunk.md](s_thunk.md)           | Code outside a procedure (thunk)
-`1103`     | `S_BLOCK32`                              | module        | [s_block.md](s_block.md)           | Block of code within a procedure
-`1105`     | `S_LABEL32`                              | module        | [s_label.md](s_label.md)           | Code label within procedures
-`1107`     | `S_CONSTANT`                             | global/module | [s_constant.md](s_constant.md)     | Named constant
-`1108`     | `S_UDT`                                  | global/module | [s_udt.md](s_udt.md)               | User-defined type (struct, enum, etc.)
-`110E`     | `S_PUB32`                                | global        | [s_pub.md](s_pub.md)               | Public symbol
-`110F`     | `S_LPROC32`                              | module        | [s_procs.md](s_procs.md)           | Procedure private to a module
-`1110`     | `S_GPROC32`                              | module        | [s_procs.md](s_procs.md)           | Procedure with global linkage
-`1111`     | `S_REGREL32`                             | module        | [s_local.md](s_local.md)           | Register-relative local variable
-`1112`     | `S_LTHREAD32`                            | global/module | [s_thread.md](s_thread.md)         | Thread-local storage (module-local)
-`1113`     | `S_GTHREAD32`                            | global/module | [s_thread.md](s_thread.md)         | Thread-local storage (global)
-`1116`     | `S_COMPILE2`                             | module        | [s_compile.md](s_compile.md)       | Compiler version and flags
-`1124`     | `S_UNAMESPACE`                           | module        | [s_namespace.md](s_namespace.md)   | Using namespace
-`1125`     | `S_PROCREF`                              | global        | [s_refsyms.md](s_refsyms.md)       | Procedure reference
-`1126`     | `S_DATAREF`                              | global        | [s_refsyms.md](s_refsyms.md)       | Data reference
-`1127`     | `S_LPROCREF`                             | global        | [s_refsyms.md](s_refsyms.md)       | Local procedure reference
-`1128`     | `S_ANNOTATIONREF`                        | global        | [s_refsyms.md](s_refsyms.md)       | Annotation reference
-`1129`     | `S_TOKENREF`                             | global        | [s_refsyms.md](s_refsyms.md)       | MSIL token reference
-`112A`     | `S_GMANPROC`                             | module        | [s_procs.md](s_procs.md)           | Managed procedure with global linkage
-`112B`     | `S_LMANPROC`                             | module        | [s_procs.md](s_procs.md)           | Managed procedure with module-local linkage
-`112C`     | `S_TRAMPOLINE`                           | module        | [s_trampoline.md](s_trampoline.md) | Trampoline
-`112D`     | `S_MANCONSTANT`                          | module        | [s_constant.md](s_constant.md)     | Managed constant
-`1137`     | `S_COFFGROUP`                            | module        | [s_coffgroup.md](s_coffgroup.md)   | COFF group (subsection)
-`1136`     | `S_SECTION`                              | module        | [s_section.md](s_section.md)       | COFF section in a PE executable
-`113C`     | `S_COMPILE3`                             | module        | [s_compile.md](s_compile.md)       | Compiler version and flags (extended)
-`113E`     | `S_LOCAL`                                | module        | [s_local.md](s_local.md)           | Local variable
-`113F`     | `S_DEFRANGE`                             | module        | [s_local.md](s_local.md)           | Define range for local variable
-`1140`     | `S_DEFRANGE_SUBFIELD`                    | module        | [s_local.md](s_local.md)           | Define range with offset in parent variable
-`1141`     | `S_DEFRANGE_REGISTER`                    | module        | [s_local.md](s_local.md)           | Define range for enregistered variable
-`1142`     | `S_DEFRANGE_FRAMEPOINTER_REL`            | module        | [s_local.md](s_local.md)           | Define range for frame-pointer relative variable
-`1143`     | `S_DEFRANGE_SUBFIELD_REGISTER`           | module        | [s_local.md](s_local.md)           | Define range for sub-field register
-`1144`     | `S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE` | module        | [s_local.md](s_local.md)           | Define range for frame-pointer relative variable (full scope)
-`1145`     | `S_DEFRANGE_REGISTER_REL`                | module        | [s_local.md](s_local.md)           | Define range for register-relative variable
-`114C`     | `S_BUILDINFO`                            | module        | [s_buildinfo.md](s_buildinfo.md)   | Build info
-`114D`     | `S_INLINESITE`                           | module        | [s_inlinesite.md](s_inlinesite.md) | Inline site
-`1159`     | `S_ARMSWITCHTABLE`                       | module        | [s_armswitchtable.md](s_armswitchtable.md) | ARM switch table (jump table)
-`115C`     | `S_INLINESITE2`                          | module        | [s_inlinesite.md](s_inlinesite.md) | Inline site (version 2) 
+Code (Hex) | Name                                         | Location      | Description
+-----------|----------------------------------------------|---------------|------------
+`0006`     | [`S_END`](s_end.md)                          | module        | Ends a nested scope
+`1007`     | [`S_GDATA32`](s_data.md)                     | global        | Global data with external linkage
+`1008`     | [`S_LDATA32`](s_data.md)                     | global/module | Global data with private module visibility
+`1012`     | [`S_FRAMEPROC`](s_frameproc.md)              | module        | Frame procedure information
+`1019`     | [`S_ANNOTATION`](s_annotation.md)            | module        | Annotation
+`1101`     | [`S_OBJNAME`](s_objname.md)                  | module        | Gives the name of the object file
+`1102`     | [`S_THUNK32`](s_thunk.md)                    | module        | Code outside a procedure (thunk)
+`1103`     | [`S_BLOCK32`](s_block.md)                    | module        | Block of code within a procedure
+`1105`     | [`S_LABEL32`](s_label.md)                    | module        | Code label within procedures
+`1107`     | [`S_CONSTANT`](s_constant.md)                | global/module | Named constant
+`1108`     | [`S_UDT`](s_udt.md)                          | global/module | User-defined type (struct, enum, etc.)
+`110E`     | [`S_PUB32`](s_pub.md)                        | global        | Public symbol
+`110F`     | [`S_LPROC32`](s_procs.md)                    | module        | Procedure private to a module
+`1110`     | [`S_GPROC32`](s_procs.md)                    | module        | Procedure with global linkage
+`1111`     | [`S_REGREL32`](s_local.md)                   | module        | Register-relative local variable
+`1112`     | [`S_LTHREAD32`](s_thread.md)                 | global/module | Thread-local storage (module-local)
+`1113`     | [`S_GTHREAD32`](s_thread.md)                 | global/module | Thread-local storage (global)
+`1116`     | [`S_COMPILE2`](s_compile.md)                 | module        | Compiler version and flags
+`1124`     | [`S_UNAMESPACE`](s_namespace.md)             | module        | Using namespace
+`1125`     | [`S_PROCREF`](s_refsyms.md)                  | global        | Procedure reference
+`1126`     | [`S_DATAREF`](s_refsyms.md)                  | global        | Data reference
+`1127`     | [`S_LPROCREF`](s_refsyms.md)                 | global        | Local procedure reference
+`1128`     | [`S_ANNOTATIONREF`](s_refsyms.md)            | global        | Annotation reference
+`1129`     | [`S_TOKENREF`](s_refsyms.md)                 | global        | MSIL token reference
+`112A`     | [`S_GMANPROC`](s_procs.md)                   | module        | Managed procedure with global linkage
+`112B`     | [`S_LMANPROC`](s_procs.md)                   | module        | Managed procedure with module-local linkage
+`112C`     | [`S_TRAMPOLINE`](s_trampoline.md)            | module        | Trampoline
+`112D`     | [`S_MANCONSTANT`](s_constant.md)             | module        | Managed constant
+`1137`     | [`S_COFFGROUP`](s_coffgroup.md)              | module        | COFF group (subsection)
+`1136`     | [`S_SECTION`](s_section.md)                  | module        | COFF section in a PE executable
+`113C`     | [`S_COMPILE3`](s_compile.md)                 | module        | Compiler version and flags (extended)
+`113E`     | [`S_LOCAL`](s_local.md)                      | module        | Local variable
+`113F`     | [`S_DEFRANGE`](s_local.md)                   | module        | Define range for local variable
+`1140`     | [`S_DEFRANGE_SUBFIELD`](s_local.md)          | module        | Define range with offset in parent variable
+`1141`     | [`S_DEFRANGE_REGISTER`](s_local.md)          | module        | Define range for enregistered variable
+`1142`     | [`S_DEFRANGE_FRAMEPOINTER_REL`](s_local.md)  | module        | Define range for frame-pointer relative variable
+`1143`     | [`S_DEFRANGE_SUBFIELD_REGISTER`](s_local.md) | module        | Define range for sub-field register
+`1144`     | [`S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE`](s_local.md) | module | Define range for frame-pointer relative variable (full scope)
+`1145`     | [`S_DEFRANGE_REGISTER_REL`](s_local.md)      | module        | Define range for register-relative variable
+`114C`     | [`S_BUILDINFO`](s_buildinfo.md)              | module        | Build info
+`114D`     | [`S_INLINESITE`](s_inlinesite.md)            | module        | Inline site
+`1159`     | [`S_ARMSWITCHTABLE`](s_armswitchtable.md)    | module        | ARM switch table (jump table)
+`115C`     | [`S_INLINESITE2`](s_inlinesite.md)           | module        | Inline site (version 2) 
 
 # Nested Symbol Scopes
 
@@ -168,5 +168,9 @@ See [Types](../types/types.md).
 
 # Global symbols
 
-Global symbols are stored in the Global Symbol Stream (GSS). See also
-[Global Symbols](../../pdb/globals.md).
+Global symbols are stored in the [Global Symbol Stream (GSS)](../../pdb/globals.md).
+
+# Module symbols
+
+Module symbols (symbols that describe code and data within a particular
+module) are stored in [Module Streams](../../pdb/module_stream.md).

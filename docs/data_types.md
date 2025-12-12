@@ -132,7 +132,7 @@ which is described later in this document, or refers to a primitive (well-known
 `ItemId` refers to a record within the IPI Stream, or to `NIL` (no record). The
 value of `NIL` is zero. `ItemId` counts records, not bytes.
 
-See [`ItemId`](pdb/ipi.md#itemid).
+See [`ItemId`](pdb/ipi_stream.md#itemid).
 
 # `NameIndex`
 

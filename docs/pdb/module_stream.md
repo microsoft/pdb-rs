@@ -1,26 +1,20 @@
+# Module Streams
+
 - [Module Streams](#module-streams)
 - [Line Data (C13)](#line-data-c13)
 - [Module Symbols](#module-symbols)
 - [Global Refs](#global-refs)
- 
-# Module Streams
-
-Each PDB may contain multiple Module Streams. In this context, a "module" is a
-translation unit -- a single PE/COFF object file. When the MSVC linker produces
-a PE/COFF executable, it finds all of the object files (modules) that are needed
-to resolve symbol references and merges them into a single executable image. The
-linker records the contributions of each module in a Module Stream.
 
 Each module may have its own Module Stream. Modules are not required to have a
 Module Stream; a "stripped" (public) PDB is a PDB whose module streams have been
 removed. Different modules do not share a Module Stream; it is a 1:1
 relationship (or 1:none).
 
-The [DBI Modules Substream](dbi.md#dbi-modules-substream) describes the modules
-within an executable. For each module there is a `ModuleInfo` record which
-specifies the stream index of the Module Stream and the size of the substreams
-within the Module Stream. The `ModuleInfo` record is necessary to locate the
-Module Stream and its substreams.
+The [DBI Modules Substream](dbi_stream.md#dbi-modules-substream) describes the
+modules within an executable. For each module there is a `ModuleInfo` record
+which specifies the stream index of the Module Stream and the size of the
+substreams within the Module Stream. The `ModuleInfo` record is necessary to
+locate the Module Stream and its substreams.
 
 Each Module Stream has this structure:
 

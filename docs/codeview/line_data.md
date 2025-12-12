@@ -9,12 +9,12 @@ Older versions of MSVC use C11 Line Data. C11 Line Data is obsolete and will not
 be described.
 
 The location of the C13 Line Data is specified in the Module Information record
-in the [DBI Modules Substream](../pdb/dbi.md#dbi-modules-substream). See the
-`DbiModuleInfo` record. Each module may have a corresponding module stream, and
-thus a C13 Line Data. The `stream` field specifies the stream that contains the
-C13 Line Data (as well as several other substreams). The offset of the C13 Line
-Data is computed by `sym_byte_size + c11_byte_size`, and the size of the C13
-Line Data is given by `c13_byte_size`.
+in the [DBI Modules Substream](../pdb/dbi_streams.md#dbi-modules-substream). See
+the `DbiModuleInfo` record. Each module may have a corresponding module stream,
+and thus a C13 Line Data. The `stream` field specifies the stream that contains
+the C13 Line Data (as well as several other substreams). The offset of the C13
+Line Data is computed by `sym_byte_size + c11_byte_size`, and the size of the
+C13 Line Data is given by `c13_byte_size`.
 
 > Invariant: The offset of the Line Data within the Module Information Stream is
 > a multiple of 4.
@@ -307,7 +307,7 @@ must insert these padding bytes.
 
 There is an unusual implementation detail, which associates the order of
 `FileChecksum` entries with the entries of source code locations within the
-[DBI Sources Substream](../pdb/dbi.md#dbi-sources-substream).
+[DBI Sources Substream](../pdb/dbi_stream.md#dbi-sources-substream).
 
 # References
 

@@ -556,14 +556,15 @@ significant data of a PDB. This lists some of the important streams in a PDB:
   PDB. This is usually the first stream that any tool reads. It provides the
   binding key (unique GUID, age), PDB version number, and contains the Named
   Streams Table.
-* [Debug Information Stream](dbi.md) - Contains pointers to debugging
+* [Debug Information Stream](dbi_stream.md) - Contains pointers to debugging
   information
 * [Module Streams](module_stream.md) - Each describes a given module
   (compiland).
 * [Names Stream](names_stream.md) - Contains a set of strings, which are
   referenced by other data structures using a small integer (`NameIndex`).
 * [TPI Stream](tpi_stream.md) - Describes the types used by a program.
-* [IPI Stream](ipi.md) - Contains identifiers and metadata about compilation.
+* [IPI Stream](ipi_stream.md) - Contains identifiers and metadata about
+  compilation.
 
 # 2-phase commit protocol
 
@@ -571,8 +572,7 @@ MSF provides a 2-phase commit protocol, which allows making a series of
 modifications to a PDB file and only committing them with a single update to the
 PDB header file.
 
-> TODO: Specify this protocol. Not urgent, since we do not _modify_ PDBs
-> in-place currently.
+> TODO: expand on the commit protocol
 
 # Example - Big MSF
 
@@ -662,8 +662,8 @@ File Offset | Stream | `stream_sizes[i]` | Num pages needed for this stream | De
 051a3004    | 0      | 000166e0          | 00017                            | "Old Stream Directory"
 051a3008    | 1      | 000000db          | 00001                            | [PDB Stream](pdbi_stream.md)
 051a300c    | 2      | 00ed6d64          | 00ed7                            | [TPI Stream](tpi_stream.md)
-051a3010    | 3      | 0038f1a2          | 00390                            | [DBI Stream](dbi.md)
-051a3014    | 4      | 003a5a70          | 003a6                            | [IPI Stream](ipi.md)
+051a3010    | 3      | 0038f1a2          | 00390                            | [DBI Stream](dbi_stream.md)
+051a3014    | 4      | 003a5a70          | 003a6                            | [IPI Stream](ipi_stream.md)
 
 The "num pages needed for this stream" is computed by dividing
 `stream_sizes[i]` by `page_size` and rounding up.

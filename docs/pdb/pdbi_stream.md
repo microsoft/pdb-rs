@@ -1,13 +1,3 @@
-- [PDB Information Stream (Fixed Stream #1)](#pdb-information-stream-fixed-stream-1)
-  - [Version](#version)
-  - [Named Streams](#named-streams)
-    - [Simple decoding](#simple-decoding)
-    - [Encoding](#encoding)
-    - [Name index table (obsolete)](#name-index-table-obsolete)
-  - [Feature Codes](#feature-codes)
-  - [Example](#example)
-- [References](#references)
-
 # PDB Information Stream (Fixed Stream #1)
 
 The PDB Information Stream contains a variety of global information. It is

@@ -1,13 +1,3 @@
-- [Debug Information Stream (DBI) (Fixed Stream 3)](#debug-information-stream-dbi-fixed-stream-3)
-  - [DBI Stream Layout](#dbi-stream-layout)
-  - [DBI Stream Header](#dbi-stream-header)
-  - [Signature and version](#signature-and-version)
-  - [Global symbols](#global-symbols)
-  - [Substreams](#substreams)
-- [Determinism](#determinism)
-- [DBI Type Server Map Substream](#dbi-type-server-map-substream)
-- [DBI Edit-and-Continue Substream](#dbi-edit-and-continue-substream)
-
 # Debug Information Stream (DBI) (Fixed Stream 3)
  
 The Debug Information Stream (DBI) contains many important fields and substreams. It is a central data structure for PDBs.

@@ -1,14 +1,3 @@
-- [TPI Stream: Type Database (Fixed Stream 2)](#tpi-stream-type-database-fixed-stream-2)
-- [Type Stream Header](#type-stream-header)
-- [Type Index Range](#type-index-range)
-- [Type Records Substream](#type-records-substream)
-- [Hash Stream](#hash-stream)
-- [Hash Value Substream](#hash-value-substream)
-- [Type Record Hash Function](#type-record-hash-function)
-- [Hash Index Substream](#hash-index-substream)
-- [Example](#example)
-- [Hash Adjustment Substream](#hash-adjustment-substream)
-
 # TPI Stream: Type Database (Fixed Stream 2)
 
 Each PDB contains a TPI Stream, also called the Type Database. The TPI Stream is
@@ -19,54 +8,38 @@ Symbol records stored in the Global Symbol Stream (GSS) and in module symbol
 streams refer to type definitions stored in the TPI Stream using `TypeIndex`
 values.
 
-The TPI permits only this restricted set of type records:
-
-Record Kind<br>Value (hex) | Record Kind Name | Description
--------|-----------------|----------------------------------
-0x000A | `LF_VTSHAPE`    | Virtual function table shape
-0x1001 | `LF_MODIFIER`   | Modifies another type
-0x1002 | `LF_POINTER`    | Pointer to another type
-0x1008 | `LF_PROCEDURE`  | Procedure type
-0x1009 | `LF_MFUNCTION`  | Member function (of class/struct)
-0x1201 | `LF_ARGLIST`    | Argument list for LF_PROCEDURE, LF_MFUNCTION, LF_METHODLIST
-0x1203 | `LF_FIELDLIST`  | Complex list describing the fields within an LF_CLASS, LF_STRUCTURE, LF_UNION, or LF_ENUM.
-0x1205 | `LF_BITFIELD`   | Bitfield of an LF_UNION, LF_STRUCTURE, or LF_CLASS
-0x1206 | `LF_METHODLIST` | Specifies a list of methods defined on a type
-0x1503 | `LF_ARRAY`      | A fixed-size array of elements
-0x1504 | `LF_CLASS`      | A "class" type
-0x1505 | `LF_STRUCTURE`  | A "struct" type
-0x1506 | `LF_UNION`      | A "union" type
-0x1507 | `LF_ENUM`       | An "enum" type
+For the set of type records which can be stored in the TPI, see
+[Types](../codeview/types/types.md).
 
 # Type Stream Header
 
-Each Type Stream (both TPI and IPI) consists of a header, followed by a series
-of variable-length type records.
+The Type Stream consists of a header, followed by a series of variable-length
+type records.
 
 The header:
 
 ```c
 // sizeof = 56
 struct TypeStreamHeader {
-  uint32_t version;
-  uint32_t header_size;
+    uint32_t version;
+    uint32_t header_size;
 
-  // Fields for Type Records
-  uint32_t type_index_begin;
-  uint32_t type_index_end;
-  uint32_t type_record_bytes;
+    // Fields for Type Records
+    uint32_t type_index_begin;      // TypeIndex of the first record; almost always 0x1000
+    uint32_t type_index_end;        // Exclusive upper bound of the TypeIndex of the last type record
+    uint32_t type_record_bytes;     // The size, in bytes, of the type record data following the header.
 
-  // Fields for Type Hash Stream
-  uint16_t hash_stream_index;
-  uint16_t hash_aux_stream_index;
-  uint32_t hash_key_size;
-  uint32_t num_hash_buckets;
-  int32_t  hash_value_buffer_offset;
-  uint32_t hash_value_buffer_length;
-  int32_t  index_offset_buffer_offset;
-  uint32_t index_offset_buffer_length;
-  int32_t  hash_adj_buffer_offset;
-  uint32_t hash_adj_buffer_length;
+    // Fields for Type Hash Stream
+    uint16_t hash_stream_index;         // Stream index of the Type Hash Stream, or 0xffff
+    uint16_t hash_aux_stream_index;     // Stream index of the Type Hash Aux Stream, or 0xffff
+    uint32_t hash_key_size;
+    uint32_t num_hash_buckets;
+    int32_t  hash_value_buffer_offset;
+    uint32_t hash_value_buffer_length;
+    int32_t  index_offset_buffer_offset;
+    uint32_t index_offset_buffer_length;
+    int32_t  hash_adj_buffer_offset;
+    uint32_t hash_adj_buffer_length;
 };
 ```
 
@@ -134,6 +107,11 @@ use a value of 4096, because many decoders may assume a fixed value.
 
 `type_index_begin` is a very important parameter. Interpreting many data
 structures within the PDB requires knowing the value of `type_index_begin`.
+
+`TypeIndex` values that are numerically less than `type_index_begin` identify
+[primitive types](../codeview/primitive_types.md). Primitive types are those
+that have a fixed interpretation, such as `int`, and do not require a type
+record to describe them.
 
 > Invariant: `type_index_begin` must be greater than or equal to 4096.
 

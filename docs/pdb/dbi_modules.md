@@ -5,11 +5,10 @@ compiland / translation unit, such as an *.OBJ file or a *.RES file (produced by
 the Resource Compiler). The DBI Modules Substream is very important; many PDB
 data structures refer to it.
 
-The DBI Modules Substream is a sequence of contiguous bytes within the
-[DBI Stream](dbi.md). The DBI Modules Substream begins immediately after the DBI
-Stream Header, which has a fixed size of 64 bytes, so the DBI Modules Substream
-always begins at stream offset 64. The size of the DBI Modules Substream is
-specified by the `DbiStreamHeader.module_info_size` field.
+The DBI Modules Substream is a sequence of contiguous bytes within the 
+[DBI Stream](dbi_stream.md). The DBI Modules Substream begins immediately after the DBI Stream Header, which has a fixed size of 64 bytes, so the DBI Modules
+Substream always begins at stream offset 64. The size of the DBI Modules
+Substream is specified by the `DbiStreamHeader.module_info_size` field.
 
 > Invariant: `DbiStreamHeader.module_info_size` is non-negative and is a
 > multiple of 4.

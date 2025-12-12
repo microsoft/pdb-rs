@@ -33,3 +33,11 @@ specifies the file name.
 >
 > For determinism, should we squash `module_index` and set it to some fixed
 > value? What actually reads `module_index`?
+
+> Determinism: It is assumed that this is the index of the module which defined
+> this UDT. However, there is a problem: What if the same UDT is defined in more
+> than one module? It is not clear if there is a deterministic result. Because
+> that information (the set of modules which defined the same UDT) is not
+> present in the linker, we cannot replace the module index with a deterministic
+> selection from that set. Instead, we can only set the module index to some
+> well-known value, like 0.

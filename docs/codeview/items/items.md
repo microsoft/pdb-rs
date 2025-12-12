@@ -1,7 +1,8 @@
 # CodeView Item Records
 
 CodeView defines a set of _item records_, which contain a variety of information
-about programs. Item records are stored in the [IPI Stream](../../pdb/ipi.md).
+about programs. Item records are stored in the
+[IPI Stream](../../pdb/ipi_stream.md).
 
 To distinguish between type records and item records, we use `ItemId` (an alias
 for `uint32_t`) for identifying item records.
@@ -15,6 +16,34 @@ struct TypeRecord {
   uint8_t payload[size - 2];
 };
 ```
+
+## `ItemId`
+
+Item records are identified by the `ItemId` type alias:
+
+```c
+typedef uint32_t ItemId;
+```
+
+The value zero is reserved for a nil `ItemId`, meaning nil points to no record
+at all. All other `ItemId` values must be within the range of `type_index_begin`
+(inclusive lower bound) to `type_index_end` (exclusive upper bound), which is
+specified in the IPI Stream Header.
+
+To find a specific record in the IPI given its `ItemId`, first subtract
+`type_index_begin` from the `ItemId`. This gives the 0-based index of the record
+within the stream; let this be the value `R`. Then, begin decoding records
+within the IPI Stream, counting them as they are decoded. When `R` records have
+been decoded, the next record is the desired record.
+
+The value of `type_index_begin` (in the IPI Stream Header) is typically 0x1000.
+No other value has been observed.
+
+## Item Record Summary
+
+These are the defined item records. Although the names of these records share
+the same `LF_*` prefix with "type" records (and the same numeric identifier
+space), they are not type records.
 
 Kind   | Name                                               | Description
 -------|----------------------------------------------------|------------
