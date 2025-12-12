@@ -16,7 +16,7 @@ PDB files are stored in a _container_ format. Containers provide the abstraction
 of _streams_, which are similar to files within a ZIP archive. Most streams are
 identified by number, not by file name. Some streams are identified by name; the
 mapping from stream name to stream number is stored in the 
-[PDB Information Stream](./pdbi_stream).
+[PDB Information Stream](./pdbi_stream.md).
 
 The [Multi-Stream File (MSF) Container Format](msf.md) is used by most compilers
 and debuggers. This document is essential for understanding PDBs at the lowest
