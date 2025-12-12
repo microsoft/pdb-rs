@@ -137,10 +137,10 @@ struct SymbolNameTable {
     uint32_t hash_buckets_size;
 
     // Contains one record for each symbol in the Name Table.
-    HashRecord hash_records[header.hash_records_size];
+    HashRecord hash_records[hash_records_size / 8];
 
     // Contains a bitmap which describes which hash buckets are present
-    uint8_t hash_buckets[header.hash_buckets_size];
+    uint8_t hash_buckets[hash_buckets_size];
 };
 ```
 
