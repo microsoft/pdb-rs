@@ -98,6 +98,7 @@ primitives! {
     (0x0079, T_UINT16, "128 bit unsigned int"),
     (0x007a, T_CHAR16, "char16"),
     (0x007b, T_CHAR32, "char32"),
+    (0x007c, T_CHAR8, "char8"),
     // 32-bit pointer types
     (0x0103, T_PVOID, "near pointer to void"),
     (0x0110, T_PCHAR, "16 bit pointer to 8 bit signed"),
@@ -334,6 +335,7 @@ primitives! {
     (0x0679, T_64PUINT16, "64 bit pointer to 128 bit unsigned int"),
     (0x067a, T_64PCHAR16, "char16 *"),
     (0x067b, T_64PCHAR32, "char32 *"),
+    (0x067c, T_64PCHAR8, "char8 *"),
 }
 
 /// Dumps a `TypeIndex`. For use only with primitive types.
