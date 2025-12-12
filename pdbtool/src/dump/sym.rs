@@ -155,7 +155,6 @@ pub fn dump_sym(
             write!(
                 out,
                 "{arch_reg} + 0x{offset:x}, ",
-                // reg_rel.fixed.register.get(),
                 offset = reg_rel.fixed.offset.get()
             )?;
             ty_ref(out, context, reg_rel.fixed.ty.get());
@@ -173,6 +172,10 @@ pub fn dump_sym(
         SymData::Local(local) => {
             ty_ref(out, context, local.fixed.ty.get());
             write!(out, " {}", local.name)?;
+        }
+
+        SymData::DefRange(def_range) => {
+            write!(out, " program: {}", def_range.fixed.program.get())?;
         }
 
         SymData::DefRangeFramePointerRel(def_range) => {

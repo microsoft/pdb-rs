@@ -4,18 +4,12 @@
 //! files. They contain a set of streams, which are indexed by number. Each stream is a sequence
 //! of bytes, similar to an ordinary file.
 //!
-//! See the [`spec`] module for a description of the MSFZ file format.
+//! See the [MSFZ Container Specification](https://github.com/microsoft/pdb-rs/blob/main/docs/pdb/msfz.md)
 
 #![forbid(unsafe_code)]
 #![forbid(unused_must_use)]
 #![warn(missing_docs)]
 #![allow(clippy::needless_lifetimes)]
-
-#[cfg(doc)]
-pub mod spec {
-    #![doc = include_str!("msfz.md")]
-    use super::*;
-}
 
 use std::fs::OpenOptions;
 
