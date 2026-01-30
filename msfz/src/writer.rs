@@ -8,7 +8,13 @@ use tracing::{debug, debug_span, trace, trace_span};
 use zerocopy::IntoBytes;
 
 /// The default threshold for compressing a chunk of data.
-pub const DEFAULT_CHUNK_THRESHOLD: u32 = 0x40_0000; // 16 MiB
+pub const DEFAULT_CHUNK_THRESHOLD: u32 = 0x40_0000; // 4 MiB
+
+/// The minimum value for the uncompressed chunk size threshold.
+pub const MIN_CHUNK_SIZE: u32 = 0x1000;
+
+/// The maximum value for the uncompressed chunk size threshold.
+pub const MAX_CHUNK_SIZE: u32 = 1 << 30;
 
 /// Allows writing a new MSFZ file.
 pub struct MsfzWriter<F: Write + Seek = File> {
@@ -151,6 +157,21 @@ impl<F: Write + Seek> MsfzWriter<F> {
         // If the current chunk buffer contains data, then leave it there. It will be compressed
         // with the new algorithm.
         self.file.chunk_compression_mode = compression;
+    }
+
+    /// Sets the maximum uncompressed size for each chunk.
+    ///
+    /// This is an optimization hint. The implementation will do its best to keep chunks below this
+    /// size, but there are cases where the chunk has already exceeded the specified size.
+    ///
+    /// The value is clamped to `MIN_CHUNK_SIZE..=MAX_CHUNK_SIZE`.
+    pub fn set_uncompressed_chunk_size_threshold(&mut self, value: u32) {
+        self.file.uncompressed_chunk_size_threshold = value.clamp(MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
+    }
+
+    /// Gets the maximum uncompressed size for each chunk.
+    pub fn uncompressed_chunk_size_threshold(&self) -> u32 {
+        self.file.uncompressed_chunk_size_threshold
     }
 
     /// Reserves `num_streams` streams.

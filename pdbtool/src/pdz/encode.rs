@@ -2,7 +2,7 @@ use crate::pdz::util::*;
 use anyhow::{Context, Result, bail};
 use ms_pdb::dbi::{DBI_STREAM_HEADER_LEN, DbiStreamHeader};
 use ms_pdb::msf::Msf;
-use ms_pdb::msfz::{MIN_FILE_SIZE_16K, MsfzFinishOptions, MsfzWriter, StreamWriter};
+use ms_pdb::msfz::{self, MIN_FILE_SIZE_16K, MsfzFinishOptions, MsfzWriter, StreamWriter};
 use ms_pdb::{RandomAccessFile, Stream};
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
@@ -32,6 +32,17 @@ pub(crate) struct PdzEncodeOptions {
     /// copy Portable PDBs and PDZs to the output without changing them.
     #[arg(long)]
     pub copy_unrecognized: bool,
+
+    /// The maximum _uncompressed_ size of each chunk, in bytes.  (You can specify a suffix of
+    /// K for 1024 or M for 1048576.). Chunk contents are accumulated in a buffer with the specified
+    /// size. When the buffer is full, the chunk is compressed and written to the output.
+    /// The default is 4 MB.
+    #[arg(long)]
+    pub max_chunk_size: Option<String>,
+
+    /// Place each chunk into its own compression chunk (or chunks, if the stream is large).
+    #[arg(long)]
+    pub one_stream_per_chunk: bool,
 }
 
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
@@ -61,11 +72,25 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         }
     }
 
+    // Choose the maximum chunk size. We do this before creating the MsfzWriter so that we can
+    // validate the input before creating an output file.
+    let max_chunk_size: u32 = if let Some(s) = &options.max_chunk_size {
+        parse_bytes(s)?
+    } else {
+        msfz::DEFAULT_CHUNK_THRESHOLD
+    };
+
     let pdb = Msf::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
 
     let mut writer = MsfzWriter::create(Path::new(&options.output_pdz))
         .with_context(|| format!("Failed to open output PDZ: {}", options.output_pdz))?;
+
+    writer.set_uncompressed_chunk_size_threshold(max_chunk_size);
+    println!(
+        "Using maximum chunk size: {n} ({n:#x})",
+        n = writer.uncompressed_chunk_size_threshold()
+    );
 
     let mut stream_data: Vec<u8> = Vec::new();
     let num_streams = pdb.num_streams();
@@ -82,12 +107,20 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         sw.write_all(&stream_data)?;
     }
 
+    if options.one_stream_per_chunk {
+        writer.end_chunk()?;
+    }
+
     // Next, write the DBI stream.
     {
         let _span = trace_span!("transfer DBI stream");
         pdb.read_stream_to_vec_mut(Stream::DBI.into(), &mut stream_data)?;
         let mut sw = writer.stream_writer(Stream::DBI.into())?;
         write_dbi(&mut sw, &stream_data)?;
+    }
+
+    if options.one_stream_per_chunk {
+        writer.end_chunk()?;
     }
 
     // Loop through the rest of the streams and do normal chunked compression.
@@ -117,6 +150,10 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
             let mut sw = writer.stream_writer(stream_index)?;
             sw.write_all(&stream_data)?;
         }
+
+        if options.one_stream_per_chunk {
+            writer.end_chunk()?;
+        }
     }
 
     // Get final size of the file. Don't append more data to the file after this line.
@@ -125,7 +162,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         writer.finish_with_options(MsfzFinishOptions {
             min_file_size: if options.pad16k { MIN_FILE_SIZE_16K } else { 0 },
             stream_dir_compression: if options.compress_stream_dir {
-                Some(ms_pdb::msfz::Compression::Zstd)
+                Some(msfz::Compression::Zstd)
             } else {
                 None
             },
@@ -232,4 +269,25 @@ fn write_dbi(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) -> Result<()> 
     sw.end_chunk()?;
 
     Ok(())
+}
+
+fn parse_bytes(mut bytes_str: &str) -> anyhow::Result<u32> {
+    let mut units: u32 = 1;
+
+    if let Some(s) = bytes_str.strip_suffix(['k', 'K']) {
+        units = 1024;
+        bytes_str = s;
+    }
+
+    if let Some(s) = bytes_str.strip_suffix(['m', 'M']) {
+        units = 1048576;
+        bytes_str = s;
+    }
+
+    let n: u32 = bytes_str.parse()?;
+    if let Some(n_scaled) = n.checked_mul(units) {
+        Ok(n_scaled)
+    } else {
+        bail!("Size is too large")
+    }
 }
