@@ -163,8 +163,10 @@ impl<F: Write + Seek> MsfzWriter<F> {
     ///
     /// This is an optimization hint. The implementation will do its best to keep chunks below this
     /// size, but there are cases where the chunk has already exceeded the specified size.
+    /// 
+    /// The value is clamped to `MIN_CHUNK_SIZE..=MAX_CHUNK_SIZE`.
     pub fn set_uncompressed_chunk_size_threshold(&mut self, value: u32) {
-        self.file.uncompressed_chunk_size_threshold = value.max(MIN_CHUNK_SIZE).min(MAX_CHUNK_SIZE);
+        self.file.uncompressed_chunk_size_threshold = value.clamp(MIN_CHUNK_SIZE, MAX_CHUNK_SIZE);
     }
 
     /// Gets the maximum uncompressed size for each chunk.
