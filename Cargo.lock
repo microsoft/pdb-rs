@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -424,7 +424,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb-msfz"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "anyhow",
  "bstr",
@@ -492,7 +492,7 @@ dependencies = [
 
 [[package]]
 name = "pdbtool"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "anyhow",
  "bitvec",
