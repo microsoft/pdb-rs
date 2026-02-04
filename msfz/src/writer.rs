@@ -359,6 +359,11 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
         })
     }
 
+    fn bytes_available_in_chunk_buffer(&self) -> usize {
+        (self.uncompressed_chunk_size_threshold as usize)
+            .saturating_sub(self.uncompressed_chunk_data.len())
+    }
+
     #[inline(never)]
     fn finish_current_chunk(&mut self) -> std::io::Result<()> {
         let _span = debug_span!("finish_current_chunk").entered();
@@ -457,6 +462,12 @@ impl<'a, F: Write + Seek> StreamWriter<'a, F> {
     /// function.
     pub fn end_chunk(&mut self) -> std::io::Result<()> {
         self.file.finish_current_chunk()
+    }
+
+    /// The number of bytes that can be written to the current chunk buffer, without exceeding
+    /// the configured maximum.
+    pub fn bytes_available_in_chunk_buffer(&self) -> usize {
+        self.file.bytes_available_in_chunk_buffer()
     }
 
     /// Specifies whether to use chunked compression or not. The default value for this setting is

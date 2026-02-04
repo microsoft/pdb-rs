@@ -16,6 +16,11 @@ impl<'a> TypesIter<'a> {
     pub fn new(buffer: &'a [u8]) -> Self {
         Self { buffer }
     }
+
+    /// Returns the "rest" of the data that has not been parsed.
+    pub fn rest(&self) -> &'a [u8] {
+        self.buffer
+    }
 }
 
 impl<'a> HasRestLen for TypesIter<'a> {
@@ -27,6 +32,11 @@ impl<'a> HasRestLen for TypesIter<'a> {
 impl<'a> Iterator for TypesIter<'a> {
     type Item = TypeRecord<'a>;
 
+    /// Finds the next type record
+    ///
+    /// This implementation makes an important guarantee: If it cannot decode the next record,
+    /// it _will not_ change `self.buffer`. This is important because it allows an application
+    /// to detect the exact length and contents of an unparseable record.
     fn next(&mut self) -> Option<TypeRecord<'a>> {
         if self.buffer.is_empty() {
             return None;
