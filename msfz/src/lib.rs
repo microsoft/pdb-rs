@@ -23,7 +23,7 @@ mod stream_data;
 mod tests;
 mod writer;
 
-pub use reader::*;
+pub use reader::{Fragment, FragmentLocation, Msfz, StreamReader};
 pub use stream_data::StreamData;
 pub use writer::*;
 
