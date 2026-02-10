@@ -100,6 +100,11 @@ pub const COMPRESSION_ZSTD: u32 = 1;
 /// This uses the "raw" Deflate stream. It _does not_ use the GZIP encapsulation header.
 pub const COMPRESSION_DEFLATE: u32 = 2;
 
+/// This is the maximum file offset where an uncompressed fragment be be stored.
+///
+/// The MSFZ specification provides 48 bits for storing the file offset of an uncompressed fragment.
+pub const MAX_UNCOMPRESSED_FILE_OFFSET: u64 = (1u64 << 48) - 1;
+
 /// Specifies the compression algorithms that are supported by this library.
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 #[non_exhaustive]

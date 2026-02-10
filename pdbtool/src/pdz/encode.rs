@@ -698,6 +698,10 @@ fn write_tpi_or_ipi(
 /// We use a simple algorithm. We build a list of the start and end locations of each of these
 /// buffers (if they are non-zero length). Then we sort the list and de-dup it.  Then we traverse
 /// the list, writing chunks for each region.
+///
+/// This simple algorithm allows us to ignore all sorts of strange situations, such as regions
+/// overlapping, regions occurring in an unusual order, or there being bytes within the stream
+/// that are not covered by any region. All we care about is the compression boundaries.
 fn write_tpi_or_ipi_hash_stream(
     sw: &mut StreamWriter<'_, File>,
     stream_data: &[u8],
@@ -759,27 +763,21 @@ fn write_tpi_or_ipi_hash_stream(
 
     debug!("Type Hash Stream offset boundaries: {:?}", boundaries);
 
-    let mut pos: usize = 0;
+    let mut previous_boundary: usize = 0;
     let mut total_bytes_written: usize = 0;
 
-    for &boundary_offset in boundaries.iter() {
-        assert!(boundary_offset >= pos);
-        if boundary_offset == pos {
-            continue;
-        }
-
-        let start = pos;
-        let end = boundary_offset;
-        pos = end;
-
-        let data_between_boundaries = &stream_data[start..end];
+    for &next_boundary in boundaries.iter() {
+        assert!(next_boundary >= previous_boundary);
+        let region_data = &stream_data[previous_boundary..next_boundary];
 
         // We are going to _further_ chunk things, based on max_chunk_len.
-        for chunk_data in data_between_boundaries.chunks(max_chunk_len) {
+        for chunk_data in region_data.chunks(max_chunk_len) {
             sw.write_all(chunk_data)?;
             sw.end_chunk()?;
             total_bytes_written += chunk_data.len();
         }
+
+        previous_boundary = next_boundary;
     }
 
     assert_eq!(
