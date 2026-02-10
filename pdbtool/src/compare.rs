@@ -148,8 +148,8 @@ fn compare_pdbs(
 
         // Read and compare stream contents
         match compare_stream_contents(
-            &first_container,
-            &second_container,
+            first_container,
+            second_container,
             stream,
             &mut first_stream_data,
             &mut second_stream_data,

@@ -174,7 +174,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
                     &mut sw,
                     &stream_data,
                     max_chunk_size as usize,
-                    &tpi_header,
+                    tpi_header,
                 )?;
                 writer.end_chunk()?;
                 continue;
@@ -190,7 +190,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
                     &mut sw,
                     &stream_data,
                     max_chunk_size as usize,
-                    &ipi_header,
+                    ipi_header,
                 )?;
                 writer.end_chunk()?;
                 continue;
@@ -491,7 +491,7 @@ fn write_stream_fallback(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) ->
     sw.set_compression_enabled(true);
     sw.write_all(stream_data)?;
     sw.end_chunk()?;
-    return Ok(());
+    Ok(())
 }
 
 fn write_global_symbols_stream(
