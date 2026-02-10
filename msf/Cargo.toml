@@ -1,6 +1,6 @@
 [package]
 name = "ms-pdb-msf"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 description = "Reads Multi-Stream Files, which are used in the Microsoft Program Database (PDB) file format"
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
