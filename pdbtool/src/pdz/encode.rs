@@ -1,6 +1,5 @@
 //! Compresses PDB files into "PDZ" (compressed PDB) files.
 
-use crate::pdz::util::*;
 use anyhow::{Context, Result, bail};
 use ms_pdb::codeview::HasRestLen;
 use ms_pdb::dbi::DbiStreamHeader;
@@ -91,7 +90,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         .with_context(|| format!("Failed to open output PDZ: {}", options.output_pdz))?;
 
     writer.set_uncompressed_chunk_size_threshold(max_chunk_size);
-    println!(
+    info!(
         "Using maximum chunk size: {n} ({n:#x})",
         n = writer.uncompressed_chunk_size_threshold()
     );
@@ -245,14 +244,26 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
 
     match std::fs::metadata(&options.input_pdb) {
         Ok(pdb_metadata) => {
-            show_comp_rate("PDB -> PDZ", pdb_metadata.len(), out_file_size);
+            let before = pdb_metadata.len();
+            let after = out_file_size;
+
+            // We don't divide by zero around here.
+            if before != 0 {
+                let percent = (before as f64 - after as f64) / (before as f64) * 100.0;
+                info!(
+                    "    PDB -> PDZ compression : {:8} -> {:8} {percent:2.1} %",
+                    friendly::bytes(before),
+                    friendly::bytes(after)
+                );
+            }
         }
         Err(e) => {
             warn!("Failed to get metadata for input PDB: {e:?}");
         }
     }
 
-    println!("{summary}");
+    info!("Number of streams: {:8}", summary.num_streams);
+    info!("Number of chunks:  {:8}", summary.num_chunks);
 
     // Explicitly drop our output file handle so that we can re-open it for verification.
     drop(file);
@@ -295,7 +306,7 @@ fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
     let mut input_stream_data: Vec<u8> = Vec::new();
     let mut output_stream_data: Vec<u8> = Vec::new();
 
-    for stream in 1..=input_num_streams {
+    for stream in 1..input_num_streams {
         let input_stream_is_valid = input_pdb.is_stream_valid(stream);
         let output_stream_is_valid = output.is_stream_valid(stream);
 
@@ -358,24 +369,6 @@ fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
             error!(
                 "Stream {stream} has wrong (different) contents, at index {byte_offset} ({byte_offset:#x})"
             );
-
-            let out_dir = Path::new(r"d:\temp");
-
-            let input_file_path = out_dir.join(format!("pdb-s{stream}.bin"));
-            let output_file_path = out_dir.join(format!("pdz-s{stream}.bin"));
-
-            fn write_or_complain(path: &Path, data: &[u8]) {
-                match std::fs::write(path, data) {
-                    Ok(()) => {}
-                    Err(e) => {
-                        warn!("failed to write file: {} : {e:?}", path.display());
-                    }
-                }
-            }
-
-            write_or_complain(&input_file_path, &input_stream_data);
-            write_or_complain(&output_file_path, &output_stream_data);
-
             has_errors = true;
             continue;
         }
@@ -499,7 +492,7 @@ fn write_global_symbols_stream(
     stream_data: &[u8],
     mut max_chunk_len: usize,
 ) -> Result<()> {
-    info!("Writing Global Symbol Stream");
+    debug!("Writing Global Symbol Stream");
 
     sw.end_chunk()?;
 
@@ -764,7 +757,7 @@ fn write_tpi_or_ipi_hash_stream(
     boundaries.sort_unstable();
     boundaries.dedup();
 
-    info!("Type Hash Stream offset boundaries: {:?}", boundaries);
+    debug!("Type Hash Stream offset boundaries: {:?}", boundaries);
 
     let mut pos: usize = 0;
     let mut total_bytes_written: usize = 0;

@@ -93,14 +93,14 @@ fn compare_pdbs(
         }
     }
 
-    let max_streams = std::cmp::max(first_num_streams, second_num_streams);
+    let min_num_streams = first_num_streams.min(second_num_streams);
     let mut has_differences = first_num_streams != second_num_streams;
 
     let mut first_stream_data: Vec<u8> = Vec::new();
     let mut second_stream_data: Vec<u8> = Vec::new();
 
     // Compare each stream (starting from stream 1, as stream 0 is special)
-    for stream in 1..=max_streams {
+    for stream in 1..min_num_streams {
         let first_valid = stream < first_num_streams && first_container.is_stream_valid(stream);
         let second_valid = stream < second_num_streams && second_container.is_stream_valid(stream);
 
