@@ -10,6 +10,7 @@ use clap::Parser;
 
 mod addsrc;
 mod check;
+mod compare;
 mod container;
 mod copy;
 mod counts;
@@ -57,6 +58,9 @@ enum Command {
     /// PDB (MSF) or PDBZ (MSFZ) container format. This also shows some container-specific
     /// information.
     Container(container::ContainerOptions),
+    /// Compares two PDB (or PDZ) files and verifies that their stream contents are identical.
+    /// Reports differences but continues checking all streams unless stopped.
+    Compare(compare::CompareOptions),
     Test,
     Dump(dump::DumpOptions),
     Save(save::SaveStreamOptions),
@@ -86,6 +90,7 @@ fn main() -> anyhow::Result<()> {
         Command::Hexdump(args) => hexdump::command(args)?,
         Command::PdzEncode(args) => pdz::encode::pdz_encode(args)?,
         Command::Container(args) => container::container_command(&args)?,
+        Command::Compare(args) => compare::command(args)?,
         Command::Check(args) => check::command(args)?,
     }
 

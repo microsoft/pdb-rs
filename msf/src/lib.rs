@@ -353,6 +353,15 @@ impl<F> Msf<F> {
         page_to_offset(self.pages.num_pages, self.pages.page_size)
     }
 
+    /// Return the total number of pages allocated to the file, including all pages (allocated,
+    /// unallocated, etc.).
+    ///
+    /// This count includes pages allocated to streams, Page 0, FPM pages, pages that are free
+    /// (not allocated), and pages allocated to the Stream Directory.
+    pub fn num_total_pages(&self) -> u32 {
+        self.pages.num_pages
+    }
+
     /// Returns the number of free pages.
     ///
     /// This number counts the pages that are _less than_ `num_pages`. There may be pages assigned

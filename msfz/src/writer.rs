@@ -4,11 +4,11 @@ use pow2::Pow2;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::path::Path;
-use tracing::{debug, debug_span, trace, trace_span};
+use tracing::{debug, debug_span, error, trace, trace_span};
 use zerocopy::IntoBytes;
 
 /// The default threshold for compressing a chunk of data.
-pub const DEFAULT_CHUNK_THRESHOLD: u32 = 0x40_0000; // 4 MiB
+pub const DEFAULT_CHUNK_THRESHOLD: u32 = 0x10_0000; // 1 MiB
 
 /// The minimum value for the uncompressed chunk size threshold.
 pub const MIN_CHUNK_SIZE: u32 = 0x1000;
@@ -359,6 +359,11 @@ impl<F: Write + Seek> MsfzWriterFile<F> {
         })
     }
 
+    fn bytes_available_in_chunk_buffer(&self) -> usize {
+        (self.uncompressed_chunk_size_threshold as usize)
+            .saturating_sub(self.uncompressed_chunk_data.len())
+    }
+
     #[inline(never)]
     fn finish_current_chunk(&mut self) -> std::io::Result<()> {
         let _span = debug_span!("finish_current_chunk").entered();
@@ -459,6 +464,12 @@ impl<'a, F: Write + Seek> StreamWriter<'a, F> {
         self.file.finish_current_chunk()
     }
 
+    /// The number of bytes that can be written to the current chunk buffer, without exceeding
+    /// the configured maximum.
+    pub fn bytes_available_in_chunk_buffer(&self) -> usize {
+        self.file.bytes_available_in_chunk_buffer()
+    }
+
     /// Specifies whether to use chunked compression or not. The default value for this setting is
     /// `true` (chunked compression is enabled).
     ///
@@ -525,6 +536,13 @@ impl<'a, F: Write + Seek> Write for StreamWriter<'a, F> {
             } else {
                 self.file.out.stream_position()?
             };
+
+            // The MSFZ spec allocates 48 bytes for the file offset of uncompressed fragments.
+            if fragment_file_offset > MAX_UNCOMPRESSED_FILE_OFFSET {
+                error!("The uncompressed file fragment ");
+                return Err(std::io::ErrorKind::FileTooLarge.into());
+            };
+
             self.file.out.write_all(buf)?;
 
             add_fragment_uncompressed(&mut self.stream.fragments, buf_len, fragment_file_offset);

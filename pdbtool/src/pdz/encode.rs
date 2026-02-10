@@ -1,14 +1,19 @@
-use crate::pdz::util::*;
+//! Compresses PDB files into "PDZ" (compressed PDB) files.
+
 use anyhow::{Context, Result, bail};
-use ms_pdb::dbi::{DBI_STREAM_HEADER_LEN, DbiStreamHeader};
+use ms_pdb::codeview::HasRestLen;
+use ms_pdb::dbi::DbiStreamHeader;
 use ms_pdb::msf::Msf;
 use ms_pdb::msfz::{self, MIN_FILE_SIZE_16K, MsfzFinishOptions, MsfzWriter, StreamWriter};
+use ms_pdb::syms::SymIter;
+use ms_pdb::tpi;
+use ms_pdb::types::TypesIter;
 use ms_pdb::{RandomAccessFile, Stream};
 use std::fs::File;
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::Path;
-use tracing::{trace, trace_span, warn};
-use zerocopy::FromBytes;
+use tracing::{debug, error, info, trace, trace_span, warn};
+use zerocopy::{FromBytes, IntoBytes};
 
 #[derive(clap::Parser, Debug)]
 pub(crate) struct PdzEncodeOptions {
@@ -43,17 +48,15 @@ pub(crate) struct PdzEncodeOptions {
     /// Place each chunk into its own compression chunk (or chunks, if the stream is large).
     #[arg(long)]
     pub one_stream_per_chunk: bool,
+
+    /// After writing the PDZ file, close it, re-open it, and verify that its stream contents
+    /// match the original PDB, byte for byte.
+    #[arg(long)]
+    pub verify: bool,
 }
 
 pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     let _span = trace_span!("pdz_encode").entered();
-
-    let pdb_metadata = std::fs::metadata(&options.input_pdb).with_context(|| {
-        format!(
-            "Failed to get metadata for input PDB: {}",
-            options.input_pdb
-        )
-    })?;
 
     let input_file = RandomAccessFile::open(Path::new(&options.input_pdb))
         .with_context(|| format!("Failed to open input PDB: {}", options.input_pdb))?;
@@ -87,7 +90,7 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         .with_context(|| format!("Failed to open output PDZ: {}", options.output_pdz))?;
 
     writer.set_uncompressed_chunk_size_threshold(max_chunk_size);
-    println!(
+    info!(
         "Using maximum chunk size: {n} ({n:#x})",
         n = writer.uncompressed_chunk_size_threshold()
     );
@@ -111,33 +114,100 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         writer.end_chunk()?;
     }
 
-    // Next, write the DBI stream.
+    // Write the DBI stream (3).
+    let dbi_header: Option<DbiStreamHeader>;
     {
         let _span = trace_span!("transfer DBI stream");
         pdb.read_stream_to_vec_mut(Stream::DBI.into(), &mut stream_data)?;
         let mut sw = writer.stream_writer(Stream::DBI.into())?;
-        write_dbi(&mut sw, &stream_data)?;
-    }
-
-    if options.one_stream_per_chunk {
+        dbi_header = write_dbi(&mut sw, &stream_data)?;
         writer.end_chunk()?;
     }
 
+    // Write the TPI (2).
+    let tpi_header_opt: Option<tpi::TypeStreamHeader> = if pdb.is_stream_valid(Stream::TPI.into()) {
+        let _span = trace_span!("transfer TPI stream");
+        pdb.read_stream_to_vec_mut(Stream::TPI.into(), &mut stream_data)?;
+        let mut sw = writer.stream_writer(Stream::TPI.into())?;
+        write_tpi_or_ipi(&mut sw, &stream_data, max_chunk_size as usize)?
+    } else {
+        None
+    };
+
+    // Write the IPI (4)
+    let ipi_header_opt: Option<tpi::TypeStreamHeader> = if pdb.is_stream_valid(Stream::IPI.into()) {
+        let _span = trace_span!("transfer IPI stream");
+        pdb.read_stream_to_vec_mut(Stream::IPI.into(), &mut stream_data)?;
+        let mut sw = writer.stream_writer(Stream::IPI.into())?;
+        write_tpi_or_ipi(&mut sw, &stream_data, max_chunk_size as usize)?
+    } else {
+        None
+    };
+
     // Loop through the rest of the streams and do normal chunked compression.
     for stream_index in 1..num_streams {
+        let _span = trace_span!("stream").entered();
+        trace!(stream_index);
+
         if !pdb.is_stream_valid(stream_index) {
             // This is a nil stream. We don't need to do anything because the writer has already
             // reserved this stream slot.
             continue;
         }
 
-        if stream_index == Stream::PDB.into() || stream_index == Stream::DBI.into() {
+        if stream_index == Stream::PDB.into()
+            || stream_index == Stream::DBI.into()
+            || stream_index == Stream::IPI.into()
+            || stream_index == Stream::TPI.into()
+        {
             // We have already processed these streams, above.
             continue;
         }
 
-        let _span = trace_span!("stream").entered();
-        trace!(stream_index);
+        // Custom encoding for the TPI Hash Stream
+        if let Some(tpi_header) = &tpi_header_opt {
+            if tpi_header.hash_stream_index.get() == Some(stream_index) {
+                pdb.read_stream_to_vec_mut(stream_index, &mut stream_data)?;
+                let mut sw = writer.stream_writer(stream_index)?;
+                write_tpi_or_ipi_hash_stream(
+                    &mut sw,
+                    &stream_data,
+                    max_chunk_size as usize,
+                    tpi_header,
+                )?;
+                writer.end_chunk()?;
+                continue;
+            }
+        }
+
+        // Custom encoding for the IPI Hash Stream
+        if let Some(ipi_header) = &ipi_header_opt {
+            if ipi_header.hash_stream_index.get() == Some(stream_index) {
+                pdb.read_stream_to_vec_mut(stream_index, &mut stream_data)?;
+                let mut sw = writer.stream_writer(stream_index)?;
+                write_tpi_or_ipi_hash_stream(
+                    &mut sw,
+                    &stream_data,
+                    max_chunk_size as usize,
+                    ipi_header,
+                )?;
+                writer.end_chunk()?;
+                continue;
+            }
+        }
+
+        // Custom encoding for the Global Symbol Stream.
+        // The stream number for the Global Symbol Stream is found in the DBI Stream Header.
+        match &dbi_header {
+            Some(dbi_header) if dbi_header.global_symbol_stream.get() == Some(stream_index) => {
+                let mut sw = writer.stream_writer(stream_index)?;
+                pdb.read_stream_to_vec_mut(stream_index, &mut stream_data)?;
+                write_global_symbols_stream(&mut sw, &stream_data, max_chunk_size as usize)?;
+                writer.end_chunk()?;
+                continue;
+            }
+            _ => {}
+        }
 
         {
             let _span = trace_span!("read stream").entered();
@@ -156,7 +226,8 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
         }
     }
 
-    // Get final size of the file. Don't append more data to the file after this line.
+    // Finish encoding the MSFZ file. This closes the session; don't append more data to the file
+    // after this line. This writes the MSFZ Stream Directory, Chunk Table, and MSFZ File Header.
     let (summary, mut file) = {
         let _span = trace_span!("finish writing").entered();
         writer.finish_with_options(MsfzFinishOptions {
@@ -170,38 +241,172 @@ pub fn pdz_encode(options: PdzEncodeOptions) -> Result<()> {
     };
 
     let out_file_size = file.seek(SeekFrom::End(0))?;
-    show_comp_rate("PDB -> PDZ", pdb_metadata.len(), out_file_size);
 
-    println!("{summary}");
+    match std::fs::metadata(&options.input_pdb) {
+        Ok(pdb_metadata) => {
+            let before = pdb_metadata.len();
+            let after = out_file_size;
 
-    // Explicitly close our file handles so that the replace_file() call can succeed.
-    drop(pdb);
+            // We don't divide by zero around here.
+            if before != 0 {
+                let percent = (before as f64 - after as f64) / (before as f64) * 100.0;
+                info!(
+                    "    PDB -> PDZ compression : {:8} -> {:8} {percent:2.1} %",
+                    friendly::bytes(before),
+                    friendly::bytes(after)
+                );
+            }
+        }
+        Err(e) => {
+            warn!("Failed to get metadata for input PDB: {e:?}");
+        }
+    }
+
+    info!("Number of streams: {:8}", summary.num_streams);
+    info!("Number of chunks:  {:8}", summary.num_chunks);
+
+    // Explicitly drop our output file handle so that we can re-open it for verification.
     drop(file);
+
+    if options.verify {
+        info!("Verifying PDZ encoding");
+        let is_same = verify_pdz(&pdb, &options.output_pdz)?;
+        if !is_same {
+            bail!("PDZ encoding failed verification.");
+        }
+    }
+
+    drop(pdb);
 
     Ok(())
 }
 
+/// Reads all of the data from two files and compares their contents.
+///
+/// The first file is a PDB (MSF) file and is already open.
+/// The second file is a PDZ (MSFZ) file and its filename is given.
+///
+/// Returns `true` if their contents are identical.
+fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
+    let output = msfz::Msfz::open(output_pdz)?;
+
+    let input_num_streams = input_pdb.num_streams();
+    let output_num_streams = output.num_streams();
+    if input_num_streams != output_num_streams {
+        error!(
+            "The output file (PDZ) has the wrong number of streams. \
+             Expected value: {input_num_streams}. \
+             Actual value: {output_num_streams}"
+        );
+        bail!("Wrong number of streams");
+    }
+
+    let mut has_errors = false;
+
+    let mut input_stream_data: Vec<u8> = Vec::new();
+    let mut output_stream_data: Vec<u8> = Vec::new();
+
+    for stream in 1..input_num_streams {
+        let input_stream_is_valid = input_pdb.is_stream_valid(stream);
+        let output_stream_is_valid = output.is_stream_valid(stream);
+
+        if input_stream_is_valid != output_stream_is_valid {
+            error!(
+                "Stream {stream} has wrong validity. \
+                 Expected value: {input_stream_is_valid:?}. \
+                 Actual value: {output_stream_is_valid:?}."
+            );
+            has_errors = true;
+        }
+
+        if !input_stream_is_valid {
+            continue;
+        }
+
+        let input_stream_size = input_pdb.stream_size(stream) as usize;
+        let output_stream_size = output.stream_size(stream)? as usize;
+
+        if input_stream_size != output_stream_size {
+            error!(
+                "Stream {stream} has wrong length in stream directory.
+                    Expected value: {input_stream_size}. \
+                    Actual value: {output_stream_size}."
+            );
+            has_errors = true;
+            continue;
+        }
+
+        // Read stream data in the input file.
+        {
+            input_stream_data.clear();
+            let mut sr = input_pdb.get_stream_reader(stream)?;
+            sr.read_to_end(&mut input_stream_data)?;
+        }
+
+        // Read stream data in the output file.
+        {
+            output_stream_data.clear();
+            let mut sr = output.get_stream_reader(stream)?;
+            sr.read_to_end(&mut output_stream_data)?;
+        }
+
+        if input_stream_data.len() != output_stream_data.len() {
+            error!(
+                "Stream {stream} has wrong length. \
+                    Expected value: {}. \
+                    Actual value: {}.",
+                input_stream_data.len(),
+                output_stream_data.len()
+            );
+            has_errors = true;
+            continue;
+        }
+
+        if let Some(byte_offset) = crate::compare::find_index_of_first_different_byte(
+            &input_stream_data,
+            &output_stream_data,
+        ) {
+            error!(
+                "Stream {stream} has wrong (different) contents, at index {byte_offset} ({byte_offset:#x})"
+            );
+            has_errors = true;
+            continue;
+        }
+    }
+
+    if has_errors {
+        return Ok(false);
+    }
+
+    info!("Verification succeeded.");
+
+    Ok(true)
+}
+
 /// Write the DBI stream. Be smart about compression and compression chunk boundaries.
-fn write_dbi(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) -> Result<()> {
+fn write_dbi(
+    sw: &mut StreamWriter<'_, File>,
+    stream_data: &[u8],
+) -> Result<Option<DbiStreamHeader>> {
     // Avoid compressing data from the DBI stream with other chunks.
     sw.end_chunk()?;
 
-    if stream_data.len() < DBI_STREAM_HEADER_LEN {
+    // Read the DBI stream header. If we can't read it (because it's too small), then fall back
+    // to copying the stream.
+    let Ok((dbi_header, mut rest_of_stream)) = DbiStreamHeader::read_from_prefix(stream_data)
+    else {
         // Something is seriously wrong with this PDB. Pass the contents through without any
         // modification or compression.
         sw.set_compression_enabled(false);
         sw.write_all(stream_data)?;
-        return Ok(());
-    }
-
-    let (header_bytes, mut rest_of_stream) = stream_data.split_at(DBI_STREAM_HEADER_LEN);
-
-    // This unwrap() cannot fail because we just tested the size, above.
-    let dbi_header = DbiStreamHeader::ref_from_bytes(header_bytes).unwrap();
+        sw.end_chunk()?;
+        return Ok(None);
+    };
 
     // Write the DBI Stream Header uncompressed. This allows symbol.exe to read it.
     sw.set_compression_enabled(false);
-    sw.write_all(header_bytes)?;
+    sw.write_all(dbi_header.as_bytes())?;
+    sw.end_chunk()?;
 
     // The DBI consists of a header, followed by a set of substreams. The substreams contain
     // data with different sizes, compression characteristic, and different access patterns.
@@ -267,6 +472,319 @@ fn write_dbi(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) -> Result<()> 
     sw.set_compression_enabled(true);
     sw.write_all(rest_of_stream)?;
     sw.end_chunk()?;
+
+    Ok(Some(dbi_header))
+}
+
+/// This is the fallback path for writing complex streams.
+///
+/// If we find any problem in writing a complex stream, we fall back to compressing all of it.
+#[inline(never)]
+fn write_stream_fallback(sw: &mut StreamWriter<'_, File>, stream_data: &[u8]) -> Result<()> {
+    sw.set_compression_enabled(true);
+    sw.write_all(stream_data)?;
+    sw.end_chunk()?;
+    Ok(())
+}
+
+fn write_global_symbols_stream(
+    sw: &mut StreamWriter<'_, File>,
+    stream_data: &[u8],
+    mut max_chunk_len: usize,
+) -> Result<()> {
+    debug!("Writing Global Symbol Stream");
+
+    sw.end_chunk()?;
+
+    // The code below assumes that you can always put at least one type record into a chunk.
+    // To prevent a forward-progress failure, we require that max_chunk_len is larger than the
+    // largest type record.
+    const MIN_CHUNK_LEN: usize = 0x20000;
+    if max_chunk_len < MIN_CHUNK_LEN {
+        warn!(
+            "max_chunk_len ({}) is way too small; promoting it",
+            max_chunk_len
+        );
+        max_chunk_len = MIN_CHUNK_LEN;
+    }
+
+    let mut current_chunk_bytes: &[u8] = stream_data;
+    let mut total_bytes_written: usize = 0;
+
+    'top: while !current_chunk_bytes.is_empty() {
+        let mut iter = SymIter::new(current_chunk_bytes);
+        loop {
+            let rest_len_before = iter.rest_len();
+            if iter.next().is_none() {
+                break 'top;
+            }
+            let rest_len_after = iter.rest_len();
+
+            let chunk_len_with_this_record = current_chunk_bytes.len() - rest_len_after;
+            if chunk_len_with_this_record > max_chunk_len {
+                let chunk_len_without_this_record = current_chunk_bytes.len() - rest_len_before;
+                let (committed_chunk_bytes, next_chunk_bytes) =
+                    current_chunk_bytes.split_at(chunk_len_without_this_record);
+
+                // TODO: This could be optimized to a single, non-buffered chunk write.
+                sw.write_all(committed_chunk_bytes)?;
+                sw.end_chunk()?;
+                total_bytes_written += committed_chunk_bytes.len();
+
+                // This will cause us to re-parse a record at the start of the next chunk.
+                // That's ok, that's cheap.  But we do need to handle the case where a record
+                // is larger than max_chunk_len.  We "handle" that by requiring that max_chunk_len
+                // is at least 0x10004, since that is the maximum size for any record.  That's a
+                // very silly lower bound for a chunk size, so we actually require it to be higher.
+                current_chunk_bytes = next_chunk_bytes;
+                continue 'top;
+            }
+        }
+    }
+
+    if !current_chunk_bytes.is_empty() {
+        sw.write_all(current_chunk_bytes)?;
+        sw.end_chunk()?;
+        total_bytes_written += current_chunk_bytes.len();
+    }
+
+    assert_eq!(
+        total_bytes_written,
+        stream_data.len(),
+        "expected to write same number of record bytes"
+    );
+
+    Ok(())
+}
+
+/// Write the TPI or IPI stream. Be smart about compression and compression chunk boundaries.
+///
+/// This function returns `Some(header)` if the TPI header was correctly parsed. This header can
+/// be used to optimize the encoding of the associated Type Hash Stream.
+fn write_tpi_or_ipi(
+    sw: &mut StreamWriter<'_, File>,
+    stream_data: &[u8],
+    mut max_chunk_len: usize,
+) -> Result<Option<tpi::TypeStreamHeader>> {
+    debug!("write_tpi_or_ipi");
+    sw.end_chunk()?;
+
+    // The code below assumes that you can always put at least one type record into a chunk.
+    // To prevent a forward-progress failure, we require that max_chunk_len is larger than the
+    // largest type record.
+    const MIN_CHUNK_LEN: usize = 0x20000;
+    if max_chunk_len < MIN_CHUNK_LEN {
+        warn!("max_chunk_len is way too small; promoting it");
+        max_chunk_len = MIN_CHUNK_LEN;
+    }
+
+    // If the stream does not even contain a full header, then fall back to writing full contents.
+    let Ok((tpi_header, after_header)) = tpi::TypeStreamHeader::read_from_prefix(stream_data)
+    else {
+        warn!("TPI or IPI stream was too short to contain a valid header");
+        write_stream_fallback(sw, stream_data)?;
+        return Ok(None);
+    };
+
+    // Find the slice of the type data. There can be data following the type data and we must
+    // handle it correctly.
+    let type_record_bytes_len = tpi_header.type_record_bytes.get() as usize;
+    if after_header.len() < type_record_bytes_len {
+        warn!(
+            "TPI or IPI stream contained invalid header value (type_record_bytes exceeded bounds)"
+        );
+        write_stream_fallback(sw, stream_data)?;
+        return Ok(None);
+    }
+
+    debug!(type_record_bytes_len, "encoding TPI/IPI.");
+
+    // type_record_bytes contains the encoded type records
+    // after_records contains unknown data (if any) after the type records
+    let (type_record_bytes, after_records) = after_header.split_at(type_record_bytes_len);
+
+    // Write the header, without compression.
+    // TODO: Place this in the initial read section.
+    sw.set_compression_enabled(false);
+    sw.write_all(tpi_header.as_bytes())?;
+
+    // Next, we are going to scan through the type records in the TPI. Our goal is to create chunk
+    // boundaries that align with record boundaries, so that no type record is split across chunks.
+    sw.set_compression_enabled(true);
+
+    // current_chunk_bytes contains the type records that will be written into the next chunk.
+    let mut current_chunk_bytes: &[u8] = type_record_bytes;
+
+    let mut record_bytes_written: usize = 0;
+
+    // This loop runs once per "chunk". Each iteration builds a single MSFZ chunk from a
+    // sequence of contiguous type records. Type records never cross chunk boundaries.
+    'top: while !current_chunk_bytes.is_empty() {
+        let mut iter = TypesIter::new(current_chunk_bytes);
+        loop {
+            let rest_len_before = iter.rest_len();
+            if iter.next().is_none() {
+                break 'top;
+            }
+
+            let rest_len_after = iter.rest_len();
+            let record_len = rest_len_before - rest_len_after;
+            assert!(record_len <= current_chunk_bytes.len());
+
+            // Would adding this record to the current chunk exceed our threshold?
+            let chunk_len_with_this_record = current_chunk_bytes.len() - rest_len_after;
+            if chunk_len_with_this_record > max_chunk_len {
+                let chunk_len_without_this_record = current_chunk_bytes.len() - rest_len_before;
+                let (committed_chunk_bytes, next_chunk_bytes) =
+                    current_chunk_bytes.split_at(chunk_len_without_this_record);
+
+                // TODO: This could be optimized to a single, non-buffered chunk write.
+                sw.write_all(committed_chunk_bytes)?;
+                sw.end_chunk()?;
+                record_bytes_written += committed_chunk_bytes.len();
+
+                // This will cause us to re-parse a record at the start of the next chunk.
+                // That's ok, that's cheap.  But we do need to handle the case where a record
+                // is larger than max_chunk_len.  We "handle" that by requiring that max_chunk_len
+                // is at least 0x10004, since that is the maximum size for any record.  That's a
+                // very silly lower bound for a chunk size, so we actually require it to be higher.
+                current_chunk_bytes = next_chunk_bytes;
+                continue 'top;
+            }
+
+            // Keep processing records.
+        }
+    }
+
+    // If we got here, then the iterator stopped reporting records. That can happen for two
+    // reasons: 1) the normal case where we reach the end of the types, or 2) we failed to
+    // decode a type record.  In both cases, writing current_chunk_contents will write the
+    // prefix of records that have been parsed (but have not triggered our threshold
+    if !current_chunk_bytes.is_empty() {
+        // TODO: optimize to a single, non-buffered chunk write.
+        sw.write_all(current_chunk_bytes)?;
+        record_bytes_written += current_chunk_bytes.len();
+    }
+    sw.end_chunk()?;
+    assert_eq!(
+        record_bytes_written,
+        type_record_bytes.len(),
+        "expected to write same number of record bytes"
+    );
+
+    if !after_records.is_empty() {
+        debug!(
+            after_records_len = after_records.len(),
+            "TPI/IPI contains data after type stream"
+        );
+        sw.write_all(after_records)?;
+    }
+
+    sw.end_chunk()?;
+
+    Ok(Some(tpi_header))
+}
+
+/// Write the "Type Hash Stream" associated with the TPI or IPI stream.
+/// Be smart about compression and compression chunk boundaries.
+///
+/// This function requires the Type Stream Header from the original TPI or IPI stream.
+/// That header describes the regions within the Type Stream Header.
+///
+/// The Type Hash Stream consists of three regions: 1) Hash Value Buffer, 2) Index Offset Buffer,
+/// and 3) Hash Adjustment Buffer.  The size and location of each of these regions is specified
+/// in fields in the Type Stream Header.
+///
+/// We use a simple algorithm. We build a list of the start and end locations of each of these
+/// buffers (if they are non-zero length). Then we sort the list and de-dup it.  Then we traverse
+/// the list, writing chunks for each region.
+///
+/// This simple algorithm allows us to ignore all sorts of strange situations, such as regions
+/// overlapping, regions occurring in an unusual order, or there being bytes within the stream
+/// that are not covered by any region. All we care about is the compression boundaries.
+fn write_tpi_or_ipi_hash_stream(
+    sw: &mut StreamWriter<'_, File>,
+    stream_data: &[u8],
+    max_chunk_len: usize,
+    tpi_header: &tpi::TypeStreamHeader,
+) -> Result<()> {
+    sw.end_chunk()?;
+
+    let stream_len_u32 = stream_data.len() as u32;
+
+    let mut boundaries: Vec<usize> = Vec::with_capacity(8);
+
+    boundaries.push(stream_data.len());
+
+    let regions: [(i32, u32); 3] = [
+        (
+            tpi_header.hash_value_buffer_offset.get(),
+            tpi_header.hash_value_buffer_length.get(),
+        ),
+        (
+            tpi_header.index_offset_buffer_offset.get(),
+            tpi_header.index_offset_buffer_length.get(),
+        ),
+        (
+            tpi_header.hash_adj_buffer_offset.get(),
+            tpi_header.hash_adj_buffer_length.get(),
+        ),
+    ];
+
+    for &(start, length) in regions.iter() {
+        if length == 0 {
+            continue;
+        }
+        if start < 0 {
+            warn!("Type Hash Stream has a negative offset for one of its regions");
+            continue;
+        }
+
+        let start_u: u32 = start as u32;
+        if start_u > stream_len_u32 {
+            warn!("Type Hash Stream has a region whose start offset is out of bounds");
+            continue;
+        }
+
+        let avail = stream_len_u32 - start_u;
+        if length > avail {
+            warn!("Type Hash Stream has a region whose end offset is out of bounds");
+            continue;
+        }
+
+        let end: u32 = start_u + length;
+
+        boundaries.push(start_u as usize);
+        boundaries.push(end as usize);
+    }
+
+    boundaries.sort_unstable();
+    boundaries.dedup();
+
+    debug!("Type Hash Stream offset boundaries: {:?}", boundaries);
+
+    let mut previous_boundary: usize = 0;
+    let mut total_bytes_written: usize = 0;
+
+    for &next_boundary in boundaries.iter() {
+        assert!(next_boundary >= previous_boundary);
+        let region_data = &stream_data[previous_boundary..next_boundary];
+
+        // We are going to _further_ chunk things, based on max_chunk_len.
+        for chunk_data in region_data.chunks(max_chunk_len) {
+            sw.write_all(chunk_data)?;
+            sw.end_chunk()?;
+            total_bytes_written += chunk_data.len();
+        }
+
+        previous_boundary = next_boundary;
+    }
+
+    assert_eq!(
+        total_bytes_written,
+        stream_data.len(),
+        "expected to write the correct number of bytes"
+    );
 
     Ok(())
 }
