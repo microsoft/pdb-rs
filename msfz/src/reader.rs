@@ -54,21 +54,25 @@ impl std::fmt::Debug for FragmentLocation {
         } else if self.is_compressed() {
             write!(
                 f,
-                "uncompressed at 0x{:06x}",
-                self.uncompressed_file_offset()
+                "chunk {} : 0x{:04x}",
+                self.compressed_first_chunk(),
+                self.compressed_offset_within_chunk()
             )
         } else {
             write!(
                 f,
-                "chunk {} : 0x{:04x}",
-                self.compressed_first_chunk(),
-                self.compressed_offset_within_chunk()
+                "uncompressed at 0x{:06x}",
+                self.uncompressed_file_offset()
             )
         }
     }
 }
 
 const FRAGMENT_LOCATION_32BIT_IS_COMPRESSED_MASK: u32 = 1u32 << 31;
+
+/// A bit mask for the bits within a packed `FragmentLocation` which encode
+/// the file offset of an uncompressed fragment.
+const UNCOMPRESSED_FRAGMENT_FILE_OFFSET_MASK: u64 = (1u64 << 48) - 1;
 
 /// Represents the location of a fragment, either compressed or uncompressed.
 #[derive(Copy, Clone)]
@@ -97,7 +101,7 @@ impl FragmentLocation {
     }
 
     /// Returns the chunk index for this compressed fragment.
-    /// 
+    ///
     /// You must check `is_compressed()` before calling this function.
     pub fn compressed_first_chunk(&self) -> u32 {
         debug_assert!(!self.is_nil());
@@ -114,7 +118,7 @@ impl FragmentLocation {
     fn uncompressed_file_offset(&self) -> u64 {
         debug_assert!(!self.is_nil());
         debug_assert!(!self.is_compressed());
-        ((self.hi as u64) << 32) | (self.lo as u64)
+        (((self.hi as u64) << 32) | (self.lo as u64)) & UNCOMPRESSED_FRAGMENT_FILE_OFFSET_MASK
     }
 }
 
@@ -560,7 +564,9 @@ impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {
                 )?;
                 buf_xfer.copy_from_slice(chunk_slice);
             } else {
-                // Read the stream data directly from disk.
+                // Read the stream data directly from disk.  We don't validate the file offset or
+                // the length of the transfer. Instead, we just allow the underlying file system
+                // to report errors.
                 let file_offset = fragment.location.uncompressed_file_offset();
                 self.msfz
                     .file
@@ -571,11 +577,9 @@ impl<'a, F: ReadAt> ReadAt for StreamReader<'a, F> {
                 break;
             }
 
-            if current_offset >= num_bytes_xfer as u64 {
-                current_offset -= num_bytes_xfer as u64;
-            } else {
-                current_offset = 0;
-            }
+            // Since we have finished reading from one chunk and there is more data to read in the
+            // next chunk, the "offset within chunk" becomes zero.
+            current_offset = 0;
         }
 
         Ok(original_buf_len - buf.len())

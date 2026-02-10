@@ -40,10 +40,19 @@ pub(crate) fn command(options: CompareOptions) -> Result<()> {
 
     // Print summary
     info!("Comparison completed:");
-    info!("  Total streams compared:   {}", comparison_stats.streams_compared);
-    info!("  Streams with differences: {}", comparison_stats.streams_different);
-    info!("  Nil streams matched:      {}", comparison_stats.nil_streams_matched);
-    
+    info!(
+        "  Total streams compared:   {}",
+        comparison_stats.streams_compared
+    );
+    info!(
+        "  Streams with differences: {}",
+        comparison_stats.streams_different
+    );
+    info!(
+        "  Nil streams matched:      {}",
+        comparison_stats.nil_streams_matched
+    );
+
     if !success {
         info!("Result: Files are DIFFERENT");
         bail!("Files are different");
@@ -187,46 +196,59 @@ fn compare_stream_contents(
     second_container.read_stream_to_vec_mut(stream, second_stream_data)?;
 
     // Find the first different byte
-    if let Some(byte_offset) = find_index_of_first_different_byte(first_stream_data, second_stream_data) {
+    if let Some(byte_offset) =
+        find_index_of_first_different_byte(first_stream_data, second_stream_data)
+    {
         error!(
             "Stream {} differs at byte offset {} ({:#x})",
             stream, byte_offset, byte_offset
         );
-    } else {
-        error!("Stream {} has different content but no specific difference found", stream);
+        return Ok(false);
     }
 
-    Ok(false)
+    Ok(true)
 }
 
-fn find_index_of_first_different_byte(a: &[u8], b: &[u8]) -> Option<usize> {
+/// Compares two byte slices for equality. If they are different, then returns the offset of the
+/// first byte that is wrong.
+///
+/// * Returns `Some(0)` if the byte slices have different lengths.
+/// * Returns `Some(i)` if the byte slices have different contents, and `i` is the offset of the
+///   first byte that is different.
+/// * Returns `None` if the contents are identical.
+#[inline(never)]
+pub(crate) fn find_index_of_first_different_byte(mut a: &[u8], mut b: &[u8]) -> Option<usize> {
     if a.len() != b.len() {
         return Some(0);
     }
 
-    const BLOCK_SIZE: usize = 256;
-    let mut offset = 0;
+    const BLOCK_SIZE: usize = 4096;
 
-    // Compare in blocks for efficiency
-    while offset + BLOCK_SIZE <= a.len() {
-        let block_a = &a[offset..offset + BLOCK_SIZE];
-        let block_b = &b[offset..offset + BLOCK_SIZE];
+    // This first loop uses memcmp to find the first block which has different contents.
+    // memcmp is generally going to be faster than a manually-indexed loop.
+    let mut skipped_len: usize = 0;
+    loop {
+        assert_eq!(a.len(), b.len());
+        if a.len() < BLOCK_SIZE {
+            break;
+        }
+        let block_a = &a[..BLOCK_SIZE];
+        let block_b = &b[..BLOCK_SIZE];
 
         if block_a != block_b {
-            // Found difference in this block, find exact byte
-            for i in 0..BLOCK_SIZE {
-                if block_a[i] != block_b[i] {
-                    return Some(offset + i);
-                }
-            }
+            break;
         }
-        offset += BLOCK_SIZE;
+
+        a = &a[BLOCK_SIZE..];
+        b = &b[BLOCK_SIZE..];
+        skipped_len += BLOCK_SIZE;
     }
 
-    // Compare remaining bytes
-    for i in offset..a.len() {
+    // Finish checking the ragged last block -or- repeat the scan of the block which
+    // contained different contents.
+    for i in 0..a.len() {
         if a[i] != b[i] {
-            return Some(i);
+            return Some(skipped_len + i);
         }
     }
 

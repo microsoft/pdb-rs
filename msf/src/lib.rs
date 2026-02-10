@@ -355,7 +355,7 @@ impl<F> Msf<F> {
 
     /// Return the total number of pages allocated to the file, including all pages (allocated,
     /// unallocated, etc.).
-    /// 
+    ///
     /// This count includes pages allocated to streams, Page 0, FPM pages, pages that are free
     /// (not allocated), and pages allocated to the Stream Directory.
     pub fn num_total_pages(&self) -> u32 {

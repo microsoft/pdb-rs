@@ -10,6 +10,7 @@ use clap::Parser;
 
 mod addsrc;
 mod check;
+mod compare;
 mod container;
 mod copy;
 mod counts;
@@ -21,7 +22,6 @@ mod hexdump;
 mod pdz;
 mod save;
 mod util;
-mod compare;
 
 #[derive(clap::Parser)]
 struct CommandWithFlags {

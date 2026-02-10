@@ -312,6 +312,19 @@ fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
             continue;
         }
 
+        let input_stream_size = input_pdb.stream_size(stream) as usize;
+        let output_stream_size = output.stream_size(stream)? as usize;
+
+        if input_stream_size != output_stream_size {
+            error!(
+                "Stream {stream} has wrong length in stream directory.
+                    Expected value: {input_stream_size}. \
+                    Actual value: {output_stream_size}."
+            );
+            has_errors = true;
+            continue;
+        }
+
         // Read stream data in the input file.
         {
             input_stream_data.clear();
@@ -338,12 +351,31 @@ fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
             continue;
         }
 
-        if let Some(byte_offset) =
-            find_index_of_first_different_byte(&input_stream_data, &output_stream_data)
-        {
+        if let Some(byte_offset) = crate::compare::find_index_of_first_different_byte(
+            &input_stream_data,
+            &output_stream_data,
+        ) {
             error!(
                 "Stream {stream} has wrong (different) contents, at index {byte_offset} ({byte_offset:#x})"
             );
+
+            let out_dir = Path::new(r"d:\temp");
+
+            let input_file_path = out_dir.join(format!("pdb-s{stream}.bin"));
+            let output_file_path = out_dir.join(format!("pdz-s{stream}.bin"));
+
+            fn write_or_complain(path: &Path, data: &[u8]) {
+                match std::fs::write(path, data) {
+                    Ok(()) => {}
+                    Err(e) => {
+                        warn!("failed to write file: {} : {e:?}", path.display());
+                    }
+                }
+            }
+
+            write_or_complain(&input_file_path, &input_stream_data);
+            write_or_complain(&output_file_path, &output_stream_data);
+
             has_errors = true;
             continue;
         }
@@ -358,40 +390,6 @@ fn verify_pdz(input_pdb: &Msf, output_pdz: &str) -> anyhow::Result<bool> {
     Ok(true)
 }
 
-fn find_index_of_first_different_byte(mut a: &[u8], mut b: &[u8]) -> Option<usize> {
-    if a.len() != b.len() {
-        return Some(0);
-    }
-
-    const BLOCK_SIZE: usize = 256;
-
-    let mut skipped_len: usize = 0;
-    loop {
-        assert_eq!(a.len(), b.len());
-        if a.len() < BLOCK_SIZE {
-            break;
-        }
-        let block_a = &a[..BLOCK_SIZE];
-        let block_b = &b[..BLOCK_SIZE];
-
-        if block_a != block_b {
-            break;
-        }
-
-        a = &a[BLOCK_SIZE..];
-        b = &b[BLOCK_SIZE..];
-        skipped_len += BLOCK_SIZE;
-    }
-
-    for i in 0..a.len() {
-        if a[i] != b[i] {
-            return Some(skipped_len + i);
-        }
-    }
-
-    None
-}
-
 /// Write the DBI stream. Be smart about compression and compression chunk boundaries.
 fn write_dbi(
     sw: &mut StreamWriter<'_, File>,
@@ -400,6 +398,8 @@ fn write_dbi(
     // Avoid compressing data from the DBI stream with other chunks.
     sw.end_chunk()?;
 
+    // Read the DBI stream header. If we can't read it (because it's too small), then fall back
+    // to copying the stream.
     let Ok((dbi_header, mut rest_of_stream)) = DbiStreamHeader::read_from_prefix(stream_data)
     else {
         // Something is seriously wrong with this PDB. Pass the contents through without any
