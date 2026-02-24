@@ -1477,6 +1477,7 @@ pub enum SymData<'a> {
     ObjName(ObjectName<'a>),
     Compile3(Compile3<'a>),
     Proc(Proc<'a>),
+    Thunk(Thunk<'a>),
     Udt(Udt<'a>),
     Constant(Constant<'a>),
     ManagedConstant(ManagedConstant<'a>),
