@@ -1532,6 +1532,7 @@ impl<'a> SymData<'a> {
         Ok(match kind {
             SymKind::S_OBJNAME => Self::ObjName(p.parse()?),
             SymKind::S_GPROC32 | SymKind::S_LPROC32 => Self::Proc(p.parse()?),
+            SymKind::S_THUNK32 => Self::Thunk(p.parse()?),
             SymKind::S_COMPILE3 => Self::Compile3(p.parse()?),
             SymKind::S_UDT => Self::Udt(p.parse()?),
             SymKind::S_CONSTANT => Self::Constant(p.parse()?),
