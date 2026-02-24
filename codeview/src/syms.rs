@@ -224,7 +224,7 @@ impl<'a> Parse<'a> for ManagedProc<'a> {
 }
 
 #[repr(C)]
-#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Default)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct ThunkFixed {
     pub block: BlockHeader,
@@ -236,6 +236,7 @@ pub struct ThunkFixed {
     // variant: [u8]
 }
 
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct Thunk<'a> {
     pub fixed: &'a ThunkFixed,
