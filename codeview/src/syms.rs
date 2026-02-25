@@ -967,31 +967,31 @@ pub struct TrampolineFixed {
     /// trampoline sym subtype
     pub tramp_type: U16<LE>,
     /// size of the thunk
-    pub cb_thunk: U16<LE>,
+    pub thunk_len: U16<LE>,
     /// offset of the thunk
-    pub off_thunk: U32<LE>,
+    pub thunk_offset: U32<LE>,
     /// offset of the target of the thunk
-    pub off_target: U32<LE>,
+    pub target_offset: U32<LE>,
     /// section index of the thunk
-    pub sect_thunk: U16<LE>,
+    pub thunk_segment: U16<LE>,
     /// section index of the target of the thunk
-    pub sect_target: U16<LE>,
+    pub target_segment: U16<LE>,
 }
 
 impl TrampolineFixed {
     /// View the thunk location as `OffsetSegment`.
     pub fn thunk(&self) -> OffsetSegment {
         OffsetSegment {
-            offset: self.off_thunk,
-            segment: self.sect_thunk,
+            offset: self.thunk_offset,
+            segment: self.thunk_segment,
         }
     }
 
     /// View the trampoline target location as `OffsetSegment`.
     pub fn target(&self) -> OffsetSegment {
         OffsetSegment {
-            offset: self.off_target,
-            segment: self.sect_target,
+            offset: self.target_offset,
+            segment: self.target_segment,
         }
     }
 }
@@ -1020,17 +1020,17 @@ fn test_trampoline() {
     let sym = Trampoline::parse(&data).unwrap();
 
     assert_eq!(sym.fixed.tramp_type.get(), 0x0101);
-    assert_eq!(sym.fixed.cb_thunk.get(), 0x0202);
-    assert_eq!(sym.fixed.off_thunk.get(), 0x03030303);
-    assert_eq!(sym.fixed.off_target.get(), 0x04040404);
-    assert_eq!(sym.fixed.sect_thunk.get(), 0x0505);
-    assert_eq!(sym.fixed.sect_target.get(), 0x0606);
+    assert_eq!(sym.fixed.thunk_len.get(), 0x0202);
+    assert_eq!(sym.fixed.thunk_offset.get(), 0x03030303);
+    assert_eq!(sym.fixed.target_offset.get(), 0x04040404);
+    assert_eq!(sym.fixed.thunk_segment.get(), 0x0505);
+    assert_eq!(sym.fixed.target_segment.get(), 0x0606);
     assert_eq!(sym.rest, &hex!("cccccc"));
 
-    assert_eq!(sym.fixed.thunk().offset, sym.fixed.off_thunk);
-    assert_eq!(sym.fixed.thunk().segment, sym.fixed.sect_thunk);
-    assert_eq!(sym.fixed.target().offset, sym.fixed.off_target);
-    assert_eq!(sym.fixed.target().segment, sym.fixed.sect_target);
+    assert_eq!(sym.fixed.thunk().offset, sym.fixed.thunk_offset);
+    assert_eq!(sym.fixed.thunk().segment, sym.fixed.thunk_segment);
+    assert_eq!(sym.fixed.target().offset, sym.fixed.target_offset);
+    assert_eq!(sym.fixed.target().segment, sym.fixed.target_segment);
 }
 
 /// `S_BUILDINFO` - Build info for a module
