@@ -979,7 +979,7 @@ pub struct TrampolineFixed {
 }
 
 impl TrampolineFixed {
-    /// View the thunk location as `OffsetSegment`.
+    /// View the thunk location as an `OffsetSegment`.
     pub fn thunk(&self) -> OffsetSegment {
         OffsetSegment {
             offset: self.thunk_offset,
@@ -987,7 +987,7 @@ impl TrampolineFixed {
         }
     }
 
-    /// View the trampoline target location as `OffsetSegment`.
+    /// View the trampoline target location as an `OffsetSegment`.
     pub fn target(&self) -> OffsetSegment {
         OffsetSegment {
             offset: self.target_offset,
