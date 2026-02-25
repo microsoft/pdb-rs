@@ -130,6 +130,15 @@ pub fn dump_sym(
             write!(out, " {}", proc.name)?;
         }
 
+        SymData::Thunk(thunk) => {
+            write!(
+                out,
+                "{} ..+ 0x{:x}, ",
+                thunk.fixed.offset_segment, thunk.fixed.length
+            )?;
+            write!(out, " {}", thunk.name)?;
+        }
+
         SymData::ManagedProc(proc) => {
             write!(out, "Token 0x{:x} {}", proc.fixed.token.get(), proc.name)?;
         }

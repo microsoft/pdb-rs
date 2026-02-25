@@ -224,7 +224,7 @@ impl<'a> Parse<'a> for ManagedProc<'a> {
 }
 
 #[repr(C)]
-#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Default)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug, Default)]
 #[allow(missing_docs)]
 pub struct ThunkFixed {
     pub block: BlockHeader,
@@ -236,6 +236,7 @@ pub struct ThunkFixed {
     // variant: [u8]
 }
 
+#[derive(Clone, Debug)]
 #[allow(missing_docs)]
 pub struct Thunk<'a> {
     pub fixed: &'a ThunkFixed,
@@ -1476,6 +1477,7 @@ pub enum SymData<'a> {
     ObjName(ObjectName<'a>),
     Compile3(Compile3<'a>),
     Proc(Proc<'a>),
+    Thunk(Thunk<'a>),
     Udt(Udt<'a>),
     Constant(Constant<'a>),
     ManagedConstant(ManagedConstant<'a>),
@@ -1530,6 +1532,7 @@ impl<'a> SymData<'a> {
         Ok(match kind {
             SymKind::S_OBJNAME => Self::ObjName(p.parse()?),
             SymKind::S_GPROC32 | SymKind::S_LPROC32 => Self::Proc(p.parse()?),
+            SymKind::S_THUNK32 => Self::Thunk(p.parse()?),
             SymKind::S_COMPILE3 => Self::Compile3(p.parse()?),
             SymKind::S_UDT => Self::Udt(p.parse()?),
             SymKind::S_CONSTANT => Self::Constant(p.parse()?),
