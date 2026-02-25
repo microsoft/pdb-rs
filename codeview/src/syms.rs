@@ -978,6 +978,24 @@ pub struct TrampolineFixed {
     pub sect_target: U16<LE>,
 }
 
+impl TrampolineFixed {
+    /// View the thunk location as `OffsetSegment`.
+    pub fn thunk(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.off_thunk,
+            segment: self.sect_thunk,
+        }
+    }
+
+    /// View the trampoline target location as `OffsetSegment`.
+    pub fn target(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.off_target,
+            segment: self.sect_target,
+        }
+    }
+}
+
 impl<'a> Parse<'a> for Trampoline<'a> {
     fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
         Ok(Self {
@@ -985,6 +1003,34 @@ impl<'a> Parse<'a> for Trampoline<'a> {
             rest: p.take_rest(),
         })
     }
+}
+
+#[test]
+fn test_trampoline() {
+    use hex_literal::hex;
+
+    let data = hex!(
+        /* 0x0000 */ "0101" "0202"  // type, thunk size
+        /* 0x0004 */ "03030303"     // thunk offset
+        /* 0x0008 */ "04040404"     // target offset
+        /* 0x000c */ "0505" "0606"  // thunk seg, target seg
+        /* 0x0010 */ "cccccc"       // rest
+    );
+
+    let sym = Trampoline::parse(&data).unwrap();
+
+    assert_eq!(sym.fixed.tramp_type.get(), 0x0101);
+    assert_eq!(sym.fixed.cb_thunk.get(), 0x0202);
+    assert_eq!(sym.fixed.off_thunk.get(), 0x03030303);
+    assert_eq!(sym.fixed.off_target.get(), 0x04040404);
+    assert_eq!(sym.fixed.sect_thunk.get(), 0x0505);
+    assert_eq!(sym.fixed.sect_target.get(), 0x0606);
+    assert_eq!(sym.rest, &hex!("cccccc"));
+
+    assert_eq!(sym.fixed.thunk().offset, sym.fixed.off_thunk);
+    assert_eq!(sym.fixed.thunk().segment, sym.fixed.sect_thunk);
+    assert_eq!(sym.fixed.target().offset, sym.fixed.off_target);
+    assert_eq!(sym.fixed.target().segment, sym.fixed.sect_target);
 }
 
 /// `S_BUILDINFO` - Build info for a module
