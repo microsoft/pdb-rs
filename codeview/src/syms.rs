@@ -964,17 +964,17 @@ pub struct Trampoline<'a> {
 #[repr(C)]
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 pub struct TrampolineFixed {
-    /// trampoline sym subtype
+    /// Trampoline symbol subtype
     pub tramp_type: U16<LE>,
-    /// size of the thunk
+    /// Size of the thunk
     pub thunk_len: U16<LE>,
-    /// offset of the thunk
+    /// Offset of the thunk
     pub thunk_offset: U32<LE>,
-    /// offset of the target of the thunk
+    /// Offset of the target of the thunk
     pub target_offset: U32<LE>,
-    /// section index of the thunk
+    /// Segment index of the thunk
     pub thunk_segment: U16<LE>,
-    /// section index of the target of the thunk
+    /// Segment index of the target of the thunk
     pub target_segment: U16<LE>,
 }
 
