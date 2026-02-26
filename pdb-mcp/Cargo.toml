@@ -1,0 +1,33 @@
+[package]
+name = "pdb-mcp"
+version = "0.1.0"
+edition = "2024"
+description = "MCP server for analyzing PDB files using the ms-pdb library."
+authors = ["Arlie Davis <ardavis@microsoft.com>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/microsoft/pdb-rs/"
+
+[dependencies]
+anyhow.workspace = true
+bstr.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+zerocopy.workspace = true
+regex = "1.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+rmcp = { version = "0.1.5", features = ["server", "macros", "transport-io"] }
+schemars = "0.8"
+
+[dependencies.ms-pdb]
+version = "0.1.20"
+path = "../pdb"
+
+[dependencies.ms-coff]
+version = "0.1.0"
+path = "../coff"
+
+[dependencies.ms-codeview]
+version = "0.1.0"
+path = "../codeview"
