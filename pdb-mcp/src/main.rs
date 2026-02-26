@@ -6,6 +6,7 @@ use rmcp::ServiceExt;
 mod format;
 mod server;
 mod tools;
+pub mod undecorate;
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -9,6 +9,7 @@ pub async fn find_global_impl(
     server: &PdbMcpServer,
     alias: String,
     name: String,
+    undecorate: bool,
 ) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
@@ -19,7 +20,7 @@ pub async fn find_global_impl(
 
     match pdb.find_global_by_name(BStr::new(name.as_bytes())) {
         Ok(Some(sym)) => {
-            format!("GSI match: {}", format::format_sym(sym.kind, sym.data))
+            format!("GSI match: {}", format::format_sym(sym.kind, sym.data, undecorate))
         }
         Ok(None) => format!("No global symbol found with name '{name}'."),
         Err(e) => format!("Error searching GSI: {e}"),
@@ -30,6 +31,7 @@ pub async fn find_public_impl(
     server: &PdbMcpServer,
     alias: String,
     name: String,
+    undecorate: bool,
 ) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
@@ -40,11 +42,17 @@ pub async fn find_public_impl(
 
     match pdb.find_public_by_name(BStr::new(name.as_bytes())) {
         Ok(Some(pub_sym)) => {
+            let sym_name = pub_sym.name.to_string();
+            let display = if undecorate {
+                crate::undecorate::format_with_undecoration(&sym_name)
+            } else {
+                sym_name
+            };
             format!(
                 "PSI match: S_PUB32 {} flags=0x{:08x} {}",
                 pub_sym.fixed.offset_segment,
                 pub_sym.fixed.flags.get(),
-                pub_sym.name,
+                display,
             )
         }
         Ok(None) => format!("No public symbol found with name '{name}'."),
@@ -57,6 +65,7 @@ pub async fn find_public_by_addr_impl(
     alias: String,
     section: u16,
     offset: u32,
+    undecorate: bool,
 ) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
@@ -77,11 +86,17 @@ pub async fn find_public_by_addr_impl(
 
     match psi.find_symbol_by_addr(gss, section, offset) {
         Ok(Some((pub_sym, distance))) => {
+            let sym_name = pub_sym.name.to_string();
+            let display = if undecorate {
+                crate::undecorate::format_with_undecoration(&sym_name)
+            } else {
+                sym_name
+            };
             let mut out = format!(
                 "PSI addr match: S_PUB32 {} flags=0x{:08x} {}",
                 pub_sym.fixed.offset_segment,
                 pub_sym.fixed.flags.get(),
-                pub_sym.name,
+                display,
             );
             if distance > 0 {
                 write!(out, " (offset +0x{distance:x} from symbol start)").unwrap();
@@ -98,6 +113,7 @@ pub async fn search_symbols_impl(
     alias: String,
     pattern: String,
     max: Option<usize>,
+    undecorate: bool,
 ) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
@@ -129,7 +145,7 @@ pub async fn search_symbols_impl(
                 if rx.is_match(name) {
                     found += 1;
                     if found <= max {
-                        writeln!(out, "  {}", format::format_sym(sym.kind, sym.data)).unwrap();
+                        writeln!(out, "  {}", format::format_sym(sym.kind, sym.data, undecorate)).unwrap();
                     }
                 }
             }

@@ -220,8 +220,11 @@ impl PdbMcpServer {
         #[tool(param)]
         #[schemars(description = "Module index (number) or a name substring to match")]
         module: String,
+        #[tool(param)]
+        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        undecorate: Option<bool>,
     ) -> String {
-        crate::tools::modules::module_symbols_impl(self, alias, module).await
+        crate::tools::modules::module_symbols_impl(self, alias, module, undecorate.unwrap_or(false)).await
     }
 
     /// Show source files for a specific module.
@@ -248,8 +251,11 @@ impl PdbMcpServer {
         #[tool(param)]
         #[schemars(description = "Exact symbol name (case-insensitive hash match)")]
         name: String,
+        #[tool(param)]
+        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_global_impl(self, alias, name).await
+        crate::tools::symbols::find_global_impl(self, alias, name, undecorate.unwrap_or(false)).await
     }
 
     /// Find a public symbol (S_PUB32) by exact name using the PSI hash table.
@@ -262,8 +268,11 @@ impl PdbMcpServer {
         #[tool(param)]
         #[schemars(description = "Exact public symbol name (case-insensitive hash match)")]
         name: String,
+        #[tool(param)]
+        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_public_impl(self, alias, name).await
+        crate::tools::symbols::find_public_impl(self, alias, name, undecorate.unwrap_or(false)).await
     }
 
     /// Find a public symbol by address using the PSI address map.
@@ -279,8 +288,11 @@ impl PdbMcpServer {
         #[tool(param)]
         #[schemars(description = "Offset within the section")]
         offset: u32,
+        #[tool(param)]
+        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_public_by_addr_impl(self, alias, section, offset).await
+        crate::tools::symbols::find_public_by_addr_impl(self, alias, section, offset, undecorate.unwrap_or(false)).await
     }
 
     /// Search the Global Symbol Stream with a regex pattern.
@@ -296,8 +308,11 @@ impl PdbMcpServer {
         #[tool(param)]
         #[schemars(description = "Maximum results (default 50)")]
         max: Option<usize>,
+        #[tool(param)]
+        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::search_symbols_impl(self, alias, pattern, max).await
+        crate::tools::symbols::search_symbols_impl(self, alias, pattern, max, undecorate.unwrap_or(false)).await
     }
 
     /// Find a type by name in the TPI stream.
@@ -382,6 +397,20 @@ impl PdbMcpServer {
         length: Option<u64>,
     ) -> String {
         crate::tools::info::read_stream_impl(self, alias, stream, offset, length).await
+    }
+
+    /// Undecorate (demangle) a C++ or Rust symbol name. Does not require an open PDB.
+    #[tool(description = "Undecorate (demangle) a decorated C++ or Rust symbol name. Supports MSVC C++ (?-prefixed), Rust legacy (_ZN), Rust v0 (_R), and Itanium C++ (_Z) mangling schemes. Does not require an open PDB — works on any decorated name from crash dumps, linker errors, etc.")]
+    async fn undecorate(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "The decorated (mangled) symbol name to undecorate")]
+        name: String,
+    ) -> String {
+        match crate::undecorate::try_undecorate(&name) {
+            Some(demangled) => format!("{demangled}\n  (decorated: {name})"),
+            None => format!("{name}\n  (not decorated, or unrecognized mangling scheme)"),
+        }
     }
 }
 
