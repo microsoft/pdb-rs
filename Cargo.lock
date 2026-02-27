@@ -592,7 +592,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "anyhow",
  "bitfield",
@@ -617,7 +617,7 @@ dependencies = [
 
 [[package]]
 name = "ms-pdb-mcp"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "anyhow",
  "bstr",
@@ -743,7 +743,7 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pdbtool"
-version = "0.1.20"
+version = "0.1.21"
 dependencies = [
  "anyhow",
  "bitvec",
