@@ -964,18 +964,36 @@ pub struct Trampoline<'a> {
 #[repr(C)]
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 pub struct TrampolineFixed {
-    /// trampoline sym subtype
-    pub tramp_type: U16<LE>,
-    /// size of the thunk
-    pub cb_thunk: U16<LE>,
-    /// offset of the thunk
-    pub off_thunk: U32<LE>,
-    /// offset of the target of the thunk
-    pub off_target: U32<LE>,
-    /// section index of the thunk
-    pub sect_thunk: U16<LE>,
-    /// section index of the target of the thunk
-    pub sect_target: U16<LE>,
+    /// Trampoline symbol subtype
+    pub kind: U16<LE>,
+    /// Size of the thunk
+    pub thunk_len: U16<LE>,
+    /// Offset of the thunk
+    pub thunk_offset: U32<LE>,
+    /// Offset of the target of the thunk
+    pub target_offset: U32<LE>,
+    /// Segment index of the thunk
+    pub thunk_segment: U16<LE>,
+    /// Segment index of the target of the thunk
+    pub target_segment: U16<LE>,
+}
+
+impl TrampolineFixed {
+    /// View the thunk location as an `OffsetSegment`.
+    pub fn thunk(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.thunk_offset,
+            segment: self.thunk_segment,
+        }
+    }
+
+    /// View the trampoline target location as an `OffsetSegment`.
+    pub fn target(&self) -> OffsetSegment {
+        OffsetSegment {
+            offset: self.target_offset,
+            segment: self.target_segment,
+        }
+    }
 }
 
 impl<'a> Parse<'a> for Trampoline<'a> {
@@ -985,6 +1003,34 @@ impl<'a> Parse<'a> for Trampoline<'a> {
             rest: p.take_rest(),
         })
     }
+}
+
+#[test]
+fn test_trampoline() {
+    use hex_literal::hex;
+
+    let data = hex!(
+        /* 0x0000 */ "0101" "0202"  // kind, thunk size
+        /* 0x0004 */ "03030303"     // thunk offset
+        /* 0x0008 */ "04040404"     // target offset
+        /* 0x000c */ "0505" "0606"  // thunk seg, target seg
+        /* 0x0010 */ "cccccc"       // rest
+    );
+
+    let sym = Trampoline::parse(&data).unwrap();
+
+    assert_eq!(sym.fixed.kind.get(), 0x0101);
+    assert_eq!(sym.fixed.thunk_len.get(), 0x0202);
+    assert_eq!(sym.fixed.thunk_offset.get(), 0x03030303);
+    assert_eq!(sym.fixed.target_offset.get(), 0x04040404);
+    assert_eq!(sym.fixed.thunk_segment.get(), 0x0505);
+    assert_eq!(sym.fixed.target_segment.get(), 0x0606);
+    assert_eq!(sym.rest, &hex!("cccccc"));
+
+    assert_eq!(sym.fixed.thunk().offset, sym.fixed.thunk_offset);
+    assert_eq!(sym.fixed.thunk().segment, sym.fixed.thunk_segment);
+    assert_eq!(sym.fixed.target().offset, sym.fixed.target_offset);
+    assert_eq!(sym.fixed.target().segment, sym.fixed.target_segment);
 }
 
 /// `S_BUILDINFO` - Build info for a module
