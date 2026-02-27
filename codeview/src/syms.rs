@@ -965,7 +965,7 @@ pub struct Trampoline<'a> {
 #[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Clone, Debug)]
 pub struct TrampolineFixed {
     /// Trampoline symbol subtype
-    pub tramp_type: U16<LE>,
+    pub kind: U16<LE>,
     /// Size of the thunk
     pub thunk_len: U16<LE>,
     /// Offset of the thunk
@@ -1019,7 +1019,7 @@ fn test_trampoline() {
 
     let sym = Trampoline::parse(&data).unwrap();
 
-    assert_eq!(sym.fixed.tramp_type.get(), 0x0101);
+    assert_eq!(sym.fixed.kind.get(), 0x0101);
     assert_eq!(sym.fixed.thunk_len.get(), 0x0202);
     assert_eq!(sym.fixed.thunk_offset.get(), 0x03030303);
     assert_eq!(sym.fixed.target_offset.get(), 0x04040404);
