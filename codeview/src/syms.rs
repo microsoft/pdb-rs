@@ -1010,7 +1010,7 @@ fn test_trampoline() {
     use hex_literal::hex;
 
     let data = hex!(
-        /* 0x0000 */ "0101" "0202"  // type, thunk size
+        /* 0x0000 */ "0101" "0202"  // kind, thunk size
         /* 0x0004 */ "03030303"     // thunk offset
         /* 0x0008 */ "04040404"     // target offset
         /* 0x000c */ "0505" "0606"  // thunk seg, target seg
