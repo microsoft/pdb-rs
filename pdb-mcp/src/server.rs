@@ -456,7 +456,64 @@ impl PdbMcpServer {
             blocks.unwrap_or(false),
             inlinees.unwrap_or(false),
         ).await
-    }}
+    }
+
+    /// Convert an RVA to section:offset.
+    #[tool(description = "Convert a Relative Virtual Address (RVA) to section:offset using the COFF section headers. Useful for translating addresses from crash dumps or profilers.")]
+    async fn rva_to_section(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "Alias of the open PDB")]
+        alias: String,
+        #[tool(param)]
+        #[schemars(description = "RVA value (decimal or hex with 0x prefix)")]
+        rva: u32,
+    ) -> String {
+        crate::tools::addr::rva_to_section_impl(self, alias, rva).await
+    }
+
+    /// Convert section:offset to an RVA.
+    #[tool(description = "Convert a section:offset address to a Relative Virtual Address (RVA) using the COFF section headers.")]
+    async fn section_to_rva(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "Alias of the open PDB")]
+        alias: String,
+        #[tool(param)]
+        #[schemars(description = "COFF section number (1-based)")]
+        section: u16,
+        #[tool(param)]
+        #[schemars(description = "Offset within the section")]
+        offset: u32,
+    ) -> String {
+        crate::tools::addr::section_to_rva_impl(self, alias, section, offset).await
+    }
+
+    /// Resolve an address to module, function, source file, and line number.
+    #[tool(description = "Resolve a code address to its full symbolic context: module, enclosing function, source file, and line number. Accepts either an RVA or section:offset. Uses section contributions for module lookup, scans module symbols for the enclosing procedure, and reads C13 line data for source mapping. This is the equivalent of a debugger's 'ln' + source line display.")]
+    async fn addr_to_line(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "Alias of the open PDB")]
+        alias: String,
+        #[tool(param)]
+        #[schemars(description = "RVA to look up (use this OR section+offset)")]
+        rva: Option<u32>,
+        #[tool(param)]
+        #[schemars(description = "COFF section number, 1-based (use with offset instead of rva)")]
+        section: Option<u16>,
+        #[tool(param)]
+        #[schemars(description = "Offset within section (use with section instead of rva)")]
+        offset: Option<u32>,
+        #[tool(param)]
+        #[schemars(description = "Show undecorated function names (default false)")]
+        undecorate: Option<bool>,
+    ) -> String {
+        crate::tools::addr::addr_to_line_impl(
+            self, alias, rva, section, offset, undecorate.unwrap_or(false),
+        ).await
+    }
+}
 
 #[tool(tool_box)]
 impl ServerHandler for PdbMcpServer {

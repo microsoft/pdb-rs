@@ -1,3 +1,4 @@
+pub mod addr;
 pub mod info;
 pub mod modules;
 pub mod open;
