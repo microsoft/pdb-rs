@@ -133,6 +133,36 @@ The safety rules for AI agents consuming pdb-mcp output are included in the
 MCP server's instruction block, which is delivered at initialization. See the
 `SERVER_INSTRUCTIONS` constant in `src/server.rs`.
 
+### Open Design Item: Filesystem Scope
+
+The MCP server currently opens PDB files directly via `std::fs::File::open()`,
+bypassing any filesystem scope rules enforced by the host (e.g., VS Code /
+Copilot workspace boundaries). This means the AI can open any PDB file that
+the server process has OS-level access to, regardless of whether it falls
+within the configured workspace.
+
+This is an architectural gap shared by most MCP servers that perform file I/O.
+Possible mitigations include:
+
+- **Sandbox mode** — An environment variable (e.g., `PDB_MCP_ALLOWED_DIRS`)
+  that restricts `open_pdb` to paths under specific directories. Paths outside
+  the allowlist would be rejected. This is the approach used by `lumen-sqlite`
+  (`LUMEN_SQLITE_SANDBOX` + `LUMEN_SQLITE_DB_DIR`).
+- **Workspace-relative resolution** — Only allow paths within the VS Code
+  workspace roots, rejecting absolute paths outside the workspace.
+- **Host integration** — Query the host's filesystem scope rules via the MCP
+  protocol. This would require MCP specification support that does not currently
+  exist.
+- **Elicitation for out-of-scope paths** — Use the MCP elicitation protocol to
+  prompt the user for confirmation when a path falls outside the configured
+  scope. This is distinct from prompting on every open (which would be
+  redundant for user-initiated actions).
+
+Until one of these is implemented, the server relies on the trust model
+described above: only use this server with PDB files from trusted sources, and
+configure the server in environments where the process's filesystem access is
+appropriately scoped.
+
 ## License
 
 MIT OR Apache-2.0
