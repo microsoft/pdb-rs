@@ -19,9 +19,7 @@ pub struct PdbMcpServer {
 // Manual Debug for OpenPdb since Pdb doesn't impl Debug
 impl std::fmt::Debug for OpenPdb {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("OpenPdb")
-            .field("path", &self.path)
-            .finish()
+        f.debug_struct("OpenPdb").field("path", &self.path).finish()
     }
 }
 
@@ -145,7 +143,9 @@ impl PdbMcpServer {
         #[schemars(description = "Path to the PDB or PDZ file")]
         path: String,
         #[tool(param)]
-        #[schemars(description = "Short alias to reference this PDB in subsequent calls. Defaults to file stem.")]
+        #[schemars(
+            description = "Short alias to reference this PDB in subsequent calls. Defaults to file stem."
+        )]
         alias: Option<String>,
     ) -> String {
         crate::tools::open::open_pdb_impl(self, path, alias).await
@@ -169,7 +169,9 @@ impl PdbMcpServer {
     }
 
     /// Show full PDB Information Stream (PDBI) metadata.
-    #[tool(description = "Show full PDBI stream metadata: GUID, age, binding key (file.ptr key), version, features, named streams, container format.")]
+    #[tool(
+        description = "Show full PDBI stream metadata: GUID, age, binding key (file.ptr key), version, features, named streams, container format."
+    )]
     async fn pdb_info(
         &self,
         #[tool(param)]
@@ -191,7 +193,9 @@ impl PdbMcpServer {
     }
 
     /// List modules (compilands) with optional regex filtering.
-    #[tool(description = "List modules (compilands) in the PDB. Use regex filters to narrow results — important for large PDBs (Edge has ~48K modules). Results are capped at max (default 100).")]
+    #[tool(
+        description = "List modules (compilands) in the PDB. Use regex filters to narrow results — important for large PDBs (Edge has ~48K modules). Results are capped at max (default 100)."
+    )]
     async fn list_modules(
         &self,
         #[tool(param)]
@@ -207,11 +211,20 @@ impl PdbMcpServer {
         #[schemars(description = "Maximum results to return (default 100)")]
         max: Option<usize>,
     ) -> String {
-        crate::tools::modules::list_modules_impl(self, alias, module_name_regex, obj_file_regex, max).await
+        crate::tools::modules::list_modules_impl(
+            self,
+            alias,
+            module_name_regex,
+            obj_file_regex,
+            max,
+        )
+        .await
     }
 
     /// Show symbols for a specific module.
-    #[tool(description = "Show all symbols in a specific module, identified by index or name substring.")]
+    #[tool(
+        description = "Show all symbols in a specific module, identified by index or name substring."
+    )]
     async fn module_symbols(
         &self,
         #[tool(param)]
@@ -221,10 +234,13 @@ impl PdbMcpServer {
         #[schemars(description = "Module index (number) or a name substring to match")]
         module: String,
         #[tool(param)]
-        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        #[schemars(
+            description = "If true, show both decorated and undecorated (demangled) symbol names"
+        )]
         undecorate: Option<bool>,
     ) -> String {
-        crate::tools::modules::module_symbols_impl(self, alias, module, undecorate.unwrap_or(false)).await
+        crate::tools::modules::module_symbols_impl(self, alias, module, undecorate.unwrap_or(false))
+            .await
     }
 
     /// Show source files for a specific module.
@@ -242,7 +258,9 @@ impl PdbMcpServer {
     }
 
     /// Find a global symbol by exact name using the GSI hash table.
-    #[tool(description = "Find a global symbol by exact name using the GSI (hash-accelerated, O(1)). Covers S_PROCREF, S_UDT, S_CONSTANT, S_DATAREF, S_GDATA32, etc. Does NOT find S_PUB32—use find_public for those.")]
+    #[tool(
+        description = "Find a global symbol by exact name using the GSI (hash-accelerated, O(1)). Covers S_PROCREF, S_UDT, S_CONSTANT, S_DATAREF, S_GDATA32, etc. Does NOT find S_PUB32—use find_public for those."
+    )]
     async fn find_global(
         &self,
         #[tool(param)]
@@ -252,14 +270,19 @@ impl PdbMcpServer {
         #[schemars(description = "Exact symbol name (case-insensitive hash match)")]
         name: String,
         #[tool(param)]
-        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        #[schemars(
+            description = "If true, show both decorated and undecorated (demangled) symbol names"
+        )]
         undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_global_impl(self, alias, name, undecorate.unwrap_or(false)).await
+        crate::tools::symbols::find_global_impl(self, alias, name, undecorate.unwrap_or(false))
+            .await
     }
 
     /// Find a public symbol (S_PUB32) by exact name using the PSI hash table.
-    #[tool(description = "Find a public symbol (S_PUB32) by exact name using the PSI (hash-accelerated, O(1)). Only S_PUB32 records are in the PSI.")]
+    #[tool(
+        description = "Find a public symbol (S_PUB32) by exact name using the PSI (hash-accelerated, O(1)). Only S_PUB32 records are in the PSI."
+    )]
     async fn find_public(
         &self,
         #[tool(param)]
@@ -269,14 +292,19 @@ impl PdbMcpServer {
         #[schemars(description = "Exact public symbol name (case-insensitive hash match)")]
         name: String,
         #[tool(param)]
-        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        #[schemars(
+            description = "If true, show both decorated and undecorated (demangled) symbol names"
+        )]
         undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_public_impl(self, alias, name, undecorate.unwrap_or(false)).await
+        crate::tools::symbols::find_public_impl(self, alias, name, undecorate.unwrap_or(false))
+            .await
     }
 
     /// Find a public symbol by address using the PSI address map.
-    #[tool(description = "Find the public symbol (S_PUB32) at or nearest to a given section:offset address using the PSI address map (binary search).")]
+    #[tool(
+        description = "Find the public symbol (S_PUB32) at or nearest to a given section:offset address using the PSI address map (binary search)."
+    )]
     async fn find_public_by_addr(
         &self,
         #[tool(param)]
@@ -289,14 +317,25 @@ impl PdbMcpServer {
         #[schemars(description = "Offset within the section")]
         offset: u32,
         #[tool(param)]
-        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        #[schemars(
+            description = "If true, show both decorated and undecorated (demangled) symbol names"
+        )]
         undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::find_public_by_addr_impl(self, alias, section, offset, undecorate.unwrap_or(false)).await
+        crate::tools::symbols::find_public_by_addr_impl(
+            self,
+            alias,
+            section,
+            offset,
+            undecorate.unwrap_or(false),
+        )
+        .await
     }
 
     /// Search the Global Symbol Stream with a regex pattern.
-    #[tool(description = "Search the entire Global Symbol Stream using a regex or substring pattern. This is a brute-force scan — use find_global or find_public for exact lookups. Default max 50 results.")]
+    #[tool(
+        description = "Search the entire Global Symbol Stream using a regex or substring pattern. This is a brute-force scan — use find_global or find_public for exact lookups. Default max 50 results."
+    )]
     async fn search_symbols(
         &self,
         #[tool(param)]
@@ -309,14 +348,25 @@ impl PdbMcpServer {
         #[schemars(description = "Maximum results (default 50)")]
         max: Option<usize>,
         #[tool(param)]
-        #[schemars(description = "If true, show both decorated and undecorated (demangled) symbol names")]
+        #[schemars(
+            description = "If true, show both decorated and undecorated (demangled) symbol names"
+        )]
         undecorate: Option<bool>,
     ) -> String {
-        crate::tools::symbols::search_symbols_impl(self, alias, pattern, max, undecorate.unwrap_or(false)).await
+        crate::tools::symbols::search_symbols_impl(
+            self,
+            alias,
+            pattern,
+            max,
+            undecorate.unwrap_or(false),
+        )
+        .await
     }
 
     /// Find a type by name in the TPI stream.
-    #[tool(description = "Search the TPI (Type) stream for a type by name. Returns the type record and its fields/members.")]
+    #[tool(
+        description = "Search the TPI (Type) stream for a type by name. Returns the type record and its fields/members."
+    )]
     async fn find_type(
         &self,
         #[tool(param)]
@@ -333,7 +383,9 @@ impl PdbMcpServer {
     }
 
     /// Dump a specific type record by TypeIndex.
-    #[tool(description = "Dump a specific type record from TPI by its TypeIndex value (hex or decimal).")]
+    #[tool(
+        description = "Dump a specific type record from TPI by its TypeIndex value (hex or decimal)."
+    )]
     async fn dump_type(
         &self,
         #[tool(param)]
@@ -347,7 +399,9 @@ impl PdbMcpServer {
     }
 
     /// Show COFF section headers.
-    #[tool(description = "List all COFF section headers with name, virtual address, virtual size, and characteristics.")]
+    #[tool(
+        description = "List all COFF section headers with name, virtual address, virtual size, and characteristics."
+    )]
     async fn section_headers(
         &self,
         #[tool(param)]
@@ -369,7 +423,9 @@ impl PdbMcpServer {
     }
 
     /// Show aggregate PDB statistics.
-    #[tool(description = "Show aggregate statistics: stream sizes, record counts for TPI/IPI/GSS, module count.")]
+    #[tool(
+        description = "Show aggregate statistics: stream sizes, record counts for TPI/IPI/GSS, module count."
+    )]
     async fn pdb_stats(
         &self,
         #[tool(param)]
@@ -380,14 +436,18 @@ impl PdbMcpServer {
     }
 
     /// Read raw data from any stream by index or name.
-    #[tool(description = "Read raw data from a PDB stream by index or name. Returns text (UTF-8) or hex dump. Default reads first 4KB; use offset/length to page through large streams. Max 64KB per call.")]
+    #[tool(
+        description = "Read raw data from a PDB stream by index or name. Returns text (UTF-8) or hex dump. Default reads first 4KB; use offset/length to page through large streams. Max 64KB per call."
+    )]
     async fn read_stream(
         &self,
         #[tool(param)]
         #[schemars(description = "Alias of the open PDB")]
         alias: String,
         #[tool(param)]
-        #[schemars(description = "Stream index (number) or named stream name (e.g. 'sourcelink$1', '/names')")]
+        #[schemars(
+            description = "Stream index (number) or named stream name (e.g. 'sourcelink$1', '/names')"
+        )]
         stream: String,
         #[tool(param)]
         #[schemars(description = "Byte offset to start reading from (default 0)")]
@@ -400,7 +460,9 @@ impl PdbMcpServer {
     }
 
     /// Undecorate (demangle) a C++ or Rust symbol name. Does not require an open PDB.
-    #[tool(description = "Undecorate (demangle) a decorated C++ or Rust symbol name. Supports MSVC C++ (?-prefixed), Rust legacy (_ZN), Rust v0 (_R), and Itanium C++ (_Z) mangling schemes. Does not require an open PDB — works on any decorated name from crash dumps, linker errors, etc.")]
+    #[tool(
+        description = "Undecorate (demangle) a decorated C++ or Rust symbol name. Supports MSVC C++ (?-prefixed), Rust legacy (_ZN), Rust v0 (_R), and Itanium C++ (_Z) mangling schemes. Does not require an open PDB — works on any decorated name from crash dumps, linker errors, etc."
+    )]
     async fn undecorate(
         &self,
         #[tool(param)]
@@ -413,7 +475,9 @@ impl PdbMcpServer {
         }
     }
     /// Get detailed information about a procedure (function) by resolving through the GSI and module stream.
-    #[tool(description = "Get detailed information about a procedure (function). Resolves the name through the GSI to the actual S_GPROC32/S_LPROC32 record in the module stream. Returns address, code length, type signature, and optionally parameters, locals, inline sites, and block scopes. Use boolean flags to control detail level.")]
+    #[tool(
+        description = "Get detailed information about a procedure (function). Resolves the name through the GSI to the actual S_GPROC32/S_LPROC32 record in the module stream. Returns address, code length, type signature, and optionally parameters, locals, inline sites, and block scopes. Use boolean flags to control detail level."
+    )]
     async fn get_proc(
         &self,
         #[tool(param)]
@@ -423,10 +487,14 @@ impl PdbMcpServer {
         #[schemars(description = "Function name to look up via GSI (use this OR module+offset)")]
         name: Option<String>,
         #[tool(param)]
-        #[schemars(description = "Module index for direct access (use with offset instead of name)")]
+        #[schemars(
+            description = "Module index for direct access (use with offset instead of name)"
+        )]
         module: Option<u32>,
         #[tool(param)]
-        #[schemars(description = "Byte offset in module stream for direct access (use with module instead of name)")]
+        #[schemars(
+            description = "Byte offset in module stream for direct access (use with module instead of name)"
+        )]
         offset: Option<u32>,
         #[tool(param)]
         #[schemars(description = "Show both decorated and undecorated names (default false)")]
@@ -455,11 +523,14 @@ impl PdbMcpServer {
             locals.unwrap_or(false),
             blocks.unwrap_or(false),
             inlinees.unwrap_or(false),
-        ).await
+        )
+        .await
     }
 
     /// Convert an RVA to section:offset.
-    #[tool(description = "Convert a Relative Virtual Address (RVA) to section:offset using the COFF section headers. Useful for translating addresses from crash dumps or profilers.")]
+    #[tool(
+        description = "Convert a Relative Virtual Address (RVA) to section:offset using the COFF section headers. Useful for translating addresses from crash dumps or profilers."
+    )]
     async fn rva_to_section(
         &self,
         #[tool(param)]
@@ -473,7 +544,9 @@ impl PdbMcpServer {
     }
 
     /// Convert section:offset to an RVA.
-    #[tool(description = "Convert a section:offset address to a Relative Virtual Address (RVA) using the COFF section headers.")]
+    #[tool(
+        description = "Convert a section:offset address to a Relative Virtual Address (RVA) using the COFF section headers."
+    )]
     async fn section_to_rva(
         &self,
         #[tool(param)]
@@ -490,7 +563,9 @@ impl PdbMcpServer {
     }
 
     /// Resolve an address to module, function, source file, and line number.
-    #[tool(description = "Resolve a code address to its full symbolic context: module, enclosing function, source file, and line number. Accepts either an RVA or section:offset. Uses section contributions for module lookup, scans module symbols for the enclosing procedure, and reads C13 line data for source mapping. This is the equivalent of a debugger's 'ln' + source line display.")]
+    #[tool(
+        description = "Resolve a code address to its full symbolic context: module, enclosing function, source file, and line number. Accepts either an RVA or section:offset. Uses section contributions for module lookup, scans module symbols for the enclosing procedure, and reads C13 line data for source mapping. This is the equivalent of a debugger's 'ln' + source line display."
+    )]
     async fn addr_to_line(
         &self,
         #[tool(param)]
@@ -510,8 +585,14 @@ impl PdbMcpServer {
         undecorate: Option<bool>,
     ) -> String {
         crate::tools::addr::addr_to_line_impl(
-            self, alias, rva, section, offset, undecorate.unwrap_or(false),
-        ).await
+            self,
+            alias,
+            rva,
+            section,
+            offset,
+            undecorate.unwrap_or(false),
+        )
+        .await
     }
 }
 

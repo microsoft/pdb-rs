@@ -135,7 +135,12 @@ pub async fn module_symbols_impl(
 
     let mut count = 0usize;
     for sym in SymIter::for_module_syms(sym_bytes) {
-        writeln!(out, "  {}", format::format_sym(sym.kind, sym.data, undecorate)).unwrap();
+        writeln!(
+            out,
+            "  {}",
+            format::format_sym(sym.kind, sym.data, undecorate)
+        )
+        .unwrap();
         count += 1;
         if count >= 500 {
             writeln!(out, "  ... (truncated at {count} symbols)").unwrap();

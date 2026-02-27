@@ -5,7 +5,8 @@
 pub fn try_undecorate(name: &str) -> Option<String> {
     // MSVC decorated names start with '?'
     if name.starts_with('?') {
-        if let Ok(demangled) = msvc_demangler::demangle(name, msvc_demangler::DemangleFlags::llvm()) {
+        if let Ok(demangled) = msvc_demangler::demangle(name, msvc_demangler::DemangleFlags::llvm())
+        {
             return Some(demangled);
         }
     }

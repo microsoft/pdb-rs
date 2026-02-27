@@ -20,7 +20,10 @@ pub async fn find_global_impl(
 
     match pdb.find_global_by_name(BStr::new(name.as_bytes())) {
         Ok(Some(sym)) => {
-            format!("GSI match: {}", format::format_sym(sym.kind, sym.data, undecorate))
+            format!(
+                "GSI match: {}",
+                format::format_sym(sym.kind, sym.data, undecorate)
+            )
         }
         Ok(None) => format!("No global symbol found with name '{name}'."),
         Err(e) => format!("Error searching GSI: {e}"),
@@ -145,7 +148,12 @@ pub async fn search_symbols_impl(
                 if rx.is_match(name) {
                     found += 1;
                     if found <= max {
-                        writeln!(out, "  {}", format::format_sym(sym.kind, sym.data, undecorate)).unwrap();
+                        writeln!(
+                            out,
+                            "  {}",
+                            format::format_sym(sym.kind, sym.data, undecorate)
+                        )
+                        .unwrap();
                     }
                 }
             }
@@ -160,7 +168,11 @@ pub async fn search_symbols_impl(
         )
         .unwrap();
     } else {
-        writeln!(header, "Found {found} matches. Scanned {total_scanned} symbols.").unwrap();
+        writeln!(
+            header,
+            "Found {found} matches. Scanned {total_scanned} symbols."
+        )
+        .unwrap();
     }
 
     format!("{header}{out}")

@@ -17,7 +17,9 @@ pub async fn open_pdb_impl(server: &PdbMcpServer, path: String, alias: Option<St
     {
         let pdbs = server.pdbs.lock().await;
         if pdbs.contains_key(&alias) {
-            return format!("Error: alias '{alias}' is already in use. Close it first or use a different alias.");
+            return format!(
+                "Error: alias '{alias}' is already in use. Close it first or use a different alias."
+            );
         }
     }
 

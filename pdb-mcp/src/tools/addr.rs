@@ -6,11 +6,7 @@ use ms_pdb::syms::SymIter;
 use std::fmt::Write;
 
 /// Convert an RVA to section:offset using the section headers.
-pub async fn rva_to_section_impl(
-    server: &PdbMcpServer,
-    alias: String,
-    rva: u32,
-) -> String {
+pub async fn rva_to_section_impl(server: &PdbMcpServer, alias: String, rva: u32) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
         return format!("Error: no open PDB with alias '{alias}'.");
@@ -58,22 +54,20 @@ pub async fn section_to_rva_impl(
 
     let idx = section as usize;
     if idx == 0 || idx > sections.len() {
-        return format!("Error: section {section} out of range (1..{}).", sections.len());
+        return format!(
+            "Error: section {section} out of range (1..{}).",
+            sections.len()
+        );
     }
 
     let sh = &sections[idx - 1];
     let rva = sh.virtual_address + offset;
     let name = sh.name();
-    format!(
-        "[{section}:{offset:08x}] → RVA 0x{rva:x} (section \"{name}\")"
-    )
+    format!("[{section}:{offset:08x}] → RVA 0x{rva:x} (section \"{name}\")")
 }
 
 /// Helper: convert RVA to (section_1based, offset) using section headers.
-fn rva_to_sec_off(
-    sections: &[ms_pdb::IMAGE_SECTION_HEADER],
-    rva: u32,
-) -> Option<(u16, u32)> {
+fn rva_to_sec_off(sections: &[ms_pdb::IMAGE_SECTION_HEADER], rva: u32) -> Option<(u16, u32)> {
     for (i, sh) in sections.iter().enumerate() {
         let sec_start = sh.virtual_address;
         let sec_end = sec_start + sh.physical_address_or_virtual_size;
@@ -109,7 +103,7 @@ pub async fn addr_to_line_impl(
     let (sec, off) = if let (Some(s), Some(o)) = (section, offset) {
         (s, o)
     } else if let Some(rva_val) = rva {
-        match rva_to_sec_off(&sections, rva_val) {
+        match rva_to_sec_off(sections, rva_val) {
             Some(so) => so,
             None => return format!("RVA 0x{rva_val:x} does not fall within any section."),
         }
@@ -164,7 +158,12 @@ pub async fn addr_to_line_impl(
     };
 
     if let Some(module_info) = modules.iter().nth(mod_index as usize) {
-        writeln!(out, "  Module:     [{mod_index}] {}", module_info.module_name).unwrap();
+        writeln!(
+            out,
+            "  Module:     [{mod_index}] {}",
+            module_info.module_name
+        )
+        .unwrap();
 
         // Step 3: Scan module symbols for enclosing procedure
         let sym_data = match pdb.read_module_symbols(&module_info) {
@@ -251,11 +250,8 @@ pub async fn addr_to_line_impl(
 
                 if let Some(line_rec) = best_line {
                     // Resolve file name
-                    let file_name = resolve_file_name(
-                        &checksums,
-                        &names,
-                        block.header.file_index.get(),
-                    );
+                    let file_name =
+                        resolve_file_name(&checksums, &names, block.header.file_index.get());
 
                     let line_num = line_rec.line_num_start();
                     let line_off = relative_off - line_rec.offset.get();
@@ -263,7 +259,8 @@ pub async fn addr_to_line_impl(
                     writeln!(out, "  File:       {file_name}").unwrap();
                     writeln!(out, "  Line:       {line_num}").unwrap();
                     if line_off > 0 {
-                        writeln!(out, "  Offset:     +0x{line_off:x} bytes from line start").unwrap();
+                        writeln!(out, "  Offset:     +0x{line_off:x} bytes from line start")
+                            .unwrap();
                     }
 
                     found_line = true;
@@ -311,7 +308,11 @@ fn find_enclosing_proc(
                 };
                 let func_offset = offset - proc_off;
                 writeln!(out, "  Function:   {display}").unwrap();
-                writeln!(out, "  Func addr:  [{section}:{proc_off:08x}] len=0x{proc_len:x}").unwrap();
+                writeln!(
+                    out,
+                    "  Func addr:  [{section}:{proc_off:08x}] len=0x{proc_len:x}"
+                )
+                .unwrap();
                 if func_offset > 0 {
                     writeln!(out, "  Func off:   +0x{func_offset:x}").unwrap();
                 }
@@ -320,7 +321,11 @@ fn find_enclosing_proc(
         }
     }
 
-    writeln!(out, "  Function:   (not found — address may be in data or thunk)").unwrap();
+    writeln!(
+        out,
+        "  Function:   (not found — address may be in data or thunk)"
+    )
+    .unwrap();
 }
 
 /// Resolve a file_index (from BlockHeader) → file name string.

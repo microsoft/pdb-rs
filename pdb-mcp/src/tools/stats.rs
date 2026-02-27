@@ -3,10 +3,7 @@ use ms_pdb::types::Leaf;
 use std::collections::HashMap;
 use std::fmt::Write;
 
-pub async fn pdb_stats_impl(
-    server: &PdbMcpServer,
-    alias: String,
-) -> String {
+pub async fn pdb_stats_impl(server: &PdbMcpServer, alias: String) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
         return format!("Error: no open PDB with alias '{alias}'.");
@@ -46,7 +43,7 @@ pub async fn pdb_stats_impl(
         sorted.sort_by(|a, b| b.1.cmp(a.1));
         writeln!(out, "  TPI top leaves:").unwrap();
         for (leaf, count) in sorted.iter().take(10) {
-            writeln!(out, "    {:?}: {count}", leaf).unwrap();
+            writeln!(out, "    {leaf:?}: {count}").unwrap();
         }
     }
 

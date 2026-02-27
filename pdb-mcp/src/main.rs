@@ -10,6 +10,7 @@
 //! See `README.md` for the full tool list, installation instructions, and safety guidance.
 
 #![forbid(unsafe_code)]
+#![allow(clippy::too_many_arguments)]
 
 use anyhow::Result;
 use rmcp::ServiceExt;

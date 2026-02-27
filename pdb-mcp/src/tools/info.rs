@@ -32,9 +32,19 @@ pub async fn pdb_info_impl(server: &PdbMcpServer, alias: String) -> String {
     };
 
     let mut out = String::new();
-    writeln!(out, "PDB Information Stream (PDBI) — {}", open_pdb.path.display()).unwrap();
+    writeln!(
+        out,
+        "PDB Information Stream (PDBI) — {}",
+        open_pdb.path.display()
+    )
+    .unwrap();
     writeln!(out, "  Container:     {container}").unwrap();
-    writeln!(out, "  Version:       {version_name} (raw: {})", pdbi_stream.version).unwrap();
+    writeln!(
+        out,
+        "  Version:       {version_name} (raw: {})",
+        pdbi_stream.version
+    )
+    .unwrap();
     writeln!(out, "  Signature:     0x{:08x}", pdbi_stream.signature).unwrap();
     writeln!(out, "  Age:           {}", pdbi_stream.age).unwrap();
     if let Some(guid) = pdbi_stream.unique_id {
@@ -42,7 +52,7 @@ pub async fn pdb_info_impl(server: &PdbMcpServer, alias: String) -> String {
     } else {
         writeln!(out, "  GUID:          (none — pre-VC70 PDB)").unwrap();
     }
-    writeln!(out, "  Binding Key:   {:?}", binding_key).unwrap();
+    writeln!(out, "  Binding Key:   {binding_key:?}").unwrap();
     writeln!(out, "  Streams:       {}", pdb.num_streams()).unwrap();
 
     // Features
@@ -113,8 +123,8 @@ pub async fn pdb_streams_impl(server: &PdbMcpServer, alias: String) -> String {
 
     let mut out = String::new();
     writeln!(out, "Streams ({num_streams} total):").unwrap();
-    writeln!(out, "  {:>5}  {:>12}  {}", "Index", "Size", "Name").unwrap();
-    writeln!(out, "  {:>5}  {:>12}  {}", "-----", "----", "----").unwrap();
+    writeln!(out, "  {:>5}  {:>12}  Name", "Index", "Size").unwrap();
+    writeln!(out, "  {:>5}  {:>12}  ----", "-----", "----").unwrap();
 
     for i in 0..num_streams {
         let size = pdb.stream_len(i);
@@ -122,7 +132,7 @@ pub async fn pdb_streams_impl(server: &PdbMcpServer, alias: String) -> String {
             .get(&i)
             .map(|s| s.as_str())
             .unwrap_or(well_known(i));
-        writeln!(out, "  {:>5}  {:>12}  {}", i, size, name).unwrap();
+        writeln!(out, "  {i:>5}  {size:>12}  {name}").unwrap();
     }
 
     out
@@ -156,14 +166,21 @@ pub async fn read_stream_impl(
                     "tpi" => 2,
                     "dbi" => 3,
                     "ipi" => 4,
-                    _ => return format!("Error: stream '{stream}' not found. Use a numeric index or a named stream name from pdb_streams."),
+                    _ => {
+                        return format!(
+                            "Error: stream '{stream}' not found. Use a numeric index or a named stream name from pdb_streams."
+                        );
+                    }
                 }
             }
         }
     };
 
     if stream_idx >= pdb.num_streams() {
-        return format!("Error: stream index {stream_idx} out of range (0..{}).", pdb.num_streams());
+        return format!(
+            "Error: stream index {stream_idx} out of range (0..{}).",
+            pdb.num_streams()
+        );
     }
 
     let stream_size = pdb.stream_len(stream_idx);
@@ -191,11 +208,19 @@ pub async fn read_stream_impl(
     }
 
     let mut out = String::new();
-    writeln!(out, "Stream {stream_idx}: size={stream_size}, reading offset={offset} length={}", buf.len()).unwrap();
+    writeln!(
+        out,
+        "Stream {stream_idx}: size={stream_size}, reading offset={offset} length={}",
+        buf.len()
+    )
+    .unwrap();
 
     // Try to interpret as UTF-8 text
     if let Ok(text) = std::str::from_utf8(&buf) {
-        if text.chars().all(|c| !c.is_control() || c == '\n' || c == '\r' || c == '\t') {
+        if text
+            .chars()
+            .all(|c| !c.is_control() || c == '\n' || c == '\r' || c == '\t')
+        {
             writeln!(out, "Content (text, {} bytes):", buf.len()).unwrap();
             out.push_str(text);
             if !text.ends_with('\n') {
@@ -209,19 +234,27 @@ pub async fn read_stream_impl(
     writeln!(out, "Content (hex, {} bytes):", buf.len()).unwrap();
     for (i, chunk) in buf.chunks(16).enumerate() {
         let addr = offset + (i * 16) as u64;
-        write!(out, "  {:08x}: ", addr).unwrap();
+        write!(out, "  {addr:08x}: ").unwrap();
         for (j, &byte) in chunk.iter().enumerate() {
-            if j == 8 { write!(out, " ").unwrap(); }
-            write!(out, "{:02x} ", byte).unwrap();
+            if j == 8 {
+                write!(out, " ").unwrap();
+            }
+            write!(out, "{byte:02x} ").unwrap();
         }
         // Pad if short
         for j in chunk.len()..16 {
-            if j == 8 { write!(out, " ").unwrap(); }
+            if j == 8 {
+                write!(out, " ").unwrap();
+            }
             write!(out, "   ").unwrap();
         }
         write!(out, " |").unwrap();
         for &byte in chunk {
-            let c = if byte.is_ascii_graphic() || byte == b' ' { byte as char } else { '.' };
+            let c = if byte.is_ascii_graphic() || byte == b' ' {
+                byte as char
+            } else {
+                '.'
+            };
             write!(out, "{c}").unwrap();
         }
         writeln!(out, "|").unwrap();

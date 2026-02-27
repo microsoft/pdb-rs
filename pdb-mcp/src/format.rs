@@ -42,16 +42,31 @@ fn format_sym_data(out: &mut String, _kind: SymKind, sym_data: &SymData, undecor
             .unwrap();
         }
         SymData::Udt(udt) => {
-            write!(out, "type=0x{:x} {}", udt.type_.0, display_name(udt.name, undecorate)).unwrap();
+            write!(
+                out,
+                "type=0x{:x} {}",
+                udt.type_.0,
+                display_name(udt.name, undecorate)
+            )
+            .unwrap();
         }
         SymData::Constant(c) => {
-            write!(out, "type=0x{:x} {} = {}", c.type_.0, display_name(c.name, undecorate), c.value).unwrap();
+            write!(
+                out,
+                "type=0x{:x} {} = {}",
+                c.type_.0,
+                display_name(c.name, undecorate),
+                c.value
+            )
+            .unwrap();
         }
         SymData::Data(d) => {
             write!(
                 out,
                 "{} type=0x{:x} {}",
-                d.header.offset_segment, d.header.type_.0, display_name(d.name, undecorate)
+                d.header.offset_segment,
+                d.header.type_.0,
+                display_name(d.name, undecorate)
             )
             .unwrap();
         }
@@ -80,7 +95,9 @@ fn format_sym_data(out: &mut String, _kind: SymKind, sym_data: &SymData, undecor
             write!(
                 out,
                 "{} type=0x{:x} {}",
-                ts.header.offset_segment, ts.header.type_.0, display_name(ts.name, undecorate)
+                ts.header.offset_segment,
+                ts.header.type_.0,
+                display_name(ts.name, undecorate)
             )
             .unwrap();
         }

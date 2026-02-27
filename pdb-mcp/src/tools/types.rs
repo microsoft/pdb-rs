@@ -33,20 +33,17 @@ pub async fn find_type_impl(
         let ti = current_ti;
         current_ti.0 += 1;
 
-        match ty.parse() {
-            Ok(type_data) => {
-                let type_name = type_data.name();
-                if let Some(tn) = type_name {
-                    if tn.to_string().to_lowercase().contains(&lower_name) {
-                        found += 1;
-                        if found <= max {
-                            writeln!(out, "  [0x{:x}] {:?}: {}", ti.0, ty.kind, tn).unwrap();
-                            format_type_data_brief(&mut out, &type_data);
-                        }
+        if let Ok(type_data) = ty.parse() {
+            let type_name = type_data.name();
+            if let Some(tn) = type_name {
+                if tn.to_string().to_lowercase().contains(&lower_name) {
+                    found += 1;
+                    if found <= max {
+                        writeln!(out, "  [0x{:x}] {:?}: {}", ti.0, ty.kind, tn).unwrap();
+                        format_type_data_brief(&mut out, &type_data);
                     }
                 }
             }
-            Err(_) => {}
         }
     }
 
@@ -54,7 +51,11 @@ pub async fn find_type_impl(
     if found == 0 {
         writeln!(header, "No types found matching '{name}'.").unwrap();
     } else if found > max {
-        writeln!(header, "Found {found} types matching '{name}' (showing {max}):").unwrap();
+        writeln!(
+            header,
+            "Found {found} types matching '{name}' (showing {max}):"
+        )
+        .unwrap();
     } else {
         writeln!(header, "Found {found} types matching '{name}':").unwrap();
     }
@@ -118,27 +119,53 @@ pub async fn dump_type_impl(
         current_ti.0 += 1;
     }
 
-    format!("TypeIndex 0x{ti_value:x} not found (TPI range: 0x{:x}..0x{:x}).",
-        type_index_begin.0, current_ti.0)
+    format!(
+        "TypeIndex 0x{ti_value:x} not found (TPI range: 0x{:x}..0x{:x}).",
+        type_index_begin.0, current_ti.0
+    )
 }
 
 fn format_type_data_brief(out: &mut String, type_data: &TypeData) {
     match type_data {
         TypeData::Struct(c) => {
-            writeln!(out, "    size={} fields=0x{:x} props={:?}",
-                c.length, c.fixed.field_list.get().0, c.fixed.property.get()).unwrap();
+            writeln!(
+                out,
+                "    size={} fields=0x{:x} props={:?}",
+                c.length,
+                c.fixed.field_list.get().0,
+                c.fixed.property.get()
+            )
+            .unwrap();
         }
         TypeData::Union(u) => {
-            writeln!(out, "    size={} fields=0x{:x} props={:?}",
-                u.length, u.fixed.fields.get().0, u.fixed.property.get()).unwrap();
+            writeln!(
+                out,
+                "    size={} fields=0x{:x} props={:?}",
+                u.length,
+                u.fixed.fields.get().0,
+                u.fixed.property.get()
+            )
+            .unwrap();
         }
         TypeData::Enum(e) => {
-            writeln!(out, "    underlying=0x{:x} fields=0x{:x} props={:?}",
-                e.fixed.underlying_type.get().0, e.fixed.fields.get().0, e.fixed.property.get()).unwrap();
+            writeln!(
+                out,
+                "    underlying=0x{:x} fields=0x{:x} props={:?}",
+                e.fixed.underlying_type.get().0,
+                e.fixed.fields.get().0,
+                e.fixed.property.get()
+            )
+            .unwrap();
         }
         TypeData::Proc(p) => {
-            writeln!(out, "    return=0x{:x} params={} args=0x{:x}",
-                p.return_value.get().0, p.num_params.get(), p.arg_list.get().0).unwrap();
+            writeln!(
+                out,
+                "    return=0x{:x} params={} args=0x{:x}",
+                p.return_value.get().0,
+                p.num_params.get(),
+                p.arg_list.get().0
+            )
+            .unwrap();
         }
         TypeData::Pointer(p) => {
             writeln!(out, "    referent=0x{:x}", p.fixed.ty.get().0).unwrap();
@@ -202,7 +229,11 @@ fn format_type_data_detail(out: &mut String, type_data: &TypeData) {
             writeln!(out, "  Modified:   0x{:x}", m.underlying_type.get().0).unwrap();
         }
         _ => {
-            writeln!(out, "  (detailed display not implemented for this leaf kind)").unwrap();
+            writeln!(
+                out,
+                "  (detailed display not implemented for this leaf kind)"
+            )
+            .unwrap();
         }
     }
 }

@@ -1,10 +1,7 @@
 use crate::server::PdbMcpServer;
 use std::fmt::Write;
 
-pub async fn section_headers_impl(
-    server: &PdbMcpServer,
-    alias: String,
-) -> String {
+pub async fn section_headers_impl(server: &PdbMcpServer, alias: String) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
         return format!("Error: no open PDB with alias '{alias}'.");
@@ -43,10 +40,7 @@ pub async fn section_headers_impl(
     out
 }
 
-pub async fn coff_groups_impl(
-    server: &PdbMcpServer,
-    alias: String,
-) -> String {
+pub async fn coff_groups_impl(server: &PdbMcpServer, alias: String) -> String {
     let pdbs = server.pdbs.lock().await;
     let Some(open_pdb) = pdbs.get(&alias) else {
         return format!("Error: no open PDB with alias '{alias}'.");

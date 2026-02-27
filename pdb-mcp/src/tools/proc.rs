@@ -101,7 +101,12 @@ pub async fn get_proc_impl(
 
     // Basic info (always shown)
     writeln!(out, "  Address:    {}", proc_data.fixed.offset_segment).unwrap();
-    writeln!(out, "  Length:     0x{:x} bytes", proc_data.fixed.proc_len.get()).unwrap();
+    writeln!(
+        out,
+        "  Length:     0x{:x} bytes",
+        proc_data.fixed.proc_len.get()
+    )
+    .unwrap();
     writeln!(
         out,
         "  Debug:      start=0x{:x} end=0x{:x}",
@@ -125,7 +130,12 @@ pub async fn get_proc_impl(
         writeln!(out, "  Flags:      {flags:?}").unwrap();
     }
 
-    writeln!(out, "  Module:     [{mod_index}] {}", module_info.module_name).unwrap();
+    writeln!(
+        out,
+        "  Module:     [{mod_index}] {}",
+        module_info.module_name
+    )
+    .unwrap();
 
     // Now walk the child symbols within this proc's scope
     if show_params || show_locals || show_blocks || show_inlinees {
@@ -255,14 +265,11 @@ pub async fn get_proc_impl(
 }
 
 /// Resolve a function name via GSI → S_PROCREF → (module_index, symbol_offset)
-fn resolve_proc_ref(
-    pdb: &ms_pdb::Pdb,
-    name: &str,
-) -> anyhow::Result<Option<(u32, u32)>> {
+fn resolve_proc_ref(pdb: &ms_pdb::Pdb, name: &str) -> anyhow::Result<Option<(u32, u32)>> {
     let gss = pdb.gss()?;
     let gsi = pdb.gsi()?;
 
-    let sym = match gsi.find_symbol(&gss, BStr::new(name.as_bytes()))? {
+    let sym = match gsi.find_symbol(gss, BStr::new(name.as_bytes()))? {
         Some(s) => s,
         None => return Ok(None),
     };
