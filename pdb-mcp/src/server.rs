@@ -412,7 +412,51 @@ impl PdbMcpServer {
             None => format!("{name}\n  (not decorated, or unrecognized mangling scheme)"),
         }
     }
-}
+    /// Get detailed information about a procedure (function) by resolving through the GSI and module stream.
+    #[tool(description = "Get detailed information about a procedure (function). Resolves the name through the GSI to the actual S_GPROC32/S_LPROC32 record in the module stream. Returns address, code length, type signature, and optionally parameters, locals, inline sites, and block scopes. Use boolean flags to control detail level.")]
+    async fn get_proc(
+        &self,
+        #[tool(param)]
+        #[schemars(description = "Alias of the open PDB")]
+        alias: String,
+        #[tool(param)]
+        #[schemars(description = "Function name to look up via GSI (use this OR module+offset)")]
+        name: Option<String>,
+        #[tool(param)]
+        #[schemars(description = "Module index for direct access (use with offset instead of name)")]
+        module: Option<u32>,
+        #[tool(param)]
+        #[schemars(description = "Byte offset in module stream for direct access (use with module instead of name)")]
+        offset: Option<u32>,
+        #[tool(param)]
+        #[schemars(description = "Show both decorated and undecorated names (default false)")]
+        undecorate: Option<bool>,
+        #[tool(param)]
+        #[schemars(description = "Show function parameters with names and types (default true)")]
+        params: Option<bool>,
+        #[tool(param)]
+        #[schemars(description = "Show local variables with names and types (default false)")]
+        locals: Option<bool>,
+        #[tool(param)]
+        #[schemars(description = "Show S_BLOCK32 scope nesting (default false)")]
+        blocks: Option<bool>,
+        #[tool(param)]
+        #[schemars(description = "Show S_INLINESITE inlined function callees (default false)")]
+        inlinees: Option<bool>,
+    ) -> String {
+        crate::tools::proc::get_proc_impl(
+            self,
+            alias,
+            name,
+            module,
+            offset,
+            undecorate.unwrap_or(false),
+            params.unwrap_or(true),
+            locals.unwrap_or(false),
+            blocks.unwrap_or(false),
+            inlinees.unwrap_or(false),
+        ).await
+    }}
 
 #[tool(tool_box)]
 impl ServerHandler for PdbMcpServer {
