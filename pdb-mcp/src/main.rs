@@ -1,3 +1,14 @@
+//! # pdb-mcp — MCP Server for PDB Analysis
+//!
+//! An [MCP](https://modelcontextprotocol.io/) server that gives AI assistants structured,
+//! read-only access to Microsoft Program Database (PDB) files. Built on the `ms-pdb` library.
+//!
+//! The server communicates via JSON-RPC over stdio and exposes ~20 tools for querying symbols,
+//! types, modules, streams, and function details. It supports both PDB (MSF) and PDZ (MSFZ)
+//! container formats transparently.
+//!
+//! See `README.md` for the full tool list, installation instructions, and safety guidance.
+
 #![forbid(unsafe_code)]
 
 use anyhow::Result;
