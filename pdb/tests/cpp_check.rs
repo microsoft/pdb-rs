@@ -114,10 +114,9 @@ fn types() -> anyhow::Result<()> {
             .expect("expected find_symbol to succeed")
             .unwrap_or_else(|| panic!("expected find_symbol to succeed: {name}"));
         assert_eq!(sym.kind, kind, "expected symbol kind {kind:?} : {name}");
-        let sym_data = sym
-            .parse()
-            .unwrap_or_else(|e| panic!("expected symbol parse to succeed: {name} : {e:?}"));
-        sym_data
+
+        sym.parse()
+            .unwrap_or_else(|e| panic!("expected symbol parse to succeed: {name} : {e:?}"))
     };
 
     let get_global_data = |kind: SymKind, name: &str| -> Data {
