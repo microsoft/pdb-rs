@@ -609,6 +609,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ms-pdb-mcp"
+version = "0.1.20"
+dependencies = [
+ "anyhow",
+ "bstr",
+ "cpp_demangle",
+ "ms-codeview",
+ "ms-coff",
+ "ms-pdb",
+ "msvc-demangler",
+ "regex",
+ "rmcp",
+ "rustc-demangle",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "zerocopy 0.8.14",
+]
+
+[[package]]
 name = "ms-pdb-msf"
 version = "0.1.7"
 dependencies = [
@@ -710,29 +733,6 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
-
-[[package]]
-name = "pdb-mcp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "bstr",
- "cpp_demangle",
- "ms-codeview",
- "ms-coff",
- "ms-pdb",
- "msvc-demangler",
- "regex",
- "rmcp",
- "rustc-demangle",
- "schemars",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "zerocopy 0.8.14",
-]
 
 [[package]]
 name = "pdbtool"

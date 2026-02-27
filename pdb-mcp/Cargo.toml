@@ -1,6 +1,6 @@
 [package]
-name = "pdb-mcp"
-version = "0.1.0"
+name = "ms-pdb-mcp"
+version = "0.1.20"
 edition = "2024"
 description = "MCP server for analyzing PDB files using the ms-pdb library."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
