@@ -1,6 +1,6 @@
 [package]
 name = "ms-pdb-mcp"
-version = "0.1.21"
+version = "0.1.22"
 edition = "2024"
 description = "MCP server for analyzing PDB files using the ms-pdb library."
 authors = ["Arlie Davis <ardavis@microsoft.com>"]
@@ -24,7 +24,7 @@ rustc-demangle = "0.1"
 cpp_demangle = "0.5"
 
 [dependencies.ms-pdb]
-version = "0.1.21"
+version = "0.1.22"
 path = "../pdb"
 
 [dependencies.ms-coff]
@@ -32,5 +32,5 @@ version = "0.1.0"
 path = "../coff"
 
 [dependencies.ms-codeview]
-version = "0.1.0"
+version = "0.1.7"
 path = "../codeview"
