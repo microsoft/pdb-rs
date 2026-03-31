@@ -148,7 +148,7 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
 
     match options.subcommand {
         Subcommand::Globals { skip, max, types } => {
-            sym::dump_globals(&p, skip, max, false, types)?;
+            sym::dump_globals(&p, skip, max, false, types, &[])?;
         }
 
         Subcommand::Names(args) => {

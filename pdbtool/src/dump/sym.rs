@@ -40,6 +40,13 @@ pub fn dump_sym(
         }
     }
 
+    // If we are filtering by symbol kind, then do so now.
+    if !context.sym_kind_filter.is_empty() {
+        if !context.sym_kind_filter.contains(&kind) {
+            return Ok(());
+        }
+    }
+
     if context.scope_depth == 0 && kind.starts_scope() {
         writeln!(out)?;
     }
@@ -332,6 +339,7 @@ pub struct DumpSymsContext<'a> {
     pub show_type_index: bool,
     pub ipi: &'a TypeStream<Vec<u8>>,
     pub arch: Arch,
+    pub sym_kind_filter: Vec<SymKind>,
 }
 
 impl<'a> DumpSymsContext<'a> {
@@ -347,7 +355,24 @@ impl<'a> DumpSymsContext<'a> {
             show_type_index: false,
             ipi,
             arch,
+            sym_kind_filter: Vec::new(),
         }
+    }
+
+    pub fn add_kind_filter(&mut self, filter: &str) -> anyhow::Result<()> {
+        for f in filter.split(',') {
+            let f = f.trim_ascii();
+            if f.is_empty() {
+                continue;
+            }
+            if let Some(sym_kind) = SymKind::from_str(f) {
+                self.sym_kind_filter.push(sym_kind);
+            } else {
+                bail!("symbol filter '{f}' is not a recognized symbol kind");
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -357,6 +382,7 @@ pub fn dump_globals(
     max_opt: Option<usize>,
     show_bytes: bool,
     show_types: bool,
+    symbol_kind_filters: &[String],
 ) -> anyhow::Result<()> {
     println!("Global symbols:");
     let arch = p.arch()?;
@@ -373,6 +399,7 @@ pub fn dump_globals(
         0,
         show_bytes,
         show_types,
+        symbol_kind_filters,
     )?;
     Ok(())
 }
@@ -387,6 +414,7 @@ pub fn dump_symbol_stream(
     stream_offset: u32,
     show_bytes: bool,
     show_types: bool,
+    symbol_filters: &[String],
 ) -> anyhow::Result<()> {
     let mut iter = SymIter::new(symbol_records).with_ranges();
 
@@ -404,6 +432,10 @@ pub fn dump_symbol_stream(
     let mut out = String::new();
     let mut context = DumpSymsContext::new(arch, type_stream, ipi);
     context.show_type_index = show_types;
+
+    for f in symbol_filters.iter() {
+        context.add_kind_filter(f)?;
+    }
 
     for (record_range, sym) in iter {
         out.clear();
@@ -453,6 +485,10 @@ pub struct DumpModuleSymbols {
     /// Dump the hex bytes of each symbol record.
     #[arg(long)]
     pub bytes: bool,
+
+    /// Show only symbols with the given kind, e.g. `S_GDATA32`
+    #[arg(long)]
+    pub where_kind: Vec<String>,
 
     /// Show the contents of the Global Refs section.
     #[arg(long)]
@@ -508,6 +544,7 @@ pub fn dump_module_symbols(pdb: &Pdb, options: DumpModuleSymbols) -> anyhow::Res
             4,
             options.bytes,
             false,
+            &options.where_kind,
         )?;
 
         println!();

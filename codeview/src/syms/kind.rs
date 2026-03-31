@@ -173,6 +173,25 @@ sym_kinds! {
     0x1169, S_HOTPATCHFUNC;
 }
 
+impl SymKind {
+    /// Parses a symbol kind from string to `SymKind` value.
+    pub fn from_str(s: &str) -> Option<SymKind> {
+        if s.starts_with("S_") {
+            for &(k, name) in SYM_NAMES.iter() {
+                if name == s {
+                    return Some(k);
+                }
+            }
+        }
+
+        if let Ok(k) = u16::from_str_radix(s, 16) {
+            return Some(SymKind(k));
+        }
+
+        return None;
+    }
+}
+
 impl std::fmt::Debug for SymKind {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         if let Ok(index) = SYM_NAMES.binary_search_by_key(self, |ii| ii.0) {
