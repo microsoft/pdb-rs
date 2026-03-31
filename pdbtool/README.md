@@ -108,20 +108,20 @@ Options:
 
 ## Converting PDB files to Compressed PDB (PDZ/MSFZ)
 
-> **WARNING** **WARNING** **WARNING** **WARNING** **WARNING**
->
-> This tool provides an _experimental_ capability for compressing PDBs into a new PDB container
-> format, called MSFZ. See the [MSFZ Container Specification](https://github.com/microsoft/pdb-rs/blob/main/msfz/src/msfz.md).
-> This container specification is _experimental_ and is not guaranteed to be stable. It may change
-> at any time; there is no guarantee of compatibility, stability, or reliability. It is defined
-> for the purposes of experimentation.
->
-> **WARNING** **WARNING** **WARNING** **WARNING** **WARNING**
+This tool provides a command for compressing PDBs into a new PDB container format, called MSFZ.
+See the [MSFZ Container Specification](https://github.com/microsoft/pdb-rs/blob/main/docs/pdb/msfz.md).
+The MSFZ container format is still _experimental_ (under development) and is not guaranteed to
+be stable. Microsoft may change the specification for MSFZ at any time and without notice or any
+obligation whatsoever; there is no guarantee of compatibility, stability, or reliability, etc.
 
-MSFZ is intended to reduce development costs, by defining a compression format for PDB, which
-still allows tools (such as debuggers) to read from compressed PDBs by decompressing only those
-parts of the PDB that are needed. This avoids the need to decompress the entire PDB. See the
-specification (linked above) for details.
+MSFZ defines a compression format for PDB, while still allowing tools (such as debuggers) to read
+from compressed PDBs by decompressing only those parts of the PDB that are needed.
+This avoids the need to decompress the entire PDB.
+See the specification (linked above) for details.
+
+MSFZ is intended to be an archival format, optimized for storing large collections of compressed
+PDBs, such as those served by Microsoft's SymWeb service. MSFZ is **not** intended to be used as
+part of iterative development loops, such as incremental linking.
 
 To convert a PDB file to a compressed PDB:
 

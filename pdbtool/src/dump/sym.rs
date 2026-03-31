@@ -365,7 +365,7 @@ impl<'a> DumpSymsContext<'a> {
             if f.is_empty() {
                 continue;
             }
-            if let Some(sym_kind) = SymKind::from_str(f) {
+            if let Ok(sym_kind) = f.parse::<SymKind>() {
                 self.sym_kind_filter.push(sym_kind);
             } else {
                 bail!("symbol filter '{f}' is not a recognized symbol kind");
