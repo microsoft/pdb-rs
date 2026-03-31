@@ -41,10 +41,8 @@ pub fn dump_sym(
     }
 
     // If we are filtering by symbol kind, then do so now.
-    if !context.sym_kind_filter.is_empty() {
-        if !context.sym_kind_filter.contains(&kind) {
-            return Ok(());
-        }
+    if !context.sym_kind_filter.is_empty() && !context.sym_kind_filter.contains(&kind) {
+        return Ok(());
     }
 
     if context.scope_depth == 0 && kind.starts_scope() {
