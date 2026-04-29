@@ -94,6 +94,14 @@ Value (decimal) | Identifier   | Description
 
 This specification covers only version MSVC 11.0+ (`DBIImpV110`).
 
+## Age
+
+The `age` field should always have the same value as the `age` field in the
+[PDBI Stream](./pdbi_stream.md). Some tools are known to modify one `age`
+field without modifying the other; these tools are in error. Tools which
+read PDBs should use the value of the `age` field in the PDBI Stream, if the
+`age` fields in PDBI Stream and DBI Stream Header differ.
+
 ## Global symbols
 
 The DBI Stream Header contains three fields that point to streams which are

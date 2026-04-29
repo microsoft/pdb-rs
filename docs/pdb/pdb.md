@@ -41,7 +41,7 @@ The PDB Information Stream is always stream 1.
 
 ## Debug Information Stream (DBI) - Fixed Stream 3
 
-The [Debug Information Stream (DBI)](dbi.md) is a central data structure for
+The [Debug Information Stream (DBI)](dbi_stream.md) is a central data structure for
 debugging. It is always stream 3.
 
 The DBI contains:
