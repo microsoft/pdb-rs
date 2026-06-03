@@ -105,6 +105,7 @@ Code (Hex) | Name                                         | Location      | Desc
 `112D`     | [`S_MANCONSTANT`](s_constant.md)             | module        | Managed constant
 `1137`     | [`S_COFFGROUP`](s_coffgroup.md)              | module        | COFF group (subsection)
 `1136`     | [`S_SECTION`](s_section.md)                  | module        | COFF section in a PE executable
+`1139`     | [`S_CALLSITEINFO`](s_callsiteinfo.md)        | module        | Indirect call site type information
 `113C`     | [`S_COMPILE3`](s_compile.md)                 | module        | Compiler version and flags (extended)
 `113E`     | [`S_LOCAL`](s_local.md)                      | module        | Local variable
 `113F`     | [`S_DEFRANGE`](s_local.md)                   | module        | Define range for local variable
