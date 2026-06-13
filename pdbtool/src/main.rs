@@ -11,6 +11,7 @@ use clap::Parser;
 mod addsrc;
 mod check;
 mod compare;
+mod completions;
 mod container;
 mod copy;
 mod counts;
@@ -72,6 +73,8 @@ enum Command {
     Hexdump(hexdump::HexdumpOptions),
     PdzEncode(pdz::encode::PdzEncodeOptions),
     Check(check::CheckOptions),
+
+    Completions(completions::CompletionsOptions),
 }
 
 fn main() -> anyhow::Result<()> {
@@ -92,6 +95,7 @@ fn main() -> anyhow::Result<()> {
         Command::Container(args) => container::container_command(&args)?,
         Command::Compare(args) => compare::command(args)?,
         Command::Check(args) => check::command(args)?,
+        Command::Completions(args) => completions::command(args)?,
     }
 
     Ok(())
