@@ -10,7 +10,7 @@ struct CallSiteInfo {
 ```
 
 Describes an indirect call site by binding the address of a call instruction
-to a CodeView type that gives the callee's function-pointer signature.
+to a CodeView type that gives the callee's signature.
 
 `offset` and `segment` together give the section-relative address of the call
 instruction in the code stream.
@@ -18,11 +18,38 @@ instruction in the code stream.
 `reserved` is padding and must be zero.
 
 `type` is a [`TypeIndex`](../types/types.md) that identifies the callee's
-function-pointer type. In practice this is an `LF_PROCEDURE` or `LF_MFUNCTION`
-record (occasionally an `LF_POINTER` that refers to one) describing the same
-prototype as the function-pointer expression in source. Tools use this to
-recover parameter and return types for call sites where the textual disassembly
-shows only an indirect target such as `call qword ptr [__imp_X]`.
+signature. Tools use this to recover parameter and return types for call sites
+where the textual disassembly shows only an indirect target such as
+`call qword ptr [__imp_X]`.
+
+The `type` field mimics the static type of the callee *expression* in source
+rather than the bare function prototype, so its exact shape depends on the kind
+of indirect call. The format itself only requires a `TypeIndex`; the shapes are:
+
+| Call kind | `type` shape |
+| --- | --- |
+| Function-pointer or import-thunk (`__imp_*`) call | `LF_POINTER` (near, target width) -> `LF_PROCEDURE` |
+| Virtual or other non-static member-function call | a bare `LF_MFUNCTION` |
+| Member-function-pointer call (`(obj.*pmf)()`) | `LF_POINTER` (`PointerToMemberFunction` mode) -> `LF_MFUNCTION` |
+
+The pointer wrapper around a function-pointer call is a near pointer whose width
+The pointer wrapper around a function-pointer call is a near pointer whose width
+matches the target (`Near32` on 32-bit, `Near64` on 64-bit). An `LF_MFUNCTION`
+is used wherever the callee is a non-static member function because, unlike
+`LF_PROCEDURE`, it records the containing class and the implicit `this`
+pointer; a virtual call references that record directly (unwrapped), while a
+member-function pointer references it through a member-function pointer.
+
+For a member-function-pointer call the wrapping `LF_POINTER` is in
+`PointerToMemberFunction` mode only when the member pointer uses single
+inheritance. Under multiple or virtual inheritance the member pointer is a wider
+structure, but the value actually invoked at the call site is still just a code
+address, so the wrapper is a plain near `LF_POINTER` (`Pointer` mode) to the
+`LF_MFUNCTION` instead.
+
+Consumers should therefore be prepared to follow an `LF_POINTER` of any mode to
+the underlying `LF_PROCEDURE` or `LF_MFUNCTION`, and to accept a bare
+`LF_PROCEDURE` or `LF_MFUNCTION` directly.
 
 `S_CALLSITEINFO` is emitted for *indirect* call sites: function-pointer calls,
 virtual calls, and calls through import thunks (`__imp_*`) which execute as
