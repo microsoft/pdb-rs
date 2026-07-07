@@ -635,6 +635,38 @@ impl<'a> Parse<'a> for RegRel<'a> {
     }
 }
 
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+#[allow(missing_docs)]
+pub struct RegRelIndirFixed {
+    pub offset: U32<LE>,
+    pub ty: TypeIndexLe,
+    /// Offset to be added after dereferencing [`register`][Self::register]` + `[`offset`][Self::offset].
+    pub offset_in_udt: U32<LE>,
+    pub register: U16<LE>,
+    // name: strz
+}
+
+/// `S_REGREGL32_INDIR`: This symbol specifies a symbol located relative to a dereference of a register.
+///
+/// The location in pseudocode can be expressed as `*($register + offset) + offset_in_udt`.
+/// This symbol should be used for bindings to subfields of records (e.g. C++ structured bindings).
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct RegRelIndir<'a> {
+    pub fixed: &'a RegRelIndirFixed,
+    pub name: &'a BStr,
+}
+
+impl<'a> Parse<'a> for RegRelIndir<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            fixed: p.get()?,
+            name: p.strz()?,
+        })
+    }
+}
+
 /// Block Start: This symbol specifies the start of an inner block of lexically scoped symbols.
 /// The lexical scope is terminated by a matching `S_END` symbol.
 ///
@@ -857,6 +889,49 @@ pub struct DefRangeRegisterRelFixed {
 }
 
 impl<'a> Parse<'a> for DefRangeRegisterRel<'a> {
+    fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
+        Ok(Self {
+            fixed: p.get()?,
+            gaps: p.take_rest(),
+        })
+    }
+}
+
+#[repr(C)]
+#[derive(IntoBytes, Immutable, KnownLayout, FromBytes, Unaligned, Debug)]
+#[allow(missing_docs)]
+pub struct DefRangeRegisterRelIndirFixed {
+    /// Register to hold the base pointer of the symbol
+    pub base_reg: U16<LE>,
+
+    /// ```text
+    /// unsigned short  spilledUdtMember : 1;   // Spilled member for s.i.
+    /// unsigned short  padding          : 3;   // Padding for future use.
+    /// unsigned short  offsetParent     : CV_OFFSET_PARENT_LENGTH_LIMIT;  // Offset in parent variable.
+    /// ```
+    pub flags: U16<LE>,
+
+    /// Offset to register
+    pub base_pointer_offset: I32<LE>,
+
+    /// Offset to be added after dereferencing [`base_reg`][Self::base_reg]` + `[`base_pointer_offset`][Self::base_pointer_offset].
+    pub offset_in_udt: I32<LE>,
+
+    /// Range of addresses where this program is valid
+    pub range: LVarAddrRange,
+}
+
+/// `S_DEFRANGE_REGISTER_REL_INDIR`
+///
+/// See also [`S_REGREL32_INDIR`][RegRelIndir].
+#[derive(Clone, Debug)]
+#[allow(missing_docs)]
+pub struct DefRangeRegisterRelIndir<'a> {
+    pub fixed: &'a DefRangeRegisterRelIndirFixed,
+    pub gaps: &'a [u8],
+}
+
+impl<'a> Parse<'a> for DefRangeRegisterRelIndir<'a> {
     fn from_parser(p: &mut Parser<'a>) -> Result<Self, ParserError> {
         Ok(Self {
             fixed: p.get()?,
@@ -1534,12 +1609,14 @@ pub enum SymData<'a> {
     End,
     FrameProc(&'a FrameProc),
     RegRel(RegRel<'a>),
+    RegRelIndir(RegRelIndir<'a>),
     Block(Block<'a>),
     Local(Local<'a>),
     DefRange(DefRange<'a>),
     DefRangeFramePointerRel(DefRangeSymFramePointerRel<'a>),
     DefRangeRegister(DefRangeRegister<'a>),
     DefRangeRegisterRel(DefRangeRegisterRel<'a>),
+    DefRangeRegisterRelIndir(DefRangeRegisterRelIndir<'a>),
     DefRangeFramePointerRelFullScope(&'a DefRangeFramePointerRelFullScope),
     DefRangeSubFieldRegister(DefRangeSubFieldRegister<'a>),
     Trampoline(Trampoline<'a>),
@@ -1599,12 +1676,14 @@ impl<'a> SymData<'a> {
             SymKind::S_END => Self::End,
             SymKind::S_FRAMEPROC => Self::FrameProc(p.get()?),
             SymKind::S_REGREL32 => Self::RegRel(p.parse()?),
+            SymKind::S_REGREL32_INDIR => Self::RegRelIndir(p.parse()?),
             SymKind::S_BLOCK32 => Self::Block(p.parse()?),
             SymKind::S_LOCAL => Self::Local(p.parse()?),
             SymKind::S_DEFRANGE => Self::DefRange(p.parse()?),
             SymKind::S_DEFRANGE_FRAMEPOINTER_REL => Self::DefRangeFramePointerRel(p.parse()?),
             SymKind::S_DEFRANGE_REGISTER => Self::DefRangeRegister(p.parse()?),
             SymKind::S_DEFRANGE_REGISTER_REL => Self::DefRangeRegisterRel(p.parse()?),
+            SymKind::S_DEFRANGE_REGISTER_REL_INDIR => Self::DefRangeRegisterRelIndir(p.parse()?),
             SymKind::S_DEFRANGE_FRAMEPOINTER_REL_FULL_SCOPE => {
                 Self::DefRangeFramePointerRelFullScope(p.get()?)
             }

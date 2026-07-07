@@ -171,6 +171,9 @@ sym_kinds! {
     0x1167, S_FASTLINK;
     0x1168, S_INLINEES;
     0x1169, S_HOTPATCHFUNC;
+
+    0x1171, S_REGREL32_INDIR;
+    0x1177, S_DEFRANGE_REGISTER_REL_INDIR;
 }
 
 #[derive(Copy, Clone, Debug)]

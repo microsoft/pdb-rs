@@ -175,6 +175,19 @@ pub fn dump_sym(
             write!(out, " {}", reg_rel.name)?;
         }
 
+        SymData::RegRelIndir(reg_rel_indir) => {
+            let reg = reg_rel_indir.fixed.register.get();
+            let arch_reg = ArchReg::new(context.arch, reg);
+            write!(
+                out,
+                "*({arch_reg} + 0x{offset:x}) + 0x{offset_in_udt:x}, ",
+                offset = reg_rel_indir.fixed.offset.get(),
+                offset_in_udt = reg_rel_indir.fixed.offset_in_udt.get(),
+            )?;
+            ty_ref(out, context, reg_rel_indir.fixed.ty.get());
+            write!(out, " {}", reg_rel_indir.name)?;
+        }
+
         SymData::Block(block) => {
             write!(out, "length: 0x{:x}", block.fixed.length.get())?;
 
@@ -235,6 +248,14 @@ pub fn dump_sym(
                 out,
                 "base register: 0x{:x}, base pointer offset: {}",
                 r.fixed.base_reg, r.fixed.base_pointer_offset
+            )?;
+        }
+
+        SymData::DefRangeRegisterRelIndir(r) => {
+            write!(
+                out,
+                "base register: 0x{:x}, base pointer offset: {}, offset in udt: {}",
+                r.fixed.base_reg, r.fixed.base_pointer_offset, r.fixed.offset_in_udt
             )?;
         }
 
