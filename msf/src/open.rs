@@ -151,7 +151,7 @@ impl<F: ReadAt> Msf<F> {
 
         // Create the PageAllocator. This initializes the fpm vector to "everything is free"
         // and then sets Page 0 and the FPM pages as "free". Nothing is marked as "freed".
-        let mut page_allocator = PageAllocator::new(num_pages as usize, page_size_pow2);
+        let mut page_allocator = PageAllocator::new(num_pages as usize, page_size_pow2, msf_kind);
 
         let mut committed_stream_pages: Vec<Page>;
         let mut committed_stream_page_starts: Vec<u32>;
@@ -467,14 +467,15 @@ impl<F: ReadAt> Msf<F> {
         assert!(options.page_size <= MAX_PAGE_SIZE);
 
         let num_pages: usize = 3;
+        let msf_kind: MsfKind = MsfKind::Big;
 
         let mut this = Self {
             file,
             access_mode: AccessMode::ReadWrite,
             committed_stream_pages: vec![],
             committed_stream_page_starts: vec![0; 2],
-            kind: MsfKind::Big,
-            pages: PageAllocator::new(num_pages, options.page_size),
+            kind: msf_kind,
+            pages: PageAllocator::new(num_pages, options.page_size, msf_kind),
             modified_streams: HashMap::new(),
             stream_sizes: vec![0],
             active_fpm: 2,
