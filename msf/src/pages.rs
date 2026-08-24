@@ -256,6 +256,8 @@ pub(super) struct PageAllocator {
 
     pub(super) page_size: PageSize,
 
+    pub(super) msf_kind: MsfKind,
+
     /// A reusable buffer whose length is `page_size`.
     #[allow(dead_code)]
     pub(super) page_buffer: Box<[u8]>,
@@ -269,22 +271,34 @@ impl PageAllocator {
     ///
     /// We begin with setting _all_ pages free. Then we mark Page 0 and the FPM pages as busy.
     /// It is the caller's responsibility to set other bits in the FPM accordingly.
-    pub(crate) fn new(num_pages: usize, page_size: PageSize) -> Self {
+    pub(crate) fn new(num_pages: usize, page_size: PageSize, msf_kind: MsfKind) -> Self {
         let mut fpm: BitVec<u32, Lsb0> = BitVec::with_capacity(num_pages);
         fpm.resize(num_pages, true);
         fpm.set(0, false);
 
-        // Mark FPM pages as busy.
-        for interval in 0u32.. {
-            let fpm1_page = (interval << page_size.exponent()) + 1u32;
-            let fpm2_page = fpm1_page + 1u32;
-            if let Some(mut b) = fpm.get_mut(fpm1_page as usize) {
-                b.set(false);
+        match msf_kind {
+            MsfKind::Small => {
+                if let Some(mut b) = fpm.get_mut(0) {
+                    b.set(false);
+                }
+                if let Some(mut b) = fpm.get_mut(1) {
+                    b.set(false);
+                }
             }
-            if let Some(mut b) = fpm.get_mut(fpm2_page as usize) {
-                b.set(false);
-            } else {
-                break;
+            MsfKind::Big => {
+                // Mark FPM pages as busy.
+                for interval in 0u32.. {
+                    let fpm1_page = (interval << page_size.exponent()) + 1u32;
+                    let fpm2_page = fpm1_page + 1u32;
+                    if let Some(mut b) = fpm.get_mut(fpm1_page as usize) {
+                        b.set(false);
+                    }
+                    if let Some(mut b) = fpm.get_mut(fpm2_page as usize) {
+                        b.set(false);
+                    } else {
+                        break;
+                    }
+                }
             }
         }
 
@@ -301,6 +315,7 @@ impl PageAllocator {
             next_free_page_hint: 0,
             num_pages: num_pages as u32,
             page_size,
+            msf_kind,
             // unwrap() is for OOM handling
             page_buffer: FromZeros::new_box_zeroed_with_elems(usize::from(page_size)).unwrap(),
         }
@@ -566,29 +581,31 @@ impl PageAllocator {
 
         // Check that the pages assigned to the FPM are marked "busy" in all intervals.
 
-        let mut interval: u32 = 0;
-        loop {
-            let p = (interval << self.page_size.exponent()) as usize;
-            let fpm1_index = p + 1;
-            let fpm2_index = p + 2;
+        if self.msf_kind == MsfKind::Big {
+            let mut interval: u32 = 0;
+            loop {
+                let p = (interval << self.page_size.exponent()) as usize;
+                let fpm1_index = p + 1;
+                let fpm2_index = p + 2;
 
-            if fpm1_index < self.fpm.len() {
-                assert!(!self.fpm[fpm1_index], "All FPM pages should be marked BUSY");
-                assert!(
-                    !self.fpm_freed[fpm1_index],
-                    "FPM pages should never be deleted"
-                );
-            }
+                if fpm1_index < self.fpm.len() {
+                    assert!(!self.fpm[fpm1_index], "All FPM pages should be marked BUSY");
+                    assert!(
+                        !self.fpm_freed[fpm1_index],
+                        "FPM pages should never be deleted"
+                    );
+                }
 
-            if fpm2_index < self.fpm.len() {
-                assert!(!self.fpm[fpm2_index], "All FPM pages should be marked BUSY");
-                assert!(
-                    !self.fpm_freed[fpm2_index],
-                    "FPM pages should never be deleted"
-                );
-                interval += 1;
-            } else {
-                break;
+                if fpm2_index < self.fpm.len() {
+                    assert!(!self.fpm[fpm2_index], "All FPM pages should be marked BUSY");
+                    assert!(
+                        !self.fpm_freed[fpm2_index],
+                        "FPM pages should never be deleted"
+                    );
+                    interval += 1;
+                } else {
+                    break;
+                }
             }
         }
 
