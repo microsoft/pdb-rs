@@ -636,8 +636,38 @@ pub struct FrameProc {
     save_regs_size: U32<LE>,
     offset_exception_handler: U32<LE>,
     exception_handler_section: U16<LE>,
-    padding: U16<LE>,
     flags: U32<LE>,
+}
+
+impl FrameProc {
+    /// Count of bytes in the whole stack frame.
+    pub fn frame_size(&self) -> u32 {
+        self.frame_size.get()
+    }
+}
+
+#[test]
+fn test_parse_frame_proc() {
+    let data = [
+        0x00, 0x02, 0x00, 0x00, // frame_size
+        0x10, 0x00, 0x00, 0x00, // pad_size
+        0x20, 0x00, 0x00, 0x00, // pad_offset
+        0x08, 0x00, 0x00, 0x00, // save_regs_size
+        0x78, 0x56, 0x34, 0x12, // offset_exception_handler
+        0xbc, 0x9a, // exception_handler_section
+        0x44, 0x33, 0x22, 0x11, // flags
+    ];
+
+    for padding in [&[][..], &[0xf1, 0xf2][..]] {
+        let mut payload = data.to_vec();
+        payload.extend_from_slice(padding);
+        let SymData::FrameProc(frame) = SymData::parse(SymKind::S_FRAMEPROC, &payload).unwrap()
+        else {
+            panic!("Expected S_FRAMEPROC");
+        };
+        assert_eq!(frame.frame_size(), 512);
+        assert_eq!(frame.flags.get(), 0x11223344);
+    }
 }
 
 #[repr(C)]

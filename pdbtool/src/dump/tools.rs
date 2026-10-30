@@ -8,6 +8,10 @@ pub struct ToolsOptions {
     /// Sort results by library
     #[arg(long)]
     pub by_lib: bool,
+
+    /// Use full names for tools. Without this, short names are used.
+    #[arg(long)]
+    pub full_name: bool,
 }
 
 pub fn dump_tools(p: &Pdb, options: &ToolsOptions) -> Result<()> {
@@ -74,8 +78,13 @@ pub fn dump_tools(p: &Pdb, options: &ToolsOptions) -> Result<()> {
                 tools_map.insert(tool_name.to_string(), 1);
             }
 
+            let mut tool_alias = tool_name.as_str();
+            if !options.full_name {
+                tool_alias = get_short_tool_name(tool_alias);
+            }
+
             println!(
-                "{module_index:6} | {tool_name} | {module_name:80} | {obj_file}",
+                "{module_index:6} | {tool_alias:10} | {module_name:80} | {obj_file}",
                 module_name = module.module_name().to_string(),
                 obj_file = module.obj_file().to_string(),
             );
@@ -108,4 +117,18 @@ pub fn dump_tools(p: &Pdb, options: &ToolsOptions) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn get_short_tool_name(name: &str) -> &str {
+    if name == "Microsoft (R) Optimizing Compiler" {
+        "msvc"
+    } else if name.starts_with("clang") {
+        "clang"
+    } else if name == "Microsoft (R) Macro Assembler" {
+        "masm"
+    } else if name == "LLVM Linker" {
+        "lld"
+    } else {
+        name
+    }
 }

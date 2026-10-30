@@ -95,6 +95,7 @@ Commands:
   section-contribs     Dump section contributions (quite large!)
   pdbi                 Dump the PDB Info Stream
   module-symbols       Displays the symbols for a specific module
+  stacksizes           Dump procedure frame sizes, largest first, across all modules
   hex                  Dump the contents of a stream, or a subsection of it, using a hexadecimal dump format. By default, this will only show a portion of the stream; use `--len` to increase it
   help                 Print this message or the help of the given subcommand(s)
 
@@ -171,4 +172,3 @@ trademarks or logos are subject to those third-party's policies.
 
 * `sivadeilra` on GitHub
 * Arlie Davis ardavis@microsoft.com
-

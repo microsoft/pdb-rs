@@ -24,6 +24,7 @@ mod lines;
 mod names;
 mod sections;
 mod sources;
+mod stacksizes;
 mod streams;
 pub mod sym;
 mod tools;
@@ -94,6 +95,9 @@ pub enum Subcommand {
     Pdbi,
 
     ModuleSymbols(sym::DumpModuleSymbols),
+
+    /// Dump procedure frame sizes, largest first, across all modules.
+    Stacksizes(stacksizes::StackSizesOptions),
 
     /// Dump the contents of a stream, or a subsection of it, using a hexadecimal dump format.
     /// By default, this will only show a portion of the stream; use `--len` to increase it.
@@ -191,6 +195,8 @@ pub fn dump_main(options: DumpOptions) -> anyhow::Result<()> {
         Subcommand::Pdbi => dump_pdbi(&p)?,
 
         Subcommand::ModuleSymbols(args) => sym::dump_module_symbols(&p, args)?,
+
+        Subcommand::Stacksizes(args) => stacksizes::dump_stack_sizes(&p, &dbi_stream, args)?,
 
         Subcommand::Tpi(opts) => {
             let arch = p.arch()?;
